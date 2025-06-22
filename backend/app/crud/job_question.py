@@ -2,10 +2,10 @@
 JobQuestion DAO for database operations.
 """
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from app.crud.base import BaseDAO
 from app.models.interview import JobQuestion
-from app.schemas.job_question import JobQuestionResponse, JobQuestionCreate, JobQuestionUpdate, JobQuestionWithDetails
+from app.schemas.job_question import JobQuestionResponse, JobQuestionCreate, JobQuestionUpdate
 
 
 class JobQuestionDAO(BaseDAO[JobQuestion, JobQuestionResponse, JobQuestionCreate, JobQuestionUpdate]):
@@ -51,16 +51,7 @@ class JobQuestionDAO(BaseDAO[JobQuestion, JobQuestionResponse, JobQuestionCreate
             return True
         return False
 
-    def get_with_details(self, db: Session, id: int) -> Optional[JobQuestionWithDetails]:
-        """Get a job question with job and question details."""
-        job_question = db.query(self.model).options(
-            joinedload(self.model.job),
-            joinedload(self.model.question)
-        ).filter(self.model.id == id).first()
-        
-        if job_question:
-            return JobQuestionWithDetails.from_model(job_question)
-        return None
+
 
     def get_by_job(self, db: Session, job_id: int, *, skip: int = 0, limit: int = 100) -> List[JobQuestionResponse]:
         """Get all questions for a specific job, ordered by order_index."""

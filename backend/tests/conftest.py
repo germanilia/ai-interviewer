@@ -98,6 +98,48 @@ def user_dao():
 
 
 @pytest.fixture
+def candidate_dao():
+    """Create a CandidateDAO instance."""
+    from app.crud.candidate import CandidateDAO
+    return CandidateDAO()
+
+
+@pytest.fixture
+def interview_dao():
+    """Create an InterviewDAO instance."""
+    from app.crud.interview import InterviewDAO
+    return InterviewDAO()
+
+
+@pytest.fixture
+def question_dao():
+    """Create a QuestionDAO instance."""
+    from app.crud.question import QuestionDAO
+    return QuestionDAO()
+
+
+@pytest.fixture
+def job_dao():
+    """Create a JobDAO instance."""
+    from app.crud.job import JobDAO
+    return JobDAO()
+
+
+@pytest.fixture
+def job_question_dao():
+    """Create a JobQuestionDAO instance."""
+    from app.crud.job_question import JobQuestionDAO
+    return JobQuestionDAO()
+
+
+@pytest.fixture
+def interview_question_dao():
+    """Create an InterviewQuestionDAO instance."""
+    from app.crud.interview_question import InterviewQuestionDAO
+    return InterviewQuestionDAO()
+
+
+@pytest.fixture
 def user_service(user_dao):
     """Create a UserService instance with injected UserDAO."""
     return UserService(user_dao)

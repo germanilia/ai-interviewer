@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Any, TYPE_CHECKING
 from datetime import datetime
 from app.models.interview import InterviewStatus, IntegrityScore, RiskLevel
@@ -34,7 +34,7 @@ class InterviewUpdate(BaseModel):
     job_id: Optional[int] = None
     status: Optional[InterviewStatus] = None
     interview_date: Optional[datetime] = None
-    score: Optional[int] = Field(None, ge=0, le=100)
+    score: Optional[int] = None
     integrity_score: Optional[IntegrityScore] = None
     risk_level: Optional[RiskLevel] = None
     conversation: Optional[dict[str, Any]] = None
