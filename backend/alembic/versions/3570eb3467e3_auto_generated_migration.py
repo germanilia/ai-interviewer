@@ -1,8 +1,8 @@
 """Auto-generated migration
 
-Revision ID: fc750e678df9
+Revision ID: 3570eb3467e3
 Revises: 
-Create Date: 2025-06-22 12:25:22.722317
+Create Date: 2025-06-22 15:34:40.518403
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'fc750e678df9'
+revision = '3570eb3467e3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -76,6 +76,7 @@ def upgrade() -> None:
     sa.Column('job_id', sa.Integer(), nullable=False),
     sa.Column('status', sa.Enum('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', name='interviewstatus'), nullable=False),
     sa.Column('interview_date', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('pass_key', sa.String(length=12), nullable=False),
     sa.Column('score', sa.Integer(), nullable=True),
     sa.Column('integrity_score', sa.Enum('LOW', 'MEDIUM', 'HIGH', name='integrityscore'), nullable=True),
     sa.Column('risk_level', sa.Enum('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', name='risklevel'), nullable=True),
@@ -92,6 +93,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_interviews_id'), 'interviews', ['id'], unique=False)
+    op.create_index(op.f('ix_interviews_pass_key'), 'interviews', ['pass_key'], unique=True)
     op.create_table('job_questions',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('job_id', sa.Integer(), nullable=False),
@@ -128,6 +130,7 @@ def downgrade() -> None:
     op.drop_table('interview_questions')
     op.drop_index(op.f('ix_job_questions_id'), table_name='job_questions')
     op.drop_table('job_questions')
+    op.drop_index(op.f('ix_interviews_pass_key'), table_name='interviews')
     op.drop_index(op.f('ix_interviews_id'), table_name='interviews')
     op.drop_table('interviews')
     op.drop_index(op.f('ix_questions_id'), table_name='questions')

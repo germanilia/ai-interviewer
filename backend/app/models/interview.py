@@ -66,6 +66,7 @@ class Interview(Base):
     # Interview basic info
     status = Column(Enum(InterviewStatus), default=InterviewStatus.PENDING, nullable=False)
     interview_date = Column(DateTime(timezone=True), nullable=True)
+    pass_key = Column(String(12), unique=True, nullable=False, index=True)
     
     # Interview results
     score = Column(Integer, nullable=True)  # Numeric score 0-100

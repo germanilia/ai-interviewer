@@ -1,10 +1,20 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, Any, TYPE_CHECKING
 from datetime import datetime
+import secrets
+import string
 from app.models.interview import InterviewStatus, IntegrityScore, RiskLevel
 
 if TYPE_CHECKING:
     from app.models.interview import Interview
+
+
+def generate_pass_key() -> str:
+    """Generate a unique 8-character alphanumeric pass key."""
+    characters = string.ascii_uppercase + string.digits
+    # Exclude confusing characters like 0, O, I, 1
+    characters = characters.replace('0', '').replace('O', '').replace('I', '').replace('1', '')
+    return ''.join(secrets.choice(characters) for _ in range(8))
 
 
 class InterviewBase(BaseModel):
@@ -17,6 +27,12 @@ class InterviewBase(BaseModel):
 
 class InterviewCreate(InterviewBase):
     """Schema for creating a new interview."""
+    pass_key: Optional[str] = None  # Will be auto-generated if not provided
+
+    def model_post_init(self, __context: Any) -> None:
+        """Auto-generate pass_key if not provided."""
+        if self.pass_key is None:
+            self.pass_key = generate_pass_key()
 
     def to_model(self) -> "Interview":
         """Convert Pydantic schema to SQLAlchemy model."""
@@ -25,7 +41,8 @@ class InterviewCreate(InterviewBase):
             candidate_id=self.candidate_id,
             job_id=self.job_id,
             status=self.status,
-            interview_date=self.interview_date
+            interview_date=self.interview_date,
+            pass_key=self.pass_key
         )
 
 
@@ -48,6 +65,7 @@ class InterviewUpdate(BaseModel):
 class InterviewResponse(InterviewBase):
     """Schema for interview responses."""
     id: int
+    pass_key: str  # Required in response
     score: Optional[int] = None
     integrity_score: Optional[IntegrityScore] = None
     risk_level: Optional[RiskLevel] = None

@@ -10,6 +10,7 @@ from app.models.interview import (
     InterviewStatus, IntegrityScore, RiskLevel, QuestionImportance,
     QuestionCategory, InterviewQuestionStatus
 )
+from app.schemas.interview import generate_pass_key
 from app.db import SessionLocal
 
 # Configure logging
@@ -425,6 +426,7 @@ def create_sample_interviews(db: Session, candidates: list, jobs: list):
             job_id=interview_data["job"].id,
             status=interview_data["status"],
             interview_date=interview_data["interview_date"],
+            pass_key=generate_pass_key(),
             score=interview_data.get("score"),
             integrity_score=interview_data.get("integrity_score"),
             risk_level=interview_data.get("risk_level"),

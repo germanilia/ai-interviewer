@@ -387,3 +387,126 @@ def test_interview_dao_delete_nonexistent_interview(db, interview_dao):
     """Test deleting a non-existent interview."""
     result = interview_dao.delete(db, id=99999)
     assert result is False
+
+
+def test_interview_dao_pass_key_auto_generation(db, interview_dao, candidate_dao, job_dao, user_dao):
+    """Test that pass_key is automatically generated when creating an interview."""
+    # Create dependencies
+    user_create = UserCreate(
+        username="passkey_user",
+        email="passkey@example.com",
+        full_name="Pass Key User"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    candidate_create = CandidateCreate(
+        first_name="Pass",
+        last_name="Key",
+        email="pass.key@example.com"
+    )
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
+
+    job_create = JobCreate(
+        title="Pass Key Job",
+        created_by_user_id=created_user.id
+    )
+    created_job = job_dao.create(db, obj_in=job_create)
+
+    # Create interview without specifying pass_key
+    interview_create = InterviewCreate(
+        candidate_id=created_candidate.id,
+        job_id=created_job.id,
+        status=InterviewStatus.PENDING
+    )
+
+    # Verify pass_key was auto-generated
+    assert interview_create.pass_key is not None
+    assert len(interview_create.pass_key) == 8
+    assert interview_create.pass_key.isalnum()
+
+    # Create the interview in database
+    created_interview = interview_dao.create(db, obj_in=interview_create)
+
+    # Verify pass_key is in the response
+    assert isinstance(created_interview, InterviewResponse)
+    assert created_interview.pass_key == interview_create.pass_key
+
+
+def test_interview_dao_pass_key_uniqueness(db, interview_dao, candidate_dao, job_dao, user_dao):
+    """Test that each interview gets a unique pass_key."""
+    # Create dependencies
+    user_create = UserCreate(
+        username="unique_user",
+        email="unique@example.com",
+        full_name="Unique User"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    candidate_create = CandidateCreate(
+        first_name="Unique",
+        last_name="Test",
+        email="unique.test@example.com"
+    )
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
+
+    job_create = JobCreate(
+        title="Unique Job",
+        created_by_user_id=created_user.id
+    )
+    created_job = job_dao.create(db, obj_in=job_create)
+
+    # Create multiple interviews
+    pass_keys = set()
+    for i in range(5):
+        interview_create = InterviewCreate(
+            candidate_id=created_candidate.id,
+            job_id=created_job.id,
+            status=InterviewStatus.PENDING
+        )
+        created_interview = interview_dao.create(db, obj_in=interview_create)
+        pass_keys.add(created_interview.pass_key)
+
+    # Verify all pass_keys are unique
+    assert len(pass_keys) == 5
+
+
+def test_interview_dao_custom_pass_key(db, interview_dao, candidate_dao, job_dao, user_dao):
+    """Test that custom pass_key can be provided."""
+    # Create dependencies
+    user_create = UserCreate(
+        username="custom_user",
+        email="custom@example.com",
+        full_name="Custom User"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    candidate_create = CandidateCreate(
+        first_name="Custom",
+        last_name="Test",
+        email="custom.test@example.com"
+    )
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
+
+    job_create = JobCreate(
+        title="Custom Job",
+        created_by_user_id=created_user.id
+    )
+    created_job = job_dao.create(db, obj_in=job_create)
+
+    # Create interview with custom pass_key
+    custom_pass_key = "CUSTOM12"
+    interview_create = InterviewCreate(
+        candidate_id=created_candidate.id,
+        job_id=created_job.id,
+        status=InterviewStatus.PENDING,
+        pass_key=custom_pass_key
+    )
+
+    # Verify custom pass_key is used
+    assert interview_create.pass_key == custom_pass_key
+
+    # Create the interview in database
+    created_interview = interview_dao.create(db, obj_in=interview_create)
+
+    # Verify custom pass_key is preserved
+    assert created_interview.pass_key == custom_pass_key
