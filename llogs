@@ -1,0 +1,179 @@
+#!/bin/bash
+
+# Define colors
+RESET='\033[0m'
+TIME_COLOR='\033[38;5;39m'    # Light blue
+DEBUG_COLOR='\033[38;5;46m'   # Green
+INFO_COLOR='\033[38;5;82m'    # Light green
+WARNING_COLOR='\033[38;5;214m' # Orange
+ERROR_COLOR='\033[38;5;196m'  # Red
+CRITICAL_COLOR='\033[38;5;201m' # Magenta
+FILE_COLOR='\033[38;5;147m'   # Light purple
+LINE_COLOR='\033[38;5;147m'   # Light purple
+MSG_COLOR='\033[38;5;255m'    # White
+CONTEXT_COLOR='\033[38;5;245m' # Gray
+HIGHLIGHT_COLOR='\033[38;5;226m' # Yellow
+
+# Function to extract and format context information
+format_context() {
+  local line="$1"
+  local context=""
+  local parts=()
+  
+  # Extract common context fields
+  local database_name=$(echo "$line" | jq -r '.record.extra.database_name // empty')
+  local host=$(echo "$line" | jq -r '.record.extra.host // empty')
+  local port=$(echo "$line" | jq -r '.record.extra.port // empty')
+  local operation=$(echo "$line" | jq -r '.record.extra.operation // empty')
+  local status=$(echo "$line" | jq -r '.record.extra.status // empty')
+  local error=$(echo "$line" | jq -r '.record.extra.error // empty')
+  local request_id=$(echo "$line" | jq -r '.record.extra.request_id // empty')
+  local method=$(echo "$line" | jq -r '.record.extra.method // empty')
+  local path=$(echo "$line" | jq -r '.record.extra.path // empty')
+  local status_code=$(echo "$line" | jq -r '.record.extra.status_code // empty')
+  local process_time_ms=$(echo "$line" | jq -r '.record.extra.process_time_ms // empty')
+  local client_ip=$(echo "$line" | jq -r '.record.extra.client_ip // empty')
+  local service=$(echo "$line" | jq -r '.record.extra.service // empty')
+  local output=$(echo "$line" | jq -r '.record.extra.output // empty')
+  local warnings=$(echo "$line" | jq -r '.record.extra.warnings // empty')
+  
+  # Database context
+  if [[ -n "$database_name" && "$database_name" != "empty" ]]; then
+    parts+=("db:${HIGHLIGHT_COLOR}${database_name}${CONTEXT_COLOR}")
+  fi
+  
+  # Network context for database operations
+  if [[ -n "$host" && -n "$port" && "$host" != "empty" && "$port" != "empty" ]]; then
+    if [[ -n "$database_name" || -n "$operation" ]]; then
+      parts+=("${host}:${port}")
+    fi
+  fi
+  
+  # HTTP Request context
+  if [[ -n "$method" && -n "$path" && "$method" != "empty" && "$path" != "empty" ]]; then
+    local http_part="${HIGHLIGHT_COLOR}${method}${CONTEXT_COLOR} ${path}"
+    if [[ -n "$status_code" && "$status_code" != "empty" ]]; then
+      if [[ "$status_code" -ge 400 ]]; then
+        http_part="${http_part} ${ERROR_COLOR}${status_code}${CONTEXT_COLOR}"
+      elif [[ "$status_code" -ge 300 ]]; then
+        http_part="${http_part} ${WARNING_COLOR}${status_code}${CONTEXT_COLOR}"
+      else
+        http_part="${http_part} ${INFO_COLOR}${status_code}${CONTEXT_COLOR}"
+      fi
+    fi
+    if [[ -n "$process_time_ms" && "$process_time_ms" != "empty" ]]; then
+      http_part="${http_part} ${process_time_ms}ms"
+    fi
+    parts+=("${http_part}")
+  fi
+  
+  # Operation context
+  if [[ -n "$operation" && "$operation" != "empty" ]]; then
+    local op_part="op:${HIGHLIGHT_COLOR}${operation}${CONTEXT_COLOR}"
+    if [[ -n "$status" && "$status" != "empty" ]]; then
+      if [[ "$status" == "error" || "$status" == "failed" ]]; then
+        op_part="${op_part} ${ERROR_COLOR}${status}${CONTEXT_COLOR}"
+      elif [[ "$status" == "success" || "$status" == "initialized" ]]; then
+        op_part="${op_part} ${INFO_COLOR}${status}${CONTEXT_COLOR}"
+      else
+        op_part="${op_part} ${status}"
+      fi
+    fi
+    parts+=("${op_part}")
+  elif [[ -n "$status" && -n "$service" && "$status" != "empty" && "$service" != "empty" ]]; then
+    # Service status without operation
+    local svc_part="svc:${service}"
+    if [[ "$status" == "error" || "$status" == "failed" ]]; then
+      svc_part="${svc_part} ${ERROR_COLOR}${status}${CONTEXT_COLOR}"
+    elif [[ "$status" == "success" || "$status" == "initialized" ]]; then
+      svc_part="${svc_part} ${INFO_COLOR}${status}${CONTEXT_COLOR}"
+    else
+      svc_part="${svc_part} ${status}"
+    fi
+    parts+=("${svc_part}")
+  fi
+  
+  # Request ID (only for HTTP requests)
+  if [[ -n "$request_id" && -n "$method" && "$request_id" != "empty" && "$method" != "empty" ]]; then
+    local short_req_id=$(echo "$request_id" | cut -c1-8)
+    parts+=("req:${short_req_id}")
+  fi
+  
+  # Error context
+  if [[ -n "$error" && "$error" != "empty" && "$error" != "null" ]]; then
+    local short_error
+    if echo "$error" | grep -q "Connection refused"; then
+      short_error="Connection refused"
+    elif echo "$error" | grep -q "does not exist"; then
+      short_error="DB not found"
+    else
+      short_error=$(echo "$error" | head -c50)
+      if [[ ${#error} -gt 50 ]]; then
+        short_error="${short_error}..."
+      fi
+    fi
+    parts+=("${ERROR_COLOR}error:${short_error}${CONTEXT_COLOR}")
+  fi
+  
+  # Migration output
+  if [[ -n "$output" && "$output" != "empty" && "$output" != "null" ]]; then
+    if echo "$output" | grep -q "Added.*Python path"; then
+      parts+=("migration:setup")
+    fi
+  fi
+  
+  # Migration warnings
+  if [[ -n "$warnings" && "$warnings" != "empty" && "$warnings" != "null" ]]; then
+    local warning_count=$(echo "$warnings" | grep -o "INFO\|WARNING\|ERROR" | wc -l)
+    if [[ $warning_count -gt 0 ]]; then
+      parts+=("${WARNING_COLOR}warnings:${warning_count}${CONTEXT_COLOR}")
+    fi
+  fi
+  
+  # Join parts with separator
+  if [[ ${#parts[@]} -gt 0 ]]; then
+    local IFS=" | "
+    context=" [${parts[*]}]"
+  fi
+  
+  echo "$context"
+}
+
+# Process log file in real-time
+tail -f ./backend/logs/app.log | while read -r line; do
+  # Skip empty lines
+  [[ -z "$line" ]] && continue
+  
+  # Parse JSON with jq
+  timestamp=$(echo "$line" | jq -r '.record.time.repr')
+  level=$(echo "$line" | jq -r '.record.level.name')
+  filename=$(echo "$line" | jq -r '.record.file.name')
+  line_num=$(echo "$line" | jq -r '.record.line')
+  message=$(echo "$line" | jq -r '.record.message')
+  
+  # Skip if parsing failed
+  [[ "$timestamp" == "null" ]] && continue
+  
+  # Format timestamp to show only up to seconds
+  short_timestamp=$(echo "$timestamp" | sed 's/\.[0-9]*+.*//')
+  
+  # Set level color based on log level
+  level_color="$INFO_COLOR"
+  case "$level" in
+    "DEBUG")    level_color="$DEBUG_COLOR" ;;
+    "INFO")     level_color="$INFO_COLOR" ;;
+    "WARNING")  level_color="$WARNING_COLOR" ;;
+    "ERROR")    level_color="$ERROR_COLOR" ;;
+    "CRITICAL") level_color="$CRITICAL_COLOR" ;;
+  esac
+  
+  # Get context information
+  context=$(format_context "$line")
+  
+  # Print the formatted log entry
+  if [[ -n "$context" ]]; then
+    echo -e "${TIME_COLOR}${short_timestamp}${RESET} ${level_color}[${level}]${RESET} ${FILE_COLOR}${filename}${RESET}:${LINE_COLOR}${line_num}${RESET} | ${MSG_COLOR}${message}${RESET}${context}"
+  else
+    echo -e "${TIME_COLOR}${short_timestamp}${RESET} ${level_color}[${level}]${RESET} ${FILE_COLOR}${filename}${RESET}:${LINE_COLOR}${line_num}${RESET} | ${MSG_COLOR}${message}${RESET}"
+  fi
+done
