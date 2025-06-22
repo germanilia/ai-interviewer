@@ -48,7 +48,7 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <img
       src={logoSrc}
-      alt="My Boilerplate App Logo"
+      alt="AI Interviewer Logo"
       width={logoWidth}
       height={logoHeight}
       className={`${className} ${isIconOnly ? 'rounded-lg' : ''}`}

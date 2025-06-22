@@ -65,7 +65,7 @@ class ConfigService:
             "app_env": self._env,
             "debug": os.getenv("DEBUG", "True").lower() in ("true", "1", "t"),
             "api_prefix": os.getenv("API_PREFIX", "/api/v1"),
-            "project_name": os.getenv("PROJECT_NAME", "My Boilerplate App"),
+            "project_name": os.getenv("PROJECT_NAME", "AI Interviewer"),
             "allowed_hosts": os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(","),
             "cors_origins": os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(","),
             "port": int(os.getenv("PORT", "9000")),
@@ -316,7 +316,7 @@ class Settings(BaseSettings):
     """
     # API settings
     API_V1_STR: str = config_service.get("api_prefix", "/api/v1")
-    PROJECT_NAME: str = config_service.get("project_name", "My Boilerplate App")
+    PROJECT_NAME: str = config_service.get("project_name", "AI Interviewer")
 
     # CORS settings
     CORS_ORIGINS: str = ",".join(config_service.get("cors_origins", ["http://localhost:3000", "http://localhost:5173"]))

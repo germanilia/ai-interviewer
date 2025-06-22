@@ -2,10 +2,10 @@
 Candidate DAO for database operations.
 """
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from app.crud.base import BaseDAO
 from app.models.candidate import Candidate
-from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate, CandidateWithInterviews
+from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
 
 
 class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, CandidateUpdate]):
@@ -56,15 +56,7 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         candidate = db.query(self.model).filter(self.model.email == email).first()
         return CandidateResponse.from_model(candidate) if candidate else None
 
-    def get_with_interviews(self, db: Session, id: int) -> Optional[CandidateWithInterviews]:
-        """Get a candidate with their interviews."""
-        candidate = db.query(self.model).options(
-            joinedload(self.model.interviews)
-        ).filter(self.model.id == id).first()
 
-        if candidate:
-            return CandidateWithInterviews.from_model(candidate)
-        return None
 
     def search_by_name(self, db: Session, name: str, *, skip: int = 0, limit: int = 100) -> List[CandidateResponse]:
         """Search candidates by name (first or last name)."""

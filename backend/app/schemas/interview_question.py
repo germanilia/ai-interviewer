@@ -58,22 +58,9 @@ class InterviewQuestionResponse(InterviewQuestionBase):
         return cls.model_validate(interview_question)
 
 
-class InterviewQuestionWithDetails(InterviewQuestionResponse):
-    """Schema for interview question with question details included."""
-    from app.schemas.question import QuestionResponse
-    question: QuestionResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, interview_question: "InterviewQuestion") -> "InterviewQuestionWithDetails":
-        """Convert SQLAlchemy model to Pydantic schema with details."""
-        return cls.model_validate(interview_question)
-
-
 class InterviewQuestionInDB(InterviewQuestionResponse):
     """Schema for interview question data as stored in database."""
-    
+
     @classmethod
     def from_model(cls, interview_question: "InterviewQuestion") -> "InterviewQuestionInDB":
         """Convert SQLAlchemy model to Pydantic schema."""

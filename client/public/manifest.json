@@ -1,6 +1,6 @@
 {
-  "name": "My Boilerplate App",
-  "short_name": "Boilerplate",
+  "name": "AI Interviewer",
+  "short_name": "AI Interviewer",
   "description": "A modern full-stack application with FastAPI backend and React frontend",
   "start_url": "/",
   "display": "standalone",

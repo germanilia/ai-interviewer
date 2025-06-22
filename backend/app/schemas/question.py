@@ -57,22 +57,9 @@ class QuestionResponse(QuestionBase):
         return cls.model_validate(question)
 
 
-class QuestionWithCreator(QuestionResponse):
-    """Schema for question with creator details included."""
-    from app.schemas.user import UserResponse
-    created_by: UserResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, question: "Question") -> "QuestionWithCreator":
-        """Convert SQLAlchemy model to Pydantic schema with creator."""
-        return cls.model_validate(question)
-
-
 class QuestionInDB(QuestionResponse):
     """Schema for question data as stored in database."""
-    
+
     @classmethod
     def from_model(cls, question: "Question") -> "QuestionInDB":
         """Convert SQLAlchemy model to Pydantic schema."""

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from app.crud.base import BaseDAO
 from app.models.interview import Interview, InterviewStatus
-from app.schemas.interview import InterviewResponse, InterviewCreate, InterviewUpdate, InterviewWithCandidate, InterviewWithJob, InterviewWithDetails, InterviewWithQuestions, InterviewReport
+from app.schemas.interview import InterviewResponse, InterviewCreate, InterviewUpdate, InterviewReport
 
 
 class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, InterviewUpdate]):
@@ -52,15 +52,7 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
             return True
         return False
 
-    def get_with_candidate(self, db: Session, id: int) -> Optional[InterviewWithCandidate]:
-        """Get an interview with candidate details."""
-        interview = db.query(self.model).options(
-            joinedload(self.model.candidate)
-        ).filter(self.model.id == id).first()
 
-        if interview:
-            return InterviewWithCandidate.from_model(interview)
-        return None
 
     def get_by_candidate(self, db: Session, candidate_id: int, *, skip: int = 0, limit: int = 100) -> List[InterviewResponse]:
         """Get all interviews for a specific candidate."""

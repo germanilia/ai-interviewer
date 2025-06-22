@@ -68,58 +68,7 @@ class InterviewResponse(InterviewBase):
         return cls.model_validate(interview)
 
 
-class InterviewWithCandidate(InterviewResponse):
-    """Schema for interview with candidate details included."""
-    from app.schemas.candidate import CandidateResponse
-    candidate: CandidateResponse
 
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, interview: "Interview") -> "InterviewWithCandidate":
-        """Convert SQLAlchemy model to Pydantic schema with candidate."""
-        return cls.model_validate(interview)
-
-
-class InterviewWithJob(InterviewResponse):
-    """Schema for interview with job details included."""
-    from app.schemas.job import JobResponse
-    job: JobResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, interview: "Interview") -> "InterviewWithJob":
-        """Convert SQLAlchemy model to Pydantic schema with job."""
-        return cls.model_validate(interview)
-
-
-class InterviewWithDetails(InterviewResponse):
-    """Schema for interview with candidate and job details included."""
-    from app.schemas.candidate import CandidateResponse
-    from app.schemas.job import JobResponse
-    candidate: CandidateResponse
-    job: JobResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, interview: "Interview") -> "InterviewWithDetails":
-        """Convert SQLAlchemy model to Pydantic schema with details."""
-        return cls.model_validate(interview)
-
-
-class InterviewWithQuestions(InterviewResponse):
-    """Schema for interview with questions included."""
-    from app.schemas.interview_question import InterviewQuestionResponse
-    interview_questions: list[InterviewQuestionResponse] = []
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, interview: "Interview") -> "InterviewWithQuestions":
-        """Convert SQLAlchemy model to Pydantic schema with questions."""
-        return cls.model_validate(interview)
 
 
 class InterviewInDB(InterviewResponse):

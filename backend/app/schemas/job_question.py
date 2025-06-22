@@ -42,24 +42,9 @@ class JobQuestionResponse(JobQuestionBase):
         return cls.model_validate(job_question)
 
 
-class JobQuestionWithDetails(JobQuestionResponse):
-    """Schema for job question with job and question details included."""
-    from app.schemas.job import JobResponse
-    from app.schemas.question import QuestionResponse
-    job: JobResponse
-    question: QuestionResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, job_question: "JobQuestion") -> "JobQuestionWithDetails":
-        """Convert SQLAlchemy model to Pydantic schema with details."""
-        return cls.model_validate(job_question)
-
-
 class JobQuestionInDB(JobQuestionResponse):
     """Schema for job question data as stored in database."""
-    
+
     @classmethod
     def from_model(cls, job_question: "JobQuestion") -> "JobQuestionInDB":
         """Convert SQLAlchemy model to Pydantic schema."""

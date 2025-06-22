@@ -50,19 +50,6 @@ class CandidateResponse(CandidateBase):
         return cls.model_validate(candidate)
 
 
-class CandidateWithInterviews(CandidateResponse):
-    """Schema for candidate with interviews included."""
-    from app.schemas.interview import InterviewResponse
-    interviews: list[InterviewResponse] = []
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, candidate: "Candidate") -> "CandidateWithInterviews":
-        """Convert SQLAlchemy model to Pydantic schema with interviews."""
-        return cls.model_validate(candidate)
-
-
 class CandidateInDB(CandidateResponse):
     """Schema for candidate data as stored in database."""
 

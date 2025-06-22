@@ -4,6 +4,7 @@ from datetime import datetime
 
 if TYPE_CHECKING:
     from app.models.interview import Job
+    from app.schemas.job_question import JobQuestionResponse
 
 
 class JobBase(BaseModel):
@@ -50,23 +51,9 @@ class JobResponse(JobBase):
         return cls.model_validate(job)
 
 
-class JobWithCreator(JobResponse):
-    """Schema for job with creator details included."""
-    from app.schemas.user import UserResponse
-    created_by: UserResponse
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @classmethod
-    def from_model(cls, job: "Job") -> "JobWithCreator":
-        """Convert SQLAlchemy model to Pydantic schema with creator."""
-        return cls.model_validate(job)
-
-
 class JobWithQuestions(JobResponse):
     """Schema for job with questions template included."""
-    from app.schemas.job_question import JobQuestionResponse
-    job_questions: list[JobQuestionResponse] = []
+    job_questions: list["JobQuestionResponse"] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -78,7 +65,7 @@ class JobWithQuestions(JobResponse):
 
 class JobInDB(JobResponse):
     """Schema for job data as stored in database."""
-    
+
     @classmethod
     def from_model(cls, job: "Job") -> "JobInDB":
         """Convert SQLAlchemy model to Pydantic schema."""

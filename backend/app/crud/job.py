@@ -5,7 +5,7 @@ from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from app.crud.base import BaseDAO
 from app.models.interview import Job
-from app.schemas.job import JobResponse, JobCreate, JobUpdate, JobWithCreator, JobWithQuestions
+from app.schemas.job import JobResponse, JobCreate, JobUpdate, JobWithQuestions
 
 
 class JobDAO(BaseDAO[Job, JobResponse, JobCreate, JobUpdate]):
@@ -51,15 +51,7 @@ class JobDAO(BaseDAO[Job, JobResponse, JobCreate, JobUpdate]):
             return True
         return False
 
-    def get_with_creator(self, db: Session, id: int) -> Optional[JobWithCreator]:
-        """Get a job with creator details."""
-        job = db.query(self.model).options(
-            joinedload(self.model.created_by)
-        ).filter(self.model.id == id).first()
-        
-        if job:
-            return JobWithCreator.from_model(job)
-        return None
+
 
     def get_with_questions(self, db: Session, id: int) -> Optional[JobWithQuestions]:
         """Get a job with its question template."""

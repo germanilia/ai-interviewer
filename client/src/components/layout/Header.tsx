@@ -36,7 +36,7 @@ export const Header: React.FC = () => {
         {/* Breadcrumb or page title could go here */}
         <div className="hidden sm:block">
           <h1 className="text-lg font-semibold text-foreground">
-            My Boilerplate App
+            AI Interviewer
           </h1>
         </div>
       </div>

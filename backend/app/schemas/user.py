@@ -12,7 +12,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for creating a new user."""
-    role: Optional[UserRole] = UserRole.USER
+    role: UserRole = UserRole.USER
     cognito_sub: Optional[str] = None
 
 

@@ -2,10 +2,10 @@
 Question DAO for database operations.
 """
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from app.crud.base import BaseDAO
 from app.models.interview import Question, QuestionCategory, QuestionImportance
-from app.schemas.question import QuestionResponse, QuestionCreate, QuestionUpdate, QuestionWithCreator
+from app.schemas.question import QuestionResponse, QuestionCreate, QuestionUpdate
 
 
 class QuestionDAO(BaseDAO[Question, QuestionResponse, QuestionCreate, QuestionUpdate]):
@@ -51,15 +51,7 @@ class QuestionDAO(BaseDAO[Question, QuestionResponse, QuestionCreate, QuestionUp
             return True
         return False
 
-    def get_with_creator(self, db: Session, id: int) -> Optional[QuestionWithCreator]:
-        """Get a question with creator details."""
-        question = db.query(self.model).options(
-            joinedload(self.model.created_by)
-        ).filter(self.model.id == id).first()
-        
-        if question:
-            return QuestionWithCreator.from_model(question)
-        return None
+
 
     def get_by_category(self, db: Session, category: QuestionCategory, *, skip: int = 0, limit: int = 100) -> List[QuestionResponse]:
         """Get questions by category."""
