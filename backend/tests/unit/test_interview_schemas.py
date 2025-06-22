@@ -2,6 +2,7 @@
 Unit tests for Interview schemas to verify pass_key functionality and validation.
 """
 import pytest
+from datetime import datetime
 from app.schemas.interview import InterviewCreate, InterviewResponse, generate_pass_key
 from app.models.interview import InterviewStatus
 
@@ -75,26 +76,29 @@ def test_interview_create_to_model_includes_pass_key():
     interview_model = interview_create.to_model()
     
     # Model should have the pass_key
-    assert interview_model.pass_key == interview_create.pass_key
-    assert interview_model.candidate_id == 1
-    assert interview_model.job_id == 1
-    assert interview_model.status == InterviewStatus.PENDING
+    assert getattr(interview_model, "pass_key") == interview_create.pass_key
+    assert getattr(interview_model, "candidate_id") == 1
+    assert getattr(interview_model, "job_id") == 1
+    assert getattr(interview_model, "status") == InterviewStatus.PENDING
 
 
 def test_interview_response_requires_pass_key():
     """Test that InterviewResponse requires pass_key field."""
     # This should work with pass_key
+    timestamp_str = "2023-01-01T00:00:00Z"
+    timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+    pass_key = "TESTPASS"
     interview_response = InterviewResponse(
         id=1,
         candidate_id=1,
         job_id=1,
         status=InterviewStatus.PENDING,
-        pass_key="TESTKEY1",
-        created_at="2023-01-01T00:00:00Z",
-        updated_at="2023-01-01T00:00:00Z"
+        pass_key=pass_key,
+        created_at=timestamp,
+        updated_at=timestamp
     )
     
-    assert interview_response.pass_key == "TESTKEY1"
+    assert interview_response.pass_key == pass_key
     assert interview_response.id == 1
 
 
