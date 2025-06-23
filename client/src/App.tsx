@@ -8,6 +8,11 @@ import { ConfirmSignUpForm } from '@/components/auth/ConfirmSignUpForm';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Dashboard } from '@/components/Dashboard';
 import { Settings } from '@/components/pages/Settings';
+import { Candidates } from '@/components/pages/Candidates';
+import { Interviews } from '@/components/pages/Interviews';
+import { Questions } from '@/components/pages/Questions';
+import { Jobs } from '@/components/pages/Jobs';
+import { Reports } from '@/components/pages/Reports';
 import UserList from '@/components/UserList';
 
 function App() {
@@ -55,6 +60,56 @@ function App() {
               }
             />
 
+            <Route
+              path="/candidates"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Candidates />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interviews"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Interviews />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/questions"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Questions />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/job-positions"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Jobs />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Reports />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/users"
               element={

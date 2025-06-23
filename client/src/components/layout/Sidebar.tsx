@@ -5,7 +5,12 @@ import {
   Users,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserCheck,
+  MessageSquare,
+  HelpCircle,
+  Briefcase,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +31,31 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: Home,
+  },
+  {
+    title: 'Candidates',
+    href: '/candidates',
+    icon: UserCheck,
+  },
+  {
+    title: 'Interviews',
+    href: '/interviews',
+    icon: MessageSquare,
+  },
+  {
+    title: 'Questions',
+    href: '/questions',
+    icon: HelpCircle,
+  },
+  {
+    title: 'Jobs',
+    href: '/job-positions',
+    icon: Briefcase,
+  },
+  {
+    title: 'Reports',
+    href: '/reports',
+    icon: BarChart3,
   },
   {
     title: 'Users',
@@ -54,12 +84,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   );
 
   return (
-    <div
+    <aside
       className={cn(
         "relative flex h-full flex-col bg-card border-r border-border transition-all duration-300",
         isOpen ? "w-64" : "w-16",
+        isOpen ? "" : "collapsed",
         className
       )}
+      aria-label="Main navigation"
     >
       {/* Header */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
@@ -72,6 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             size="icon"
             onClick={toggle}
             className="h-8 w-8"
+            data-testid="sidebar-toggle"
           >
             {isOpen ? (
               <ChevronLeft className="h-4 w-4" />
@@ -83,23 +116,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 p-2" aria-label="Main navigation">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
-          
+
+          // Generate test ID from href, keeping the structure readable
+          const testId = `nav-${item.href.replace('/', '').replace(/-/g, '')}`;
+
           return (
             <Link
               key={item.href}
               to={item.href}
+              data-testid={testId}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                isActive 
-                  ? "bg-accent text-accent-foreground" 
+                isActive
+                  ? "bg-accent text-accent-foreground active"
                   : "text-muted-foreground",
                 !isOpen && "justify-center px-2"
               )}
               title={!isOpen ? item.title : undefined}
+              aria-current={isActive ? "page" : undefined}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />
               {isOpen && <span>{item.title}</span>}
@@ -131,6 +169,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           </div>
         </>
       )}
-    </div>
+    </aside>
   );
 };
