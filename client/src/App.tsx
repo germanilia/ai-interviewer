@@ -8,9 +8,6 @@ import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ConfirmSignUpForm } from '@/components/auth/ConfirmSignUpForm';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Dashboard } from '@/components/Dashboard';
-import { Analytics } from '@/components/pages/Analytics';
-import { Documents } from '@/components/pages/Documents';
-import { DataLibrary } from '@/components/pages/DataLibrary';
 import { Settings } from '@/components/pages/Settings';
 import UserList from '@/components/UserList';
 
@@ -58,36 +55,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Analytics />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/documents"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Documents />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/data-library"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <DataLibrary />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/users"
               element={
@@ -108,26 +76,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/help"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <div className="space-y-6">
-                      <div>
-                        <h1 className="text-3xl font-bold text-foreground">Help & Support</h1>
-                        <p className="text-muted-foreground">
-                          Get help and find answers to common questions
-                        </p>
-                      </div>
-                      <div className="text-center py-12">
-                        <p className="text-muted-foreground">Help documentation coming soon...</p>
-                      </div>
-                    </div>
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+
 
             {/* Default redirects */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

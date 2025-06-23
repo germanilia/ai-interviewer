@@ -42,7 +42,7 @@ fi
 # Install frontend dependencies if client directory exists
 if [ -d 'client' ]; then
     echo "🎨 Installing frontend dependencies..."
-    cd client && npm install && cd ..
+    cd client && npm install && npx playwright install-deps  && npx playwright install cd ..
 else
     echo "⚠️  No client directory found, skipping npm install..."
 fi

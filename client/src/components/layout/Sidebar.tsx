@@ -1,13 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Users, 
-  Settings, 
-  BarChart3, 
-  FileText, 
-  Database,
-  HelpCircle,
+import {
+  Home,
+  Users,
+  Settings,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -32,21 +28,6 @@ const navItems: NavItem[] = [
     icon: Home,
   },
   {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Documents',
-    href: '/documents',
-    icon: FileText,
-  },
-  {
-    title: 'Data Library',
-    href: '/data-library',
-    icon: Database,
-  },
-  {
     title: 'Users',
     href: '/users',
     icon: Users,
@@ -56,11 +37,6 @@ const navItems: NavItem[] = [
     title: 'Settings',
     href: '/settings',
     icon: Settings,
-  },
-  {
-    title: 'Help',
-    href: '/help',
-    icon: HelpCircle,
   },
 ];
 
