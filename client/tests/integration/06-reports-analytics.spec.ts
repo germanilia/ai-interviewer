@@ -1,18 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { ReportsPage } from '../pages/ReportsPage';
-import { TestSetup } from '../utils/testSetup';
-
+import { loginAs, clearAuth } from '../utils/auth';
 
 test.describe('Reports and Analytics', () => {
   let reportsPage: ReportsPage;
 
   test.beforeEach(async ({ page }) => {
+    await clearAuth(page);
     reportsPage = new ReportsPage(page);
-    await TestSetup.setupAdminTest(page, { setupTestData: true });
-  });
-
-  test.afterEach(async ({ page }) => {
-    await TestSetup.cleanupAdminTest();
+    // Login as admin for reports and analytics features
+    await loginAs(page, 'ADMIN');
   });
 
   test.describe('Overview Dashboard', () => {
@@ -451,7 +448,7 @@ test.describe('Reports and Analytics', () => {
 
   test.describe('Responsive Design', () => {
     test('should display correctly on mobile', async ({ page }) => {
-      await TestSetup.setupMobileViewport(page);
+      await page.setViewportSize({ width: 393, height: 851 });
       await reportsPage.navigateTo();
       await reportsPage.waitForReportsToLoad();
       

@@ -8,6 +8,8 @@ test.describe('Interview Management', () => {
   test.beforeEach(async ({ page }) => {
     await clearAuth(page);
     interviewsPage = new InterviewsPage(page);
+    // Login as admin for interview management features
+    await loginAs(page, 'ADMIN');
   });
 
   test.describe('Interview List and Status Tabs', () => {

@@ -1,19 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { JobsPage } from '../pages/JobsPage';
-import { testJobs } from '../utils/adminTestData';
-import { TestSetup } from '../utils/testSetup';
-
+import { loginAs, clearAuth } from '../utils/auth';
 
 test.describe('Jobs Management', () => {
   let jobsPage: JobsPage;
 
   test.beforeEach(async ({ page }) => {
+    await clearAuth(page);
     jobsPage = new JobsPage(page);
-    await TestSetup.setupAdminTest(page, { setupTestData: true });
-  });
-
-  test.afterEach(async ({ page }) => {
-    await TestSetup.cleanupAdminTest();
+    // Login as admin for jobs management features
+    await loginAs(page, 'ADMIN');
   });
 
   test.describe('Jobs List View', () => {
@@ -162,7 +158,11 @@ test.describe('Jobs Management', () => {
       await jobsPage.addJobButton.click();
       
       // Fill form with duplicate title
-      await jobsPage.fillJobForm(testJobs.softwareEngineer);
+      await jobsPage.fillJobForm({
+        title: 'Software Engineer',
+        description: 'Develop software applications',
+        department: 'Engineering'
+      });
       await jobsPage.submitJobForm();
       
       // Verify error message

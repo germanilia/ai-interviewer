@@ -89,13 +89,13 @@ export class AppLayoutPage {
   /**
    * Navigate to specific admin section
    */
-  async navigateTo(section: 'dashboard' | 'candidates' | 'interviews' | 'questions' | 'jobs' | 'reports' | 'users' | 'settings') {
+  async navigateTo(section: 'dashboard' | 'candidates' | 'interviews' | 'questions' | 'job-positions' | 'reports' | 'users' | 'settings') {
     const linkMap = {
       dashboard: this.dashboardLink,
       candidates: this.candidatesLink,
       interviews: this.interviewsLink,
       questions: this.questionsLink,
-      jobs: this.jobsLink,
+      'job-positions': this.jobsLink,
       reports: this.reportsLink,
       users: this.usersLink,
       settings: this.settingsLink

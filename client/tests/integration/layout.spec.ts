@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { AppLayoutPage } from '../pages/AppLayoutPage';
 import { loginAs, clearAuth } from '../utils/auth';
-import { TestSetup } from '../utils/testSetup';
 
 test.describe('App Layout and Navigation - Extended with Interview Features', () => {
   let appLayoutPage: AppLayoutPage;
@@ -13,7 +12,7 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
 
   test.describe('Desktop Layout', () => {
     test.beforeEach(async ({ page }) => {
-      await TestSetup.setupDesktopViewport(page);
+      await page.setViewportSize({ width: 1280, height: 720 });
     });
 
     test('should display sidebar with all navigation items including new interview features', async ({ page }) => {
@@ -41,7 +40,7 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await appLayoutPage.navigateToDashboard();
 
       // Test navigation to new interview management sections
-      const sections = ['candidates', 'interviews', 'questions', 'jobs', 'reports'] as const;
+      const sections = ['candidates', 'interviews', 'questions', 'job-positions', 'reports'] as const;
 
       for (const section of sections) {
         await appLayoutPage.navigateTo(section);
@@ -53,8 +52,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       }
     });
 
-    test('should display user menu and logout functionality', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display user menu and logout functionality', async ({ page }) => {
+      await loginAs(page, 'ADMIN');
+      await appLayoutPage.navigateToDashboard();
       
       // Verify user menu is visible
       await expect(appLayoutPage.userMenu).toBeVisible();
@@ -68,8 +68,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       // await expect(appLayoutPage.page).toHaveURL('/login');
     });
 
-    test('should display main content area', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display main content area', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       await expect(appLayoutPage.mainContent).toBeVisible();
       
@@ -79,8 +80,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       expect(mainContentBox!.width).toBeGreaterThan(800); // Should have substantial width on desktop
     });
 
-    test('should display breadcrumbs for navigation context', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display breadcrumbs for navigation context', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
 
       // Navigate to a subsection
       await appLayoutPage.navigateTo('candidates');
@@ -96,8 +98,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       }
     });
 
-    test('should display page titles correctly', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display page titles correctly', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Test page titles for different sections
       const sectionTitles = {
@@ -105,7 +108,7 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
         candidates: 'Candidates',
         interviews: 'Interviews',
         questions: 'Questions',
-        jobs: 'Job Positions',
+        'job-positions': 'Job Positions',
         reports: 'Reports'
       };
 
@@ -115,8 +118,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       }
     });
 
-    test('should toggle sidebar visibility', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should toggle sidebar visibility', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Verify sidebar is initially visible
       await expect(appLayoutPage.sidebar).toBeVisible();
@@ -138,11 +142,12 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
 
   test.describe('Mobile Layout', () => {
     test.beforeEach(async ({ page }) => {
-      await TestSetup.setupMobileViewport(page);
+      await page.setViewportSize({ width: 393, height: 851 });
     });
 
-    test('should display mobile-optimized layout', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display mobile-optimized layout', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // On mobile, sidebar should be hidden by default
       const isSidebarCollapsed = await appLayoutPage.isSidebarCollapsed();
@@ -152,8 +157,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await expect(appLayoutPage.mobileMenuButton).toBeVisible();
     });
 
-    test('should open and close mobile menu', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should open and close mobile menu', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Open mobile menu
       await appLayoutPage.openMobileMenu();
@@ -169,24 +175,26 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await expect(appLayoutPage.mobileOverlay).not.toBeVisible();
     });
 
-    test('should navigate on mobile', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should navigate on mobile', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Open mobile menu
       await appLayoutPage.openMobileMenu();
       
       // Navigate to candidates
       await appLayoutPage.candidatesLink.click();
-      
+
       // Verify navigation worked
-      await expect(appLayoutPage.page).toHaveURL('/admin/candidates');
+      await expect(appLayoutPage.page).toHaveURL('/candidates');
       
       // Menu should close after navigation
       await expect(appLayoutPage.mobileOverlay).not.toBeVisible();
     });
 
-    test('should display responsive main content', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display responsive main content', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       await expect(appLayoutPage.mainContent).toBeVisible();
       
@@ -198,10 +206,11 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
   });
 
   test.describe('Authentication and Access Control', () => {
-    test('should verify user access to admin features', async () => {
+    test('should verify user access to admin features', async ({ page }) => {
       // Updated: Admin features are now accessible to all users, not just admins
       // Only specific features like Users management remain admin-only
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       await appLayoutPage.verifyAdminAccess();
 
       // Verify all users can see new admin navigation items
@@ -212,10 +221,11 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await expect(appLayoutPage.reportsLink).toBeVisible();
     });
 
-    test('should handle authentication errors gracefully', async () => {
+    test('should handle authentication errors gracefully', async ({ page }) => {
       // Test what happens when auth token expires or is invalid
       // This would involve mocking auth failures
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
 
       // Verify error handling doesn't break the layout
       await expect(appLayoutPage.sidebar).toBeVisible();
@@ -224,9 +234,10 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
   });
 
   test.describe('Performance and Loading States', () => {
-    test('should load admin layout quickly', async () => {
+    test('should load admin layout quickly', async ({ page }) => {
       const startTime = Date.now();
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       await appLayoutPage.waitForPageLoad();
       const loadTime = Date.now() - startTime;
       
@@ -240,7 +251,8 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
         setTimeout(() => route.continue(), 100); // Add 100ms delay
       });
       
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Layout should still be functional
       await expect(appLayoutPage.sidebar).toBeVisible();
@@ -250,7 +262,8 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
 
   test.describe('Accessibility', () => {
     test('should be keyboard navigable', async ({ page }) => {
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Test keyboard navigation through sidebar links
       await page.keyboard.press('Tab');
@@ -261,8 +274,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       expect(focusedElement).toContain('nav-');
     });
 
-    test('should have proper ARIA labels', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should have proper ARIA labels', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Check for ARIA labels on navigation
       const sidebarAriaLabel = await appLayoutPage.sidebar.getAttribute('aria-label');
@@ -273,8 +287,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       expect(mobileMenuLabel).toBeTruthy();
     });
 
-    test('should support screen readers', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should support screen readers', async ({ page }) => {
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Verify semantic HTML structure
       const nav = appLayoutPage.page.locator('nav');
@@ -287,10 +302,11 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
 
   test.describe('Error Handling', () => {
     test('should handle navigation errors gracefully', async ({ page }) => {
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Try to navigate to non-existent route
-      await page.goto('/admin/nonexistent');
+      await page.goto('/nonexistent');
       
       // Should show error page or redirect, but layout should remain intact
       await expect(appLayoutPage.sidebar).toBeVisible();
@@ -305,7 +321,8 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
         });
       });
       
-      await appLayoutPage.navigateToAdmin();
+      await loginAs(page, 'USER');
+      await appLayoutPage.navigateToDashboard();
       
       // Layout should still be functional even with API errors
       await expect(appLayoutPage.sidebar).toBeVisible();

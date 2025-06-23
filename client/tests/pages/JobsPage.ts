@@ -304,10 +304,10 @@ export class JobsPage {
   }
 
   /**
-   * Navigate to jobs page
+   * Navigate to job positions page
    */
   async navigateTo() {
-    await this.page.goto('/jobs');
+    await this.page.goto('/job-positions');
     await this.page.waitForLoadState('networkidle');
   }
 

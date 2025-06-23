@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { QuestionsPage } from '../pages/QuestionsPage';
-import { clearAuth } from '../utils/auth';
+import { loginAs, clearAuth } from '../utils/auth';
 
 
 test.describe('Questions Management', () => {
@@ -9,6 +9,8 @@ test.describe('Questions Management', () => {
   test.beforeEach(async ({ page }) => {
     await clearAuth(page);
     questionsPage = new QuestionsPage(page);
+    // Login as admin for questions management features
+    await loginAs(page, 'ADMIN');
   });
 
   test.describe('Questions List and Categories', () => {
