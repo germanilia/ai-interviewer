@@ -1,5 +1,4 @@
 import { Page, Locator } from '@playwright/test';
-import { AdminLayoutPage } from './AdminLayoutPage';
 
 export interface ReportFilter {
   dateRange?: {
@@ -16,7 +15,8 @@ export interface ReportFilter {
  * Page Object Model for Reports and Analytics
  * Handles report generation, analytics dashboard, and export functionality
  */
-export class ReportsPage extends AdminLayoutPage {
+export class ReportsPage {
+  readonly page: Page;
   // Main Section
   readonly reportsSection: Locator;
   readonly reportsContainer: Locator;
@@ -171,7 +171,7 @@ export class ReportsPage extends AdminLayoutPage {
   readonly infoToast: Locator;
 
   constructor(page: Page) {
-    super(page);
+    this.page = page;
     
     // Main Section
     this.reportsSection = page.getByTestId('reports-section');
@@ -331,7 +331,7 @@ export class ReportsPage extends AdminLayoutPage {
    * Navigate to reports page
    */
   async navigateTo() {
-    await this.page.goto('/admin/reports');
+    await this.page.goto('/reports');
     await this.page.waitForLoadState('networkidle');
   }
 

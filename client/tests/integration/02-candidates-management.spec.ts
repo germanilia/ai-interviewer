@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { CandidatesPage } from '../../pages/admin/CandidatesPage';
-import { TestSetup } from '../../utils/testSetup';
-import { testCandidates, testDataUtils } from '../../utils/adminTestData';
+import { CandidatesPage } from '../pages/CandidatesPage';
+import { testDataUtils, testCandidates } from '../utils/adminTestData';
+import { TestSetup } from '../utils/testSetup';
+
 
 test.describe('Candidates Management', () => {
   let candidatesPage: CandidatesPage;

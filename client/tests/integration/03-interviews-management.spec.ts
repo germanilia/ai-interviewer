@@ -1,18 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { InterviewsPage } from '../../pages/admin/InterviewsPage';
-import { TestSetup } from '../../utils/testSetup';
-import { testInterviews, testDataUtils } from '../../utils/adminTestData';
+import { InterviewsPage } from '../pages/InterviewsPage';
+import { loginAs, clearAuth } from '../utils/auth';
 
 test.describe('Interview Management', () => {
   let interviewsPage: InterviewsPage;
 
   test.beforeEach(async ({ page }) => {
+    await clearAuth(page);
     interviewsPage = new InterviewsPage(page);
-    await TestSetup.setupAdminTest(page, { setupTestData: true });
-  });
-
-  test.afterEach(async ({ page }) => {
-    await TestSetup.cleanupAdminTest();
   });
 
   test.describe('Interview List and Status Tabs', () => {

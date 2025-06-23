@@ -1,5 +1,4 @@
 import { Page, Locator } from '@playwright/test';
-import { AdminLayoutPage } from './AdminLayoutPage';
 
 export interface QuestionData {
   title: string;
@@ -19,7 +18,8 @@ export interface QuestionFilter {
  * Page Object Model for Questions Management
  * Handles question bank CRUD operations, categories, and job assignments
  */
-export class QuestionsPage extends AdminLayoutPage {
+export class QuestionsPage {
+  readonly page: Page;
   // Main Section
   readonly questionsSection: Locator;
   readonly questionsList: Locator;
@@ -160,7 +160,7 @@ export class QuestionsPage extends AdminLayoutPage {
   readonly infoToast: Locator;
 
   constructor(page: Page) {
-    super(page);
+    this.page = page;
     
     // Main Section
     this.questionsSection = page.getByTestId('questions-section');
@@ -305,7 +305,7 @@ export class QuestionsPage extends AdminLayoutPage {
    * Navigate to questions page
    */
   async navigateTo() {
-    await this.page.goto('/admin/questions');
+    await this.page.goto('/questions');
     await this.page.waitForLoadState('networkidle');
   }
 

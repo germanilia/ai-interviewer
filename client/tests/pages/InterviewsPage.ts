@@ -1,5 +1,4 @@
 import { Page, Locator } from '@playwright/test';
-import { AdminLayoutPage } from './AdminLayoutPage';
 
 export interface InterviewData {
   candidateId: number;
@@ -22,7 +21,9 @@ export interface InterviewFilter {
  * Page Object Model for Interview Management
  * Handles interview CRUD operations, status management, pass keys, and monitoring
  */
-export class InterviewsPage extends AdminLayoutPage {
+export class InterviewsPage {
+  readonly page: Page;
+
   // Main Section
   readonly interviewsSection: Locator;
   readonly interviewsList: Locator;
@@ -163,7 +164,7 @@ export class InterviewsPage extends AdminLayoutPage {
   readonly copySuccessToast: Locator;
 
   constructor(page: Page) {
-    super(page);
+    this.page = page;
     
     // Main Section
     this.interviewsSection = page.getByTestId('interviews-section');
@@ -309,7 +310,7 @@ export class InterviewsPage extends AdminLayoutPage {
    * Navigate to interviews page
    */
   async navigateTo() {
-    await this.page.goto('/admin/interviews');
+    await this.page.goto('/interviews');
     await this.page.waitForLoadState('networkidle');
   }
 

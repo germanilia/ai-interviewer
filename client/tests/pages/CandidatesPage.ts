@@ -1,5 +1,4 @@
 import { Page, Locator } from '@playwright/test';
-import { AdminLayoutPage } from './AdminLayoutPage';
 
 export interface CandidateData {
   firstName: string;
@@ -22,7 +21,8 @@ export interface CandidateFilter {
  * Page Object Model for Candidates Management
  * Handles candidate CRUD operations, search, filtering, and bulk operations
  */
-export class CandidatesPage extends AdminLayoutPage {
+export class CandidatesPage {
+  readonly page: Page;
   // Main List View
   readonly candidatesSection: Locator;
   readonly candidatesList: Locator;
@@ -129,7 +129,7 @@ export class CandidatesPage extends AdminLayoutPage {
   readonly infoToast: Locator;
 
   constructor(page: Page) {
-    super(page);
+    this.page = page;
     
     // Main List View
     this.candidatesSection = page.getByTestId('candidates-section');
@@ -240,7 +240,7 @@ export class CandidatesPage extends AdminLayoutPage {
    * Navigate to candidates page
    */
   async navigateTo() {
-    await this.page.goto('/admin/candidates');
+    await this.page.goto('/candidates');
     await this.page.waitForLoadState('networkidle');
   }
 

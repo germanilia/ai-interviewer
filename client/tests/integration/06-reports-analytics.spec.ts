@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { ReportsPage } from '../../pages/admin/ReportsPage';
-import { TestSetup } from '../../utils/testSetup';
-import { mockChartData } from '../../utils/adminTestData';
+import { ReportsPage } from '../pages/ReportsPage';
+import { TestSetup } from '../utils/testSetup';
+
 
 test.describe('Reports and Analytics', () => {
   let reportsPage: ReportsPage;

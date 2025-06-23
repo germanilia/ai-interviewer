@@ -14,41 +14,44 @@ This document outlines a comprehensive testing strategy for the enhanced dashboa
 - **Universal Access**: All users can access interview management features
 - **Clean Structure**: Simplified test organization without admin-specific directories
 
-### Test Organization (Updated Structure)
+### Test Organization (Final Clean Structure)
 ```
 tests/
 ├── integration/
-│   ├── admin-dashboard/
-│   │   ├── 00-admin-layout.spec.ts (UPDATED - tests AppLayout + new navigation)
-│   │   ├── 01-dashboard-overview.spec.ts (Enhanced existing dashboard)
-│   │   ├── 02-candidates-management.spec.ts
-│   │   ├── 03-interviews-management.spec.ts
-│   │   ├── 04-questions-management.spec.ts
-│   │   ├── 05-jobs-management.spec.ts
-│   │   └── 06-reports-analytics.spec.ts
-│   └── regression/
-│       └── interview-dashboard-regression.spec.ts
+│   ├── auth/
+│   │   └── login.spec.ts (existing)
+│   ├── 01-dashboard-overview.spec.ts (CONSOLIDATED - unified dashboard with basic + interview features)
+│   ├── layout.spec.ts (RENAMED from 00-admin-layout.spec.ts - tests AppLayout + new navigation)
+│   ├── 02-candidates-management.spec.ts
+│   ├── 03-interviews-management.spec.ts
+│   ├── 04-questions-management.spec.ts
+│   ├── 05-jobs-management.spec.ts
+│   └── 06-reports-analytics.spec.ts
 ├── pages/
 │   ├── AppLayoutPage.ts (UPDATED - tests existing layout + new features)
 │   ├── DashboardPage.ts (existing dashboard)
-│   ├── CandidatesPage.ts (new)
-│   ├── InterviewsPage.ts (new)
-│   ├── QuestionsPage.ts (new)
-│   ├── JobsPage.ts (new)
-│   ├── ReportsPage.ts (new)
+│   ├── CandidatesPage.ts (moved from admin/)
+│   ├── InterviewsPage.ts (moved from admin/)
+│   ├── QuestionsPage.ts (moved from admin/)
+│   ├── JobsPage.ts (moved from admin/)
+│   ├── ReportsPage.ts (moved from admin/)
 │   └── LoginPage.ts (existing)
 └── utils/
-    ├── interviewTestData.ts (renamed from adminTestData.ts)
-    ├── apiHelpers.ts
-    └── testSetup.ts
+    ├── auth.ts (existing)
+    ├── testData.ts (existing)
+    ├── interviewTestData.ts (TODO - create for interview-specific mock data)
+    └── apiHelpers.ts
 ```
 
 ### Completed Structure Cleanup
+- ✅ **Removed `/tests/integration/admin-dashboard/` directory** - No separate admin folder needed
 - ✅ **Removed `/tests/pages/admin/` directory** - No separate admin structure needed
+- ✅ **Moved all test files to `/tests/integration/`** - Flat, clean structure
 - ✅ **Moved all page objects to `/tests/pages/`** - Flat, clean structure
 - ✅ **Renamed AdminLayoutPage to AppLayoutPage** - Tests existing layout + new features
+- ✅ **Renamed 00-admin-layout.spec.ts to layout.spec.ts** - Better naming
 - ✅ **Updated test imports and references** - All tests now use unified approach
-- ✅ **Fixed test file references** - Updated 00-admin-layout.spec.ts to use AppLayoutPage
+- ✅ **Fixed authentication in tests** - Use existing auth utilities
 
 ---
 
@@ -91,25 +94,30 @@ tests/
 
 ## 📋 Implementation Order & Test Phases
 
-### Phase 1: Foundation & Navigation (Week 1) - UNIFIED APPROACH
+### Phase 1: Foundation & Navigation (Week 1) - CLEAN UNIFIED APPROACH
 **Goal**: Extend existing AppLayout with new navigation items and create basic page structure
 
-#### Tests to Update/Write First:
-1. **Updated Layout Tests** (`00-admin-layout.spec.ts`)
+#### Tests Ready for Implementation:
+1. **Layout Tests** (`layout.spec.ts`) ✅ **COMPLETED CLEANUP**
+   - ✅ **MOVED**: From `/tests/integration/admin-dashboard/00-admin-layout.spec.ts` to `/tests/integration/layout.spec.ts`
+   - ✅ **UPDATED**: Tests now use AppLayoutPage.ts (not AdminLayoutPage.ts)
+   - ✅ **UPDATED**: Tests moved from `/tests/pages/admin/` to `/tests/pages/`
+   - ✅ **UPDATED**: Uses existing auth utilities instead of TestSetup
    - ✅ Existing AppLayout navigation sidebar rendering
    - ✅ User authentication state
    - ✅ Responsive layout (desktop/mobile)
-   - ✅ **UPDATED**: Tests now use AppLayoutPage.ts (not AdminLayoutPage.ts)
-   - ✅ **UPDATED**: Tests moved from `/tests/pages/admin/` to `/tests/pages/`
-   - **NEW**: Additional navigation items (Candidates, Interviews, Questions, Jobs, Reports)
-   - **NEW**: Route transitions to new sections (e.g., `/candidates`, `/interviews`)
-   - **NEW**: Navigation state management for new items
+   - **READY**: Additional navigation items (Candidates, Interviews, Questions, Jobs, Reports)
+   - **READY**: Route transitions to new sections (e.g., `/candidates`, `/interviews`)
+   - **READY**: Navigation state management for new items
 
-2. **Enhanced Dashboard Tests** (`01-dashboard-overview.spec.ts`)
-   - **ENHANCED**: Existing dashboard with interview-specific statistics cards
-   - **NEW**: Recent interview activity feed
-   - **NEW**: Interview-focused quick actions panel
-   - **NEW**: Interview analytics charts and visualizations
+2. **Consolidated Dashboard Tests** (`01-dashboard-overview.spec.ts`) ✅ **CONSOLIDATED**
+   - ✅ **CONSOLIDATED**: Combined basic dashboard functionality + interview management features
+   - ✅ **UPDATED**: Uses existing DashboardPage.ts and auth utilities
+   - ✅ **BASIC TESTS**: Dashboard loading, authentication, navigation, page refresh
+   - ✅ **REGRESSION TESTS**: Core dashboard functionality marked with @regression
+   - ✅ **INTERVIEW FEATURES**: Ready for implementation with TODO comments
+   - **READY**: Interview statistics cards, activity feed, quick actions, charts
+   - **Purpose**: Single comprehensive test for unified dashboard (basic + interview features)
 
 **API Endpoints Needed**:
 ```typescript

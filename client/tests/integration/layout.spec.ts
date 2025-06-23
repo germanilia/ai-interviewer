@@ -1,17 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { AppLayoutPage } from '../../pages/AppLayoutPage';
-import { TestSetup } from '../../utils/testSetup';
+import { AppLayoutPage } from '../pages/AppLayoutPage';
+import { loginAs, clearAuth } from '../utils/auth';
+import { TestSetup } from '../utils/testSetup';
 
 test.describe('App Layout and Navigation - Extended with Interview Features', () => {
   let appLayoutPage: AppLayoutPage;
 
   test.beforeEach(async ({ page }) => {
+    await clearAuth(page);
     appLayoutPage = new AppLayoutPage(page);
-    await TestSetup.setupAdminTest(page, { setupTestData: false });
-  });
-
-  test.afterEach(async () => {
-    await TestSetup.cleanupAdminTest();
   });
 
   test.describe('Desktop Layout', () => {
@@ -19,8 +16,9 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await TestSetup.setupDesktopViewport(page);
     });
 
-    test('should display sidebar with all navigation items including new interview features', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should display sidebar with all navigation items including new interview features', async ({ page }) => {
+      await loginAs(page, 'ADMIN');
+      await appLayoutPage.navigateToDashboard();
 
       // Verify sidebar is visible
       await expect(appLayoutPage.sidebar).toBeVisible();
@@ -38,10 +36,11 @@ test.describe('App Layout and Navigation - Extended with Interview Features', ()
       await expect(appLayoutPage.reportsLink).toBeVisible();
     });
 
-    test('should navigate between admin sections', async () => {
-      await appLayoutPage.navigateToAdmin();
+    test('should navigate between interview management sections', async ({ page }) => {
+      await loginAs(page, 'ADMIN');
+      await appLayoutPage.navigateToDashboard();
 
-      // Test navigation to new admin sections (using root paths, not /admin/ prefix)
+      // Test navigation to new interview management sections
       const sections = ['candidates', 'interviews', 'questions', 'jobs', 'reports'] as const;
 
       for (const section of sections) {

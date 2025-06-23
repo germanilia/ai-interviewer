@@ -1,18 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { QuestionsPage } from '../../pages/admin/QuestionsPage';
-import { TestSetup } from '../../utils/testSetup';
-import { testQuestions, testDataUtils } from '../../utils/adminTestData';
+import { QuestionsPage } from '../pages/QuestionsPage';
+import { clearAuth } from '../utils/auth';
+
 
 test.describe('Questions Management', () => {
   let questionsPage: QuestionsPage;
 
   test.beforeEach(async ({ page }) => {
+    await clearAuth(page);
     questionsPage = new QuestionsPage(page);
-    await TestSetup.setupAdminTest(page, { setupTestData: true });
-  });
-
-  test.afterEach(async ({ page }) => {
-    await TestSetup.cleanupAdminTest();
   });
 
   test.describe('Questions List and Categories', () => {
@@ -205,7 +201,13 @@ test.describe('Questions Management', () => {
       await questionsPage.addQuestionButton.click();
       
       // Fill form
-      const questionData = testQuestions.ethics;
+      const questionData = {
+        title: 'Ethics Test Question',
+        questionText: 'Have you ever been involved in any ethical violations?',
+        instructions: 'Please answer honestly and provide details if applicable.',
+        importance: 'mandatory' as const,
+        category: 'ethics' as const
+      };
       await questionsPage.fillQuestionForm(questionData);
       
       // Click preview button

@@ -1,5 +1,4 @@
 import { Page, Locator } from '@playwright/test';
-import { AdminLayoutPage } from './AdminLayoutPage';
 
 export interface JobData {
   title: string;
@@ -16,7 +15,8 @@ export interface JobFilter {
  * Page Object Model for Jobs Management
  * Handles job positions, question templates, and assignment functionality
  */
-export class JobsPage extends AdminLayoutPage {
+export class JobsPage {
+  readonly page: Page;
   // Main Section
   readonly jobsSection: Locator;
   readonly jobsList: Locator;
@@ -159,7 +159,7 @@ export class JobsPage extends AdminLayoutPage {
   readonly infoToast: Locator;
 
   constructor(page: Page) {
-    super(page);
+    this.page = page;
     
     // Main Section
     this.jobsSection = page.getByTestId('jobs-section');
@@ -307,7 +307,7 @@ export class JobsPage extends AdminLayoutPage {
    * Navigate to jobs page
    */
   async navigateTo() {
-    await this.page.goto('/admin/jobs');
+    await this.page.goto('/jobs');
     await this.page.waitForLoadState('networkidle');
   }
 
