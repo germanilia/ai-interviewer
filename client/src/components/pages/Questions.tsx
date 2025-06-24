@@ -24,15 +24,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  Search, 
-  HelpCircle, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  HelpCircle,
+  Edit,
+  Trash2,
   Eye,
-  FileUp,
-  FileDown,
   RefreshCw,
   X
 } from 'lucide-react';
@@ -253,31 +251,15 @@ const QuestionsContent: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2" data-testid="questions-toolbar">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => fetchQuestions()}
             data-testid="refresh-questions-btn"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            data-testid="import-questions-btn"
-          >
-            <FileUp className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            data-testid="export-questions-btn"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button 
+          <Button
             onClick={() => setIsAddModalOpen(true)}
             data-testid="add-question-btn"
           >
@@ -293,16 +275,16 @@ const QuestionsContent: React.FC = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search questions..."
-            className="pl-10"
+            className="pl-10 pr-20"
             data-testid="questions-search"
           />
           {searchTerm && (
             <Button
               variant="ghost"
               size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              className="absolute right-16 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
               onClick={() => handleSearch('')}
               data-testid="clear-search-btn"
             >
@@ -310,6 +292,13 @@ const QuestionsContent: React.FC = () => {
             </Button>
           )}
         </div>
+        <Button
+          onClick={() => handleSearch(searchTerm)}
+          data-testid="search-btn"
+        >
+          <Search className="h-4 w-4 mr-2" />
+          Search
+        </Button>
       </div>
 
       {/* Category Tabs */}
@@ -615,35 +604,7 @@ const QuestionsContent: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Import Modal Placeholder */}
-      <AlertDialog open={false}>
-        <AlertDialogContent data-testid="import-modal">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Import Questions</AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="space-y-4">
-            <Input type="file" accept=".json,.csv,.xlsx" data-testid="file-upload-input" />
-            <Button data-testid="upload-btn">Upload</Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
 
-      {/* Export Modal Placeholder */}
-      <AlertDialog open={false}>
-        <AlertDialogContent data-testid="export-modal">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Export Questions</AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="space-y-4">
-            <select data-testid="export-format-select">
-              <option value="json">JSON</option>
-              <option value="csv">CSV</option>
-              <option value="xlsx">Excel</option>
-            </select>
-            <Button data-testid="download-btn">Download</Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

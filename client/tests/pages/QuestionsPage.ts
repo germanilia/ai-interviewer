@@ -195,8 +195,8 @@ export class QuestionsPage {
     this.titleInput = page.getByTestId('title-input');
     this.questionTextArea = page.getByTestId('question-text-area');
     this.instructionsTextArea = page.getByTestId('instructions-text-area');
-    this.importanceSelect = page.getByTestId('importance-select');
-    this.categorySelect = page.getByTestId('category-select');
+    this.importanceSelect = page.getByTestId('importance-select-trigger');
+    this.categorySelect = page.getByTestId('category-select-trigger');
     this.saveQuestionButton = page.getByTestId('save-question-btn');
     this.cancelButton = page.getByTestId('cancel-btn');
     this.modalCloseButton = page.getByTestId('modal-close-btn');
@@ -323,13 +323,44 @@ export class QuestionsPage {
   async fillQuestionForm(data: QuestionData) {
     await this.titleInput.fill(data.title);
     await this.questionTextArea.fill(data.questionText);
-    
+
     if (data.instructions) {
       await this.instructionsTextArea.fill(data.instructions);
     }
-    
-    await this.importanceSelect.selectOption(data.importance);
-    await this.categorySelect.selectOption(data.category);
+
+    // Handle shadcn Select components
+    await this.importanceSelect.click();
+    await this.page.getByRole('option', { name: this.getImportanceLabel(data.importance) }).click();
+
+    await this.categorySelect.click();
+    await this.page.getByRole('option', { name: this.getCategoryLabel(data.category) }).click();
+  }
+
+  /**
+   * Get importance label for display
+   */
+  private getImportanceLabel(importance: string): string {
+    const labels: Record<string, string> = {
+      'optional': 'Optional',
+      'ask_once': 'Ask Once',
+      'mandatory': 'Mandatory'
+    };
+    return labels[importance] || importance;
+  }
+
+  /**
+   * Get category label for display
+   */
+  private getCategoryLabel(category: string): string {
+    const labels: Record<string, string> = {
+      'criminal_background': 'Criminal Background',
+      'drug_use': 'Drug Use',
+      'ethics': 'Ethics',
+      'dismissals': 'Dismissals',
+      'trustworthiness': 'Trustworthiness',
+      'general': 'General'
+    };
+    return labels[category] || category;
   }
 
   /**

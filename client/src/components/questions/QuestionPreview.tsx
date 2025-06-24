@@ -160,13 +160,13 @@ export const QuestionPreview: React.FC<QuestionPreviewProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground">Category</h4>
-                  <p className="text-foreground" data-testid="preview-category">
+                  <p className="text-foreground" data-testid="preview-category-detail">
                     {getCategoryLabel(question.category || '')}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground">Importance</h4>
-                  <p className="text-foreground" data-testid="preview-importance">
+                  <p className="text-foreground" data-testid="preview-importance-detail">
                     {getImportanceLabel(question.importance || '')}
                   </p>
                 </div>

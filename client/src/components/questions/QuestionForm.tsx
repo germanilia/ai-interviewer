@@ -225,7 +225,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
                 onValueChange={(value) => handleInputChange('importance', value)}
                 data-testid="importance-select"
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="importance-select-trigger">
                   <SelectValue placeholder="Select importance level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,7 +251,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
                 onValueChange={(value) => handleInputChange('category', value)}
                 data-testid="category-select"
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="category-select-trigger">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
