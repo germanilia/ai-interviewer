@@ -57,6 +57,50 @@ export interface RefreshTokenResponse {
   token_type: string;
 }
 
+// Types for candidates
+export interface CandidateData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}
+
+export interface CandidateResponse {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  created_at: string;
+  updated_at: string;
+  full_name?: string;
+  interview_count?: number;
+  last_interview_date?: string;
+  status?: string;
+}
+
+export interface CandidateListResponse {
+  items: CandidateResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface CandidateCreateRequest {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+}
+
+export interface CandidateUpdateRequest {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+}
+
 /**
  * Get stored auth token
  */
@@ -239,6 +283,53 @@ export const api = {
     },
 
     clearTokens: clearAuthTokens,
+  },
+
+  // Candidate endpoints
+  candidates: {
+    getAll: async (params?: {
+      page?: number;
+      page_size?: number;
+      search?: string;
+      status?: string;
+    }): Promise<CandidateListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.status) searchParams.set('status', params.status);
+
+      const endpoint = `/api/v1/candidates${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    getById: async (id: number): Promise<CandidateResponse> => {
+      return fetchFromApi(`/api/v1/candidates/${id}`);
+    },
+
+    create: async (data: CandidateCreateRequest): Promise<CandidateResponse> => {
+      return fetchFromApi('/api/v1/candidates', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    update: async (id: number, data: CandidateUpdateRequest): Promise<CandidateResponse> => {
+      return fetchFromApi(`/api/v1/candidates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: async (id: number): Promise<void> => {
+      return fetchFromApi(`/api/v1/candidates/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    getInterviews: async (id: number): Promise<any> => {
+      return fetchFromApi(`/api/v1/candidates/${id}/interviews`);
+    },
   },
 };
 
