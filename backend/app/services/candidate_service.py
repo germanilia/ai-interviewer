@@ -104,28 +104,29 @@ class CandidateService:
         logger.info(f"Getting candidate by email: {email}")
         return self.candidate_dao.get_by_email(db, email)
 
-    def create_candidate(self, db: Session, candidate_create: CandidateCreate) -> CandidateResponse:
+    def create_candidate(self, db: Session, candidate_create: CandidateCreate, created_by_user_id: int) -> CandidateResponse:
         """
         Create a new candidate.
-        
+
         Args:
             db: Database session
             candidate_create: Candidate creation data
-            
+            created_by_user_id: ID of the user creating the candidate
+
         Returns:
             Created CandidateResponse
-            
+
         Raises:
             ValueError: If candidate with email already exists
         """
         logger.info(f"Creating candidate: {candidate_create.email}")
-        
+
         # Check if candidate with email already exists
         existing_candidate = self.candidate_dao.get_by_email(db, candidate_create.email)
         if existing_candidate:
             raise ValueError("Email already exists")
-        
-        return self.candidate_dao.create(db, obj_in=candidate_create)
+
+        return self.candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=created_by_user_id)
 
     def update_candidate(self, db: Session, candidate_id: int, candidate_update: CandidateUpdate) -> Optional[CandidateResponse]:
         """

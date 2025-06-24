@@ -243,14 +243,21 @@ def populate_db():
             created_users.append(user)
 
         db.flush()  # Flush to get IDs without committing
+        db.refresh(created_users[0])  # Refresh to get the ID
         admin_user = created_users[0]  # First user is admin
-        logger.info(f"Created {len(created_users)} users")
+        logger.info(f"Created {len(created_users)} users, admin_user.id = {admin_user.id}")
 
         # 2. Create Candidates
         logger.info("Creating sample candidates...")
         created_candidates = []
         for candidate_data in SAMPLE_CANDIDATES:
-            candidate = Candidate(**candidate_data)
+            candidate = Candidate(
+                first_name=candidate_data["first_name"],
+                last_name=candidate_data["last_name"],
+                email=candidate_data["email"],
+                phone=candidate_data["phone"],
+                created_by_user_id=admin_user.id
+            )
             db.add(candidate)
             created_candidates.append(candidate)
 
@@ -295,7 +302,7 @@ def populate_db():
         create_job_question_templates(db, created_jobs, created_questions)
 
         # 6. Create Sample Interviews
-        created_interviews = create_sample_interviews(db, created_candidates, created_jobs)
+        created_interviews = create_sample_interviews(db, created_candidates, created_jobs, admin_user)
 
         # 7. Create Sample Interview Questions with Answers for completed interview
         create_sample_interview_questions(db, created_interviews, created_questions)
@@ -375,7 +382,7 @@ def create_job_question_templates(db: Session, jobs: list, questions: list):
     logger.info("Created job question templates for all positions")
 
 
-def create_sample_interviews(db: Session, candidates: list, jobs: list):
+def create_sample_interviews(db: Session, candidates: list, jobs: list, admin_user: User):
     """
     Create some sample interviews in different states to demonstrate the system.
     """
@@ -434,7 +441,8 @@ def create_sample_interviews(db: Session, candidates: list, jobs: list):
             report_summary=interview_data.get("report_summary"),
             risk_indicators=interview_data.get("risk_indicators"),
             key_concerns=interview_data.get("key_concerns"),
-            analysis_notes=interview_data.get("analysis_notes")
+            analysis_notes=interview_data.get("analysis_notes"),
+            created_by_user_id=admin_user.id
         )
         db.add(interview)
         created_interviews.append(interview)

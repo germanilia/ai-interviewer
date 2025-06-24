@@ -17,14 +17,15 @@ class CandidateBase(BaseModel):
 class CandidateCreate(CandidateBase):
     """Schema for creating a new candidate."""
 
-    def to_model(self) -> "Candidate":
+    def to_model(self, created_by_user_id: int) -> "Candidate":
         """Convert Pydantic schema to SQLAlchemy model."""
         from app.models.candidate import Candidate
         return Candidate(
             first_name=self.first_name,
             last_name=self.last_name,
             email=self.email,
-            phone=self.phone
+            phone=self.phone,
+            created_by_user_id=created_by_user_id
         )
 
 

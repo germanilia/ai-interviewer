@@ -10,28 +10,35 @@ from app.schemas.candidate import CandidateCreate
 from app.schemas.job import JobCreate
 from app.schemas.user import UserCreate
 from app.models.interview import InterviewQuestion, InterviewQuestionStatus, QuestionImportance, QuestionCategory
+from app.crud.user import UserDAO
 
 
-def test_interview_question_dao_create_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
-    """Test that InterviewQuestionDAO.create returns an InterviewQuestionResponse (Pydantic object)."""
-    # Create dependencies first
+@pytest.fixture
+def test_user_id(db):
+    """Create a test user and return its ID."""
+    user_dao = UserDAO()
     user_create = UserCreate(
         username="testuser",
         email="test@example.com",
         full_name="Test User"
     )
     created_user = user_dao.create(db, obj_in=user_create)
-    
+    return created_user.id
+
+
+def test_interview_question_dao_create_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
+    """Test that InterviewQuestionDAO.create returns an InterviewQuestionResponse (Pydantic object)."""
+    # Create dependencies first
     candidate_create = CandidateCreate(
         first_name="John",
         last_name="Doe",
         email="john.doe@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
     
     job_create = JobCreate(
         title="Software Engineer",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
     
@@ -39,14 +46,14 @@ def test_interview_question_dao_create_returns_pydantic_object(db, interview_que
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
     
     question_create = QuestionCreate(
         title="Criminal Background",
         question_text="Have you ever been convicted of a crime?",
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.CRIMINAL_BACKGROUND,
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
     
@@ -74,41 +81,34 @@ def test_interview_question_dao_create_returns_pydantic_object(db, interview_que
     assert result.follow_up_questions is None
 
 
-def test_interview_question_dao_get_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_get_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test that InterviewQuestionDAO.get returns an InterviewQuestionResponse (Pydantic object)."""
     # Create dependencies and interview question
-    user_create = UserCreate(
-        username="testuser2",
-        email="test2@example.com",
-        full_name="Test User 2"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Jane",
         last_name="Smith",
         email="jane.smith@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Data Analyst",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
-    
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
+
     question_create = QuestionCreate(
         title="Drug Use",
         question_text="Have you used illegal drugs?",
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.DRUG_USE,
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
     
@@ -139,34 +139,27 @@ def test_interview_question_dao_get_nonexistent_returns_none(db, interview_quest
     assert result is None
 
 
-def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test that InterviewQuestionDAO.get_multi returns a list of InterviewQuestionResponse objects."""
     # Create dependencies
-    user_create = UserCreate(
-        username="testuser3",
-        email="test3@example.com",
-        full_name="Test User 3"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Alice",
         last_name="Johnson",
         email="alice.johnson@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Product Manager",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
     
     # Create multiple questions and interview questions
     for i in range(3):
@@ -175,7 +168,7 @@ def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview
             question_text=f"This is a detailed question text for question number {i} with sufficient length",
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
-            created_by_user_id=created_user.id
+            created_by_user_id=test_user_id
         ) # type: ignore
         created_question = question_dao.create(db, obj_in=question_create)
 
@@ -200,34 +193,27 @@ def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview
         assert interview_question.interview_id == created_interview.id
 
 
-def test_interview_question_dao_get_multi_with_pagination(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_get_multi_with_pagination(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test pagination in get_multi method."""
     # Create dependencies
-    user_create = UserCreate(
-        username="testuser4",
-        email="test4@example.com",
-        full_name="Test User 4"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Bob",
         last_name="Wilson",
         email="bob.wilson@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Test Job",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
     
     # Create 5 interview questions
     for i in range(5):
@@ -236,7 +222,7 @@ def test_interview_question_dao_get_multi_with_pagination(db, interview_question
             question_text=f"This is a detailed question text for question number {i} with sufficient length",
             importance=QuestionImportance.OPTIONAL,
             category=QuestionCategory.ETHICS,
-            created_by_user_id=created_user.id
+            created_by_user_id=test_user_id
         ) # type: ignore
         created_question = question_dao.create(db, obj_in=question_create)
 
@@ -262,41 +248,34 @@ def test_interview_question_dao_get_multi_with_pagination(db, interview_question
     assert first_page_ids.isdisjoint(second_page_ids)
 
 
-def test_interview_question_dao_update_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_update_returns_pydantic_object(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test that InterviewQuestionDAO.update returns an InterviewQuestionResponse (Pydantic object)."""
     # Create dependencies and interview question
-    user_create = UserCreate(
-        username="testuser5",
-        email="test5@example.com",
-        full_name="Test User 5"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Update",
         last_name="Test",
         email="update.test@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Update Job",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
-    
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
+
     question_create = QuestionCreate(
         title="Update Question",
         question_text="This is a comprehensive update question text with sufficient length for validation",
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.DISMISSALS,
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 
@@ -344,41 +323,34 @@ def test_interview_question_dao_update_returns_pydantic_object(db, interview_que
     assert result.id == created_interview_question.id
 
 
-def test_interview_question_dao_update_partial_fields(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_update_partial_fields(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test updating only specific fields."""
     # Create dependencies and interview question
-    user_create = UserCreate(
-        username="testuser6",
-        email="test6@example.com",
-        full_name="Test User 6"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Partial",
         last_name="Update",
         email="partial.update@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Partial Job",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
-    
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
+
     question_create = QuestionCreate(
         title="Partial Question",
         question_text="This is a comprehensive partial question text with sufficient length for validation",
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.ETHICS,
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 
@@ -411,41 +383,34 @@ def test_interview_question_dao_update_partial_fields(db, interview_question_dao
     assert result.question_id == created_question.id  # Unchanged
 
 
-def test_interview_question_dao_delete_existing_interview_question(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, user_dao):
+def test_interview_question_dao_delete_existing_interview_question(db, interview_question_dao, interview_dao, question_dao, candidate_dao, job_dao, test_user_id):
     """Test deleting an existing interview question."""
     # Create dependencies and interview question
-    user_create = UserCreate(
-        username="testuser7",
-        email="test7@example.com",
-        full_name="Test User 7"
-    )
-    created_user = user_dao.create(db, obj_in=user_create)
-    
     candidate_create = CandidateCreate(
         first_name="Delete",
         last_name="Test",
         email="delete.test@example.com"
     )
-    created_candidate = candidate_dao.create(db, obj_in=candidate_create)
-    
+    created_candidate = candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=test_user_id)
+
     job_create = JobCreate(
         title="Delete Job",
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     )
     created_job = job_dao.create(db, obj_in=job_create)
-    
+
     interview_create = InterviewCreate(
         candidate_id=created_candidate.id,
         job_id=created_job.id
     )
-    created_interview = interview_dao.create(db, obj_in=interview_create)
-    
+    created_interview = interview_dao.create(db, obj_in=interview_create, created_by_user_id=test_user_id)
+
     question_create = QuestionCreate(
         title="Delete Question",
         question_text="This is a comprehensive delete question text with sufficient length for validation",
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
-        created_by_user_id=created_user.id
+        created_by_user_id=test_user_id
     ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 

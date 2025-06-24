@@ -82,12 +82,14 @@ class Interview(Base):
     key_concerns = Column(JSON, nullable=True)  # Areas requiring further investigation
     analysis_notes = Column(Text, nullable=True)  # Additional analysis notes
     
-    # Timestamps
+    # Metadata
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
+    created_by = relationship("User", back_populates="created_interviews")
     candidate = relationship("Candidate", back_populates="interviews")
     job = relationship("Job", back_populates="interviews")
     interview_questions = relationship("InterviewQuestion", back_populates="interview", cascade="all, delete-orphan")

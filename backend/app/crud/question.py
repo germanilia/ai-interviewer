@@ -25,7 +25,7 @@ class QuestionDAO(BaseDAO[Question, QuestionResponse, QuestionCreate, QuestionUp
         questions = db.query(self.model).offset(skip).limit(limit).all()
         return [QuestionResponse.from_model(question) for question in questions]
 
-    def create(self, db: Session, *, obj_in: QuestionCreate) -> QuestionResponse:
+    def create(self, db: Session, *, obj_in: QuestionCreate, created_by_user_id: int | None = None) -> QuestionResponse:
         """Create a new question."""
         question = obj_in.to_model()
         db.add(question)

@@ -73,7 +73,7 @@ def test_interview_create_to_model_includes_pass_key():
     )
     
     # Convert to model
-    interview_model = interview_create.to_model()
+    interview_model = interview_create.to_model(created_by_user_id=1)
     
     # Model should have the pass_key
     assert getattr(interview_model, "pass_key") == interview_create.pass_key

@@ -49,7 +49,7 @@ class BaseDAO(Generic[ModelType, SchemaType, CreateSchemaType, UpdateSchemaType]
         pass
 
     @abstractmethod
-    def create(self, db: Session, *, obj_in: CreateSchemaType) -> SchemaType:
+    def create(self, db: Session, *, obj_in: CreateSchemaType, created_by_user_id: int | None = None) -> SchemaType:
         """Create a new record."""
         pass
 

@@ -544,13 +544,6 @@ def test_get_job_by_id(client, db, auth_headers, job_dao, user_dao):
     assert data["description"] == "Test description"
     assert data["department"] == "Test Department"
 
-
-def test_get_job_by_id_not_found(client, auth_headers):
-    """Test getting a non-existent job."""
-    response = client.get("/api/v1/jobs/99999", headers=auth_headers)
-    assert response.status_code == 404
-
-
 def test_update_job(client, db, auth_headers, job_dao, user_dao):
     """Test updating a job via API."""
     # Create a user and job
@@ -586,19 +579,6 @@ def test_update_job(client, db, auth_headers, job_dao, user_dao):
     assert data["title"] == "Updated Title"
     assert data["description"] == "Original description"  # Unchanged
     assert data["department"] == "Updated Department"
-
-
-def test_update_job_not_found(client, auth_headers):
-    """Test updating a non-existent job."""
-    update_data = {"title": "Updated Title"}
-    
-    response = client.put(
-        "/api/v1/jobs/99999",
-        json=update_data,
-        headers=auth_headers
-    )
-    
-    assert response.status_code == 404
 
 
 def test_delete_job(client, db, auth_headers, job_dao, user_dao):

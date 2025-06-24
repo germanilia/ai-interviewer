@@ -4,6 +4,21 @@ Unit tests for CandidateService to verify proper dependency injection and busine
 import pytest
 from app.schemas.candidate import CandidateCreate, CandidateUpdate, CandidateResponse, CandidateListResponse
 from app.services.candidate_service import CandidateService
+from app.crud.user import UserDAO
+from app.schemas.user import UserCreate
+
+
+@pytest.fixture
+def test_user_id(db):
+    """Create a test user and return its ID."""
+    user_dao = UserDAO()
+    user_create = UserCreate(
+        username="testuser",
+        email="test@example.com",
+        full_name="Test User"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+    return created_user.id
 
 
 def test_candidate_service_dependency_injection(candidate_dao):
@@ -12,7 +27,7 @@ def test_candidate_service_dependency_injection(candidate_dao):
     assert service.candidate_dao is candidate_dao
 
 
-def test_candidate_service_create_candidate_returns_pydantic(db, candidate_service):
+def test_candidate_service_create_candidate_returns_pydantic(db, candidate_service, test_user_id):
     """Test that CandidateService.create_candidate returns CandidateResponse."""
     candidate_create = CandidateCreate(
         first_name="John",
@@ -20,8 +35,8 @@ def test_candidate_service_create_candidate_returns_pydantic(db, candidate_servi
         email="john.doe@example.com",
         phone="+1234567890"
     )
-    
-    result = candidate_service.create_candidate(db, candidate_create)
+
+    result = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     assert isinstance(result, CandidateResponse)
     assert result.first_name == "John"
@@ -31,29 +46,29 @@ def test_candidate_service_create_candidate_returns_pydantic(db, candidate_servi
     assert result.id is not None
 
 
-def test_candidate_service_create_candidate_duplicate_email_raises_error(db, candidate_service):
+def test_candidate_service_create_candidate_duplicate_email_raises_error(db, candidate_service, test_user_id):
     """Test that creating candidate with duplicate email raises ValueError."""
     candidate_create = CandidateCreate(
         first_name="John",
         last_name="Doe",
         email="duplicate@example.com"
     )
-    
+
     # Create first candidate
-    candidate_service.create_candidate(db, candidate_create)
-    
+    candidate_service.create_candidate(db, candidate_create, test_user_id)
+
     # Try to create second candidate with same email
     duplicate_candidate = CandidateCreate(
         first_name="Jane",
         last_name="Smith",
         email="duplicate@example.com"
     )
-    
+
     with pytest.raises(ValueError, match="Email already exists"):
-        candidate_service.create_candidate(db, duplicate_candidate)
+        candidate_service.create_candidate(db, duplicate_candidate, test_user_id)
 
 
-def test_candidate_service_get_candidate_by_id_returns_pydantic(db, candidate_service):
+def test_candidate_service_get_candidate_by_id_returns_pydantic(db, candidate_service, test_user_id):
     """Test that CandidateService.get_candidate_by_id returns CandidateResponse."""
     # Create candidate first
     candidate_create = CandidateCreate(
@@ -61,7 +76,7 @@ def test_candidate_service_get_candidate_by_id_returns_pydantic(db, candidate_se
         last_name="Johnson",
         email="alice.johnson@example.com"
     )
-    created_candidate = candidate_service.create_candidate(db, candidate_create)
+    created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Get candidate by ID
     result = candidate_service.get_candidate_by_id(db, created_candidate.id)
@@ -78,7 +93,7 @@ def test_candidate_service_get_candidate_by_id_nonexistent_returns_none(db, cand
     assert result is None
 
 
-def test_candidate_service_get_candidates_returns_paginated_response(db, candidate_service):
+def test_candidate_service_get_candidates_returns_paginated_response(db, candidate_service, test_user_id):
     """Test that CandidateService.get_candidates returns CandidateListResponse."""
     # Create multiple candidates
     candidates_data = [
@@ -86,10 +101,10 @@ def test_candidate_service_get_candidates_returns_paginated_response(db, candida
         {"first_name": "Carol", "last_name": "Brown", "email": "carol.brown@example.com"},
         {"first_name": "David", "last_name": "Davis", "email": "david.davis@example.com"}
     ]
-    
+
     for candidate_data in candidates_data:
         candidate_create = CandidateCreate(**candidate_data)
-        candidate_service.create_candidate(db, candidate_create)
+        candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Get candidates with pagination
     result = candidate_service.get_candidates(db, page=1, page_size=2)
@@ -105,7 +120,7 @@ def test_candidate_service_get_candidates_returns_paginated_response(db, candida
         assert isinstance(candidate, CandidateResponse)
 
 
-def test_candidate_service_get_candidates_with_search(db, candidate_service):
+def test_candidate_service_get_candidates_with_search(db, candidate_service, test_user_id):
     """Test that CandidateService.get_candidates supports search functionality."""
     # Create candidates with different names
     candidates_data = [
@@ -113,10 +128,10 @@ def test_candidate_service_get_candidates_with_search(db, candidate_service):
         {"first_name": "Jane", "last_name": "Johnson", "email": "jane.johnson@example.com"},
         {"first_name": "Bob", "last_name": "Smith", "email": "bob.smith@example.com"}
     ]
-    
+
     for candidate_data in candidates_data:
         candidate_create = CandidateCreate(**candidate_data)
-        candidate_service.create_candidate(db, candidate_create)
+        candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Search by last name
     result = candidate_service.get_candidates(db, page=1, page_size=10, search="Smith")
@@ -144,7 +159,7 @@ def test_candidate_service_get_candidates_pagination_validation(db, candidate_se
     assert result.page_size == 10
 
 
-def test_candidate_service_get_candidate_by_email_returns_pydantic(db, candidate_service):
+def test_candidate_service_get_candidate_by_email_returns_pydantic(db, candidate_service, test_user_id):
     """Test that CandidateService.get_candidate_by_email returns CandidateResponse."""
     # Create candidate
     candidate_create = CandidateCreate(
@@ -152,7 +167,7 @@ def test_candidate_service_get_candidate_by_email_returns_pydantic(db, candidate
         last_name="Test",
         email="email.test@example.com"
     )
-    candidate_service.create_candidate(db, candidate_create)
+    candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Get candidate by email
     result = candidate_service.get_candidate_by_email(db, "email.test@example.com")
@@ -168,7 +183,7 @@ def test_candidate_service_get_candidate_by_email_nonexistent_returns_none(db, c
     assert result is None
 
 
-def test_candidate_service_update_candidate_returns_pydantic(db, candidate_service):
+def test_candidate_service_update_candidate_returns_pydantic(db, candidate_service, test_user_id):
     """Test that CandidateService.update_candidate returns CandidateResponse."""
     # Create candidate first
     candidate_create = CandidateCreate(
@@ -177,7 +192,7 @@ def test_candidate_service_update_candidate_returns_pydantic(db, candidate_servi
         email="original@example.com",
         phone="+1111111111"
     )
-    created_candidate = candidate_service.create_candidate(db, candidate_create)
+    created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Update candidate
     candidate_update = CandidateUpdate(
@@ -201,7 +216,7 @@ def test_candidate_service_update_candidate_nonexistent_returns_none(db, candida
     assert result is None
 
 
-def test_candidate_service_update_candidate_duplicate_email_raises_error(db, candidate_service):
+def test_candidate_service_update_candidate_duplicate_email_raises_error(db, candidate_service, test_user_id):
     """Test that updating candidate with duplicate email raises ValueError."""
     # Create two candidates
     candidate1 = CandidateCreate(
@@ -214,9 +229,9 @@ def test_candidate_service_update_candidate_duplicate_email_raises_error(db, can
         last_name="User",
         email="second@example.com"
     )
-    
-    created1 = candidate_service.create_candidate(db, candidate1)
-    created2 = candidate_service.create_candidate(db, candidate2)
+
+    created1 = candidate_service.create_candidate(db, candidate1, test_user_id)
+    created2 = candidate_service.create_candidate(db, candidate2, test_user_id)
     
     # Try to update second candidate with first candidate's email
     candidate_update = CandidateUpdate(email="first@example.com")
@@ -225,7 +240,7 @@ def test_candidate_service_update_candidate_duplicate_email_raises_error(db, can
         candidate_service.update_candidate(db, created2.id, candidate_update)
 
 
-def test_candidate_service_delete_candidate_success(db, candidate_service):
+def test_candidate_service_delete_candidate_success(db, candidate_service, test_user_id):
     """Test that CandidateService.delete_candidate works correctly."""
     # Create candidate first
     candidate_create = CandidateCreate(
@@ -233,7 +248,7 @@ def test_candidate_service_delete_candidate_success(db, candidate_service):
         last_name="Me",
         email="delete@example.com"
     )
-    created_candidate = candidate_service.create_candidate(db, candidate_create)
+    created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Delete candidate
     result = candidate_service.delete_candidate(db, created_candidate.id)
@@ -251,7 +266,7 @@ def test_candidate_service_delete_candidate_nonexistent_returns_false(db, candid
     assert result is False
 
 
-def test_candidate_service_get_candidate_interview_history(db, candidate_service):
+def test_candidate_service_get_candidate_interview_history(db, candidate_service, test_user_id):
     """Test that CandidateService.get_candidate_interview_history returns list."""
     # Create candidate first
     candidate_create = CandidateCreate(
@@ -259,7 +274,7 @@ def test_candidate_service_get_candidate_interview_history(db, candidate_service
         last_name="Test",
         email="history@example.com"
     )
-    created_candidate = candidate_service.create_candidate(db, candidate_create)
+    created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
     # Get interview history (should be empty for now)
     result = candidate_service.get_candidate_interview_history(db, created_candidate.id)

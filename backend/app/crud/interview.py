@@ -31,9 +31,11 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
         interviews = db.query(self.model).offset(skip).limit(limit).all()
         return [InterviewResponse.from_model(interview) for interview in interviews]
 
-    def create(self, db: Session, *, obj_in: InterviewCreate) -> InterviewResponse:
+    def create(self, db: Session, *, obj_in: InterviewCreate, created_by_user_id: int | None = None) -> InterviewResponse:
         """Create a new interview."""
-        interview = obj_in.to_model()
+        if created_by_user_id is None:
+            raise ValueError("created_by_user_id is required")
+        interview = obj_in.to_model(created_by_user_id=created_by_user_id)
         db.add(interview)
         db.commit()
         db.refresh(interview)

@@ -108,33 +108,34 @@ class InterviewService:
             status_counts=status_counts
         )
 
-    def create_interview(self, db: Session, interview_create: InterviewCreate) -> InterviewResponse:
+    def create_interview(self, db: Session, interview_create: InterviewCreate, created_by_user_id: int) -> InterviewResponse:
         """
         Create a new interview.
-        
+
         Args:
             db: Database session
             interview_create: Interview creation data
-            
+            created_by_user_id: ID of the user creating the interview
+
         Returns:
             Created InterviewResponse
-            
+
         Raises:
             ValueError: If candidate or job not found
         """
         logger.info(f"Creating interview for candidate {interview_create.candidate_id}, job {interview_create.job_id}")
-        
+
         # Validate candidate exists
         candidate = self.candidate_dao.get(db, interview_create.candidate_id)
         if not candidate:
             raise ValueError("Candidate not found")
-        
+
         # Validate job exists
         job = self.job_dao.get(db, interview_create.job_id)
         if not job:
             raise ValueError("Job not found")
-        
-        return self.interview_dao.create(db, obj_in=interview_create)
+
+        return self.interview_dao.create(db, obj_in=interview_create, created_by_user_id=created_by_user_id)
 
     def update_interview(self, db: Session, interview_id: int, interview_update: InterviewUpdate) -> Optional[InterviewResponse]:
         """

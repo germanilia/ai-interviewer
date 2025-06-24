@@ -74,9 +74,11 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
 
         return [CandidateResponse.from_model(candidate) for candidate in candidates], total
 
-    def create(self, db: Session, *, obj_in: CandidateCreate) -> CandidateResponse:
+    def create(self, db: Session, *, obj_in: CandidateCreate, created_by_user_id: int | None = None) -> CandidateResponse:
         """Create a new candidate."""
-        candidate = obj_in.to_model()
+        if created_by_user_id is None:
+            raise ValueError("created_by_user_id is required")
+        candidate = obj_in.to_model(created_by_user_id=created_by_user_id)
         db.add(candidate)
         db.commit()
         db.refresh(candidate)

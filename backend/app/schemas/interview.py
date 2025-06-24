@@ -34,7 +34,7 @@ class InterviewCreate(InterviewBase):
         if self.pass_key is None:
             self.pass_key = generate_pass_key()
 
-    def to_model(self) -> "Interview":
+    def to_model(self, created_by_user_id: int) -> "Interview":
         """Convert Pydantic schema to SQLAlchemy model."""
         from app.models.interview import Interview
         return Interview(
@@ -42,7 +42,8 @@ class InterviewCreate(InterviewBase):
             job_id=self.job_id,
             status=self.status,
             interview_date=self.interview_date,
-            pass_key=self.pass_key
+            pass_key=self.pass_key,
+            created_by_user_id=created_by_user_id
         )
 
 
@@ -51,7 +52,7 @@ class InterviewUpdate(BaseModel):
     job_id: Optional[int] = None
     status: Optional[InterviewStatus] = None
     interview_date: Optional[datetime] = None
-    score: Optional[int] = None
+    score: Optional[float] = None
     integrity_score: Optional[IntegrityScore] = None
     risk_level: Optional[RiskLevel] = None
     conversation: Optional[dict[str, Any]] = None
@@ -66,7 +67,7 @@ class InterviewResponse(InterviewBase):
     """Schema for interview responses."""
     id: int
     pass_key: str  # Required in response
-    score: Optional[int] = None
+    score: Optional[float] = None
     integrity_score: Optional[IntegrityScore] = None
     risk_level: Optional[RiskLevel] = None
     conversation: Optional[dict[str, Any]] = None
@@ -107,7 +108,7 @@ class InterviewReport(BaseModel):
     job_department: Optional[str]
     interview_date: Optional[datetime]
     status: InterviewStatus
-    score: Optional[int]
+    score: Optional[float]
     integrity_score: Optional[IntegrityScore]
     risk_level: Optional[RiskLevel]
     report_summary: Optional[str]

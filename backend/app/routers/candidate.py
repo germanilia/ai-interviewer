@@ -51,7 +51,7 @@ async def create_candidate(
     Create a new candidate.
     """
     try:
-        return candidate_service.create_candidate(db=db, candidate_create=candidate_data)
+        return candidate_service.create_candidate(db=db, candidate_create=candidate_data, created_by_user_id=current_user.id)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

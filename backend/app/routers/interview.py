@@ -93,7 +93,7 @@ async def create_interview(
     Create a new interview.
     """
     try:
-        return interview_service.create_interview(db=db, interview_create=interview_create)
+        return interview_service.create_interview(db=db, interview_create=interview_create, created_by_user_id=current_user.id)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

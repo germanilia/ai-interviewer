@@ -8,6 +8,16 @@ from .job import JobBase, JobCreate, JobUpdate, JobResponse, JobWithQuestions, J
 from .job_question import JobQuestionBase, JobQuestionCreate, JobQuestionUpdate, JobQuestionResponse, JobQuestionInDB
 from .interview_question import InterviewQuestionBase, InterviewQuestionCreate, InterviewQuestionUpdate, InterviewQuestionResponse, InterviewQuestionInDB
 from .auth import SignUpRequest, SignUpResponse, ConfirmSignUpRequest, ConfirmSignUpResponse, SignInRequest, SignInResponse, RefreshTokenRequest, RefreshTokenResponse, UserInfo, TokenData, PasswordChangeRequest, PasswordResetRequest
+from .interview import InterviewListResponse, InterviewWithDetails
+from .reports import (
+    ReportFormat, ReportType, ChartType, ReportFrequency,
+    ChartDataPoint, ChartData, SummaryCard, AnalyticsFilters,
+    OverviewData, AnalyticsData, ReportGenerationRequest, ReportMetadata,
+    CustomReportField, CustomReportDefinition, CustomReportRequest,
+    ScheduledReportRequest, ScheduledReport, ReportHistoryItem,
+    ReportExportRequest, ReportResponse, AnalyticsResponse,
+    ReportListResponse, AvailableFieldsResponse
+)
 
 __all__ = [
     # User schemas
@@ -25,5 +35,15 @@ __all__ = [
     # Interview Question schemas
     "InterviewQuestionBase", "InterviewQuestionCreate", "InterviewQuestionUpdate", "InterviewQuestionResponse", "InterviewQuestionInDB",
     # Auth schemas
-    "SignUpRequest", "SignUpResponse", "ConfirmSignUpRequest", "ConfirmSignUpResponse", "SignInRequest", "SignInResponse", "RefreshTokenRequest", "RefreshTokenResponse", "UserInfo", "TokenData", "PasswordChangeRequest", "PasswordResetRequest"
+    "SignUpRequest", "SignUpResponse", "ConfirmSignUpRequest", "ConfirmSignUpResponse", "SignInRequest", "SignInResponse", "RefreshTokenRequest", "RefreshTokenResponse", "UserInfo", "TokenData", "PasswordChangeRequest", "PasswordResetRequest",
+    # Common schemas
+    "InterviewListResponse", "InterviewWithDetails",
+    # Reports schemas
+    "ReportFormat", "ReportType", "ChartType", "ReportFrequency",
+    "ChartDataPoint", "ChartData", "SummaryCard", "AnalyticsFilters",
+    "OverviewData", "AnalyticsData", "ReportGenerationRequest", "ReportMetadata",
+    "CustomReportField", "CustomReportDefinition", "CustomReportRequest",
+    "ScheduledReportRequest", "ScheduledReport", "ReportHistoryItem",
+    "ReportExportRequest", "ReportResponse", "AnalyticsResponse",
+    "ReportListResponse", "AvailableFieldsResponse"
 ]

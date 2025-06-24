@@ -28,3 +28,5 @@ class User(Base):
     # Relationships
     created_questions = relationship("Question", back_populates="created_by")
     created_jobs = relationship("Job", back_populates="created_by")
+    created_candidates = relationship("Candidate", back_populates="created_by")
+    created_interviews = relationship("Interview", back_populates="created_by")

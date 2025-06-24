@@ -237,6 +237,147 @@ def test_user(db):
 
 
 @pytest.fixture
+def authenticated_client(client, test_user, mock_cognito):
+    """Create an authenticated test client with a valid token."""
+    # Sign in to get token
+    signin_data = {
+        "email": test_user["email"],
+        "password": test_user["password"]
+    }
+
+    signin_response = client.post("/api/v1/auth/signin", json=signin_data)
+    assert signin_response.status_code == 200
+
+    token = signin_response.json()["access_token"]
+
+    # Create a client wrapper that automatically includes the auth header
+    class AuthenticatedClient:
+        def __init__(self, client, token):
+            self.client = client
+            self.token = token
+            self.headers = {"Authorization": f"Bearer {token}"}
+
+        def get(self, url, **kwargs):
+            kwargs.setdefault("headers", {}).update(self.headers)
+            return self.client.get(url, **kwargs)
+
+        def post(self, url, **kwargs):
+            kwargs.setdefault("headers", {}).update(self.headers)
+            return self.client.post(url, **kwargs)
+
+        def put(self, url, **kwargs):
+            kwargs.setdefault("headers", {}).update(self.headers)
+            return self.client.put(url, **kwargs)
+
+        def delete(self, url, **kwargs):
+            kwargs.setdefault("headers", {}).update(self.headers)
+            return self.client.delete(url, **kwargs)
+
+        def patch(self, url, **kwargs):
+            kwargs.setdefault("headers", {}).update(self.headers)
+            return self.client.patch(url, **kwargs)
+
+    return AuthenticatedClient(client, token)
+
+
+@pytest.fixture
+def sample_data(db, test_user):
+    """Create sample data for testing reports."""
+    from app.models.candidate import Candidate
+    from app.models.interview import Interview, Job, InterviewStatus, RiskLevel
+    from datetime import datetime, timedelta
+
+    # Create sample jobs
+    job1 = Job(
+        title="Software Engineer",
+        department="Engineering",
+        description="Backend developer position",
+        created_by_user_id=test_user["db_user"].id
+    )
+    job2 = Job(
+        title="Sales Manager",
+        department="Sales",
+        description="Sales team lead position",
+        created_by_user_id=test_user["db_user"].id
+    )
+
+    db.add_all([job1, job2])
+    db.commit()
+    db.refresh(job1)
+    db.refresh(job2)
+
+    # Create sample candidates
+    candidate1 = Candidate(
+        first_name="John",
+        last_name="Doe",
+        email="john.doe@example.com",
+        phone="123-456-7890",
+        created_by_user_id=test_user["db_user"].id
+    )
+    candidate2 = Candidate(
+        first_name="Jane",
+        last_name="Smith",
+        email="jane.smith@example.com",
+        phone="098-765-4321",
+        created_by_user_id=test_user["db_user"].id
+    )
+
+    db.add_all([candidate1, candidate2])
+    db.commit()
+    db.refresh(candidate1)
+    db.refresh(candidate2)
+
+    # Create sample interviews
+    base_date = datetime.now() - timedelta(days=30)
+
+    from app.schemas.interview import generate_pass_key
+
+    interview1 = Interview(
+        candidate_id=candidate1.id,
+        job_id=job1.id,
+        interview_date=base_date + timedelta(days=1),
+        status=InterviewStatus.COMPLETED,
+        score=85.5,
+        risk_level=RiskLevel.LOW,
+        completed_at=base_date + timedelta(days=1, hours=1),
+        created_by_user_id=test_user["db_user"].id,
+        pass_key=generate_pass_key()
+    )
+
+    interview2 = Interview(
+        candidate_id=candidate2.id,
+        job_id=job2.id,
+        interview_date=base_date + timedelta(days=5),
+        status=InterviewStatus.COMPLETED,
+        score=72.0,
+        risk_level=RiskLevel.MEDIUM,
+        completed_at=base_date + timedelta(days=5, hours=1),
+        created_by_user_id=test_user["db_user"].id,
+        pass_key=generate_pass_key()
+    )
+
+    interview3 = Interview(
+        candidate_id=candidate1.id,
+        job_id=job2.id,
+        interview_date=base_date + timedelta(days=10),
+        status=InterviewStatus.IN_PROGRESS,
+        score=None,
+        risk_level=None,
+        created_by_user_id=test_user["db_user"].id,
+        pass_key=generate_pass_key()
+    )
+
+    db.add_all([interview1, interview2, interview3])
+    db.commit()
+
+    return {
+        "jobs": [job1, job2],
+        "candidates": [candidate1, candidate2],
+        "interviews": [interview1, interview2, interview3]
+    }
+
+
+@pytest.fixture
 def event_loop():
     """Create an instance of the default event loop for the test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
