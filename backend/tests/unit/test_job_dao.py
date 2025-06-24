@@ -2,9 +2,13 @@
 Unit tests for JobDAO to verify proper database operations and Pydantic object returns.
 """
 import pytest
-from app.schemas.job import JobCreate, JobUpdate, JobResponse
+from app.schemas.job import JobCreate, JobUpdate, JobResponse, JobStatistics
 from app.schemas.user import UserCreate
-from app.models.interview import Job
+from app.schemas.candidate import CandidateCreate
+from app.schemas.interview import InterviewCreate
+from app.schemas.question import QuestionCreate
+from app.schemas.job_question import JobQuestionCreate
+from app.models.interview import Job, InterviewStatus
 
 
 def test_job_dao_create_returns_pydantic_object(db, job_dao, user_dao):
@@ -346,3 +350,137 @@ def test_job_dao_get_by_creator_returns_pydantic_objects(db, job_dao, user_dao):
     for job in result:
         assert isinstance(job, JobResponse)
         assert job.created_by_user_id == user1.id
+
+
+def test_job_dao_get_by_filters_with_search(db, job_dao, user_dao):
+    """Test filtering jobs with search term."""
+    # Create a user first
+    user_create = UserCreate(
+        username="testuser10",
+        email="test10@example.com",
+        full_name="Test User 10"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    # Create jobs with different titles
+    jobs_data = [
+        {"title": "Senior Python Developer", "department": "Engineering"},
+        {"title": "Junior Java Developer", "department": "Engineering"},
+        {"title": "Product Manager", "department": "Product"}
+    ]
+
+    for job_data in jobs_data:
+        job_create = JobCreate(
+            **job_data,
+            created_by_user_id=created_user.id
+        )
+        job_dao.create(db, obj_in=job_create)
+
+    # Search for "Developer"
+    result = job_dao.get_by_filters(db, search="Developer")
+
+    # Should return 2 developer jobs
+    assert len(result) == 2
+    for job in result:
+        assert isinstance(job, JobResponse)
+        assert "Developer" in job.title
+
+
+def test_job_dao_count_by_filters(db, job_dao, user_dao):
+    """Test counting jobs with filters."""
+    # Create a user first
+    user_create = UserCreate(
+        username="testuser11",
+        email="test11@example.com",
+        full_name="Test User 11"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    # Create jobs in different departments
+    jobs_data = [
+        {"title": "Engineer 1", "department": "Engineering"},
+        {"title": "Engineer 2", "department": "Engineering"},
+        {"title": "Sales Rep", "department": "Sales"}
+    ]
+
+    for job_data in jobs_data:
+        job_create = JobCreate(
+            **job_data,
+            created_by_user_id=created_user.id
+        )
+        job_dao.create(db, obj_in=job_create)
+
+    # Count all jobs
+    total_count = job_dao.count_by_filters(db)
+    assert total_count >= 3  # At least the 3 we created
+
+    # Count engineering jobs
+    eng_count = job_dao.count_by_filters(db, department="Engineering")
+    assert eng_count == 2
+
+    # Count with search
+    dev_count = job_dao.count_by_filters(db, search="Engineer")
+    assert dev_count == 2
+
+
+def test_job_dao_get_statistics_empty_job(db, job_dao, user_dao):
+    """Test getting statistics for a job with no interviews."""
+    # Create a user and job
+    user_create = UserCreate(
+        username="testuser12",
+        email="test12@example.com",
+        full_name="Test User 12"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    job_create = JobCreate(
+        title="Test Job for Stats",
+        created_by_user_id=created_user.id
+    )
+    created_job = job_dao.create(db, obj_in=job_create)
+
+    # Get statistics
+    stats = job_dao.get_statistics(db, created_job.id)
+
+    # Verify statistics for empty job
+    assert isinstance(stats, JobStatistics)
+    assert stats.total_interviews == 0
+    assert stats.avg_score is None
+    assert stats.completion_rate == 0.0
+    assert stats.avg_completion_time is None
+    assert stats.questions_count == 0
+
+
+def test_job_dao_get_statistics_nonexistent_job(db, job_dao):
+    """Test getting statistics for non-existent job."""
+    stats = job_dao.get_statistics(db, 99999)
+    assert stats is None
+
+
+def test_job_dao_get_unique_departments(db, job_dao, user_dao):
+    """Test getting unique departments."""
+    # Create a user first
+    user_create = UserCreate(
+        username="testuser13",
+        email="test13@example.com",
+        full_name="Test User 13"
+    )
+    created_user = user_dao.create(db, obj_in=user_create)
+
+    # Create jobs in different departments
+    departments = ["Engineering", "Sales", "Marketing", "Engineering", "Sales"]
+    for i, dept in enumerate(departments):
+        job_create = JobCreate(
+            title=f"Job {i}",
+            department=dept,
+            created_by_user_id=created_user.id
+        )
+        job_dao.create(db, obj_in=job_create)
+
+    # Get unique departments
+    unique_depts = job_dao.get_unique_departments(db)
+
+    # Should return unique departments only
+    assert isinstance(unique_depts, list)
+    assert set(unique_depts) >= {"Engineering", "Sales", "Marketing"}  # At least these
+    assert len(set(unique_depts)) == len(unique_depts)  # No duplicates

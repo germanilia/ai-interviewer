@@ -7,6 +7,7 @@ from .dev import dev_router
 from .candidate import candidate_router
 from .interview import interview_router
 from .question import question_router
+from .job import job_router
 from app.core.config_service import config_service
 
 router = APIRouter()
@@ -44,4 +45,5 @@ router.include_router(user_router, prefix="/api/v1", tags=["users"])
 router.include_router(candidate_router, prefix="/api/v1", tags=["candidates"])
 router.include_router(interview_router, prefix="/api/v1", tags=["interviews"])
 router.include_router(question_router, prefix="/api/v1", tags=["questions"])
+router.include_router(job_router, prefix="/api/v1", tags=["jobs"])
 router.include_router(dev_router, prefix="/api/v1/dev", tags=["development"])
