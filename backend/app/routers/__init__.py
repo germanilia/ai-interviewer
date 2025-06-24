@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from .user import user_router
 from .auth import auth_router
 from .dev import dev_router
+from .candidate import candidate_router
 from app.core.config_service import config_service
 
 router = APIRouter()
@@ -38,4 +39,5 @@ async def health_check():
 # Include route definitions
 router.include_router(auth_router, prefix="/api/v1/auth", tags=["authentication"])
 router.include_router(user_router, prefix="/api/v1", tags=["users"])
+router.include_router(candidate_router, prefix="/api/v1", tags=["candidates"])
 router.include_router(dev_router, prefix="/api/v1/dev", tags=["development"])

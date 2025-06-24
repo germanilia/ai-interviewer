@@ -8,6 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db import Base
+# Import all models to ensure they are registered with Base
+from app.models.user import User
+from app.models.candidate import Candidate
+from app.models.interview import Interview, Job, Question, JobQuestion, InterviewQuestion
 # Import app components to create test app
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -143,6 +147,13 @@ def interview_question_dao():
 def user_service(user_dao):
     """Create a UserService instance with injected UserDAO."""
     return UserService(user_dao)
+
+
+@pytest.fixture
+def candidate_service(candidate_dao):
+    """Create a CandidateService instance with injected CandidateDAO."""
+    from app.services.candidate_service import CandidateService
+    return CandidateService(candidate_dao)
 
 
 @pytest.fixture

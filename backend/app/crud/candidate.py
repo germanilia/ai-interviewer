@@ -1,8 +1,9 @@
 """
 Candidate DAO for database operations.
 """
-from typing import Optional, List
-from sqlalchemy.orm import Session
+from typing import Optional, List, Tuple
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, or_
 from app.crud.base import BaseDAO
 from app.models.candidate import Candidate
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
@@ -15,14 +16,63 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         super().__init__(Candidate, CandidateResponse)
 
     def get(self, db: Session, id: int) -> Optional[CandidateResponse]:
-        """Get a candidate by ID."""
-        candidate = db.query(self.model).filter(self.model.id == id).first()
+        """Get a candidate by ID with interview data."""
+        candidate = (
+            db.query(self.model)
+            .options(joinedload(self.model.interviews))
+            .filter(self.model.id == id)
+            .first()
+        )
         return CandidateResponse.from_model(candidate) if candidate else None
 
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[CandidateResponse]:
-        """Get multiple candidates with pagination."""
-        candidates = db.query(self.model).offset(skip).limit(limit).all()
+        """Get multiple candidates with pagination and interview data."""
+        candidates = (
+            db.query(self.model)
+            .options(joinedload(self.model.interviews))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return [CandidateResponse.from_model(candidate) for candidate in candidates]
+
+    def get_multi_with_search(
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> Tuple[List[CandidateResponse], int]:
+        """Get candidates with search, filtering, and pagination."""
+        query = db.query(self.model).options(joinedload(self.model.interviews))
+
+        # Apply search filter
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    self.model.first_name.ilike(search_term),
+                    self.model.last_name.ilike(search_term),
+                    self.model.email.ilike(search_term),
+                    func.concat(self.model.first_name, ' ', self.model.last_name).ilike(search_term)
+                )
+            )
+
+        # Apply status filter (this would need to be implemented based on interview status)
+        if status and status != 'all':
+            # This is a simplified implementation - in reality, you'd join with interviews
+            # and filter based on the most recent interview status
+            pass
+
+        # Get total count before pagination
+        total = query.count()
+
+        # Apply pagination
+        candidates = query.offset(skip).limit(limit).all()
+
+        return [CandidateResponse.from_model(candidate) for candidate in candidates], total
 
     def create(self, db: Session, *, obj_in: CandidateCreate) -> CandidateResponse:
         """Create a new candidate."""
@@ -42,6 +92,13 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         db.refresh(db_obj)
         return CandidateResponse.from_model(db_obj)
 
+    def update_by_id(self, db: Session, id: int, obj_in: CandidateUpdate) -> Optional[CandidateResponse]:
+        """Update a candidate by ID."""
+        candidate = db.query(self.model).filter(self.model.id == id).first()
+        if candidate:
+            return self.update(db, db_obj=candidate, obj_in=obj_in)
+        return None
+
     def delete(self, db: Session, *, id: int) -> bool:
         """Delete a candidate by ID."""
         candidate = db.query(self.model).filter(self.model.id == id).first()
@@ -53,8 +110,35 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
 
     def get_by_email(self, db: Session, email: str) -> Optional[CandidateResponse]:
         """Get a candidate by email."""
-        candidate = db.query(self.model).filter(self.model.email == email).first()
+        candidate = (
+            db.query(self.model)
+            .options(joinedload(self.model.interviews))
+            .filter(self.model.email == email)
+            .first()
+        )
         return CandidateResponse.from_model(candidate) if candidate else None
+
+    def get_interview_history(self, db: Session, candidate_id: int) -> List:
+        """Get interview history for a candidate."""
+        candidate = (
+            db.query(self.model)
+            .options(joinedload(self.model.interviews))
+            .filter(self.model.id == candidate_id)
+            .first()
+        )
+        if candidate and candidate.interviews:
+            # Return interview data - this would need proper interview schema
+            return [
+                {
+                    "id": interview.id,
+                    "status": interview.status,
+                    "created_at": interview.created_at,
+                    "pass_key": interview.pass_key,
+                    "job_title": interview.job.title if hasattr(interview, 'job') and interview.job else None
+                }
+                for interview in candidate.interviews
+            ]
+        return []
 
 
 

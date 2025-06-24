@@ -1,0 +1,163 @@
+"""
+Candidate router for CRUD operations on candidates.
+"""
+from fastapi import APIRouter, HTTPException, Depends, status, Query
+from typing import Optional
+from sqlalchemy.orm import Session
+from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate, CandidateListResponse
+from app.services.candidate_service import CandidateService
+from app.dependencies import get_db, get_candidate_service, get_current_active_user
+from app.schemas.user import UserResponse
+
+candidate_router = APIRouter()
+
+
+@candidate_router.get("/candidates", response_model=CandidateListResponse)
+async def get_candidates(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    search: Optional[str] = Query(None, description="Search term for name or email"),
+    candidate_status: Optional[str] = Query(None, description="Filter by status"),
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Get candidates with pagination, search, and filtering.
+    """
+    try:
+        return candidate_service.get_candidates(
+            db=db,
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=candidate_status
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidates: {str(e)}"
+        )
+
+
+@candidate_router.post("/candidates", response_model=CandidateResponse, status_code=status.HTTP_201_CREATED)
+async def create_candidate(
+    candidate_data: CandidateCreate,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Create a new candidate.
+    """
+    try:
+        return candidate_service.create_candidate(db=db, candidate_create=candidate_data)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create candidate: {str(e)}"
+        )
+
+
+@candidate_router.get("/candidates/{candidate_id}", response_model=CandidateResponse)
+async def get_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Get a specific candidate by ID.
+    """
+    candidate = candidate_service.get_candidate_by_id(db=db, candidate_id=candidate_id)
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    return candidate
+
+
+@candidate_router.put("/candidates/{candidate_id}", response_model=CandidateResponse)
+async def update_candidate(
+    candidate_id: int,
+    candidate_data: CandidateUpdate,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Update a candidate.
+    """
+    try:
+        updated_candidate = candidate_service.update_candidate(
+            db=db,
+            candidate_id=candidate_id,
+            candidate_update=candidate_data
+        )
+        if not updated_candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        return updated_candidate
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is (like 404 not found)
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update candidate: {str(e)}"
+        )
+
+
+@candidate_router.delete("/candidates/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Delete a candidate.
+    """
+    success = candidate_service.delete_candidate(db=db, candidate_id=candidate_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+
+
+@candidate_router.get("/candidates/{candidate_id}/interviews")
+async def get_candidate_interviews(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Get interview history for a specific candidate.
+    """
+    candidate = candidate_service.get_candidate_by_id(db=db, candidate_id=candidate_id)
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    
+    # For now, return empty list - will be implemented when interview endpoints are ready
+    return {
+        "candidate_id": candidate_id,
+        "interviews": []
+    }

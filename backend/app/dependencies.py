@@ -6,7 +6,9 @@ from app.db import SessionLocal
 from app.core.service_factory import get_jwt_validator
 from app.models.user import UserRole
 from app.crud.user import UserDAO
+from app.crud.candidate import CandidateDAO
 from app.services.user_service import UserService
+from app.services.candidate_service import CandidateService
 from app.schemas.auth import TokenData
 from app.schemas.user import UserResponse
 
@@ -37,6 +39,20 @@ def get_user_service(user_dao: UserDAO = Depends(get_user_dao)) -> UserService:
     Dependency for UserService instance.
     """
     return UserService(user_dao)
+
+
+def get_candidate_dao() -> CandidateDAO:
+    """
+    Dependency for CandidateDAO instance.
+    """
+    return CandidateDAO()
+
+
+def get_candidate_service(candidate_dao: CandidateDAO = Depends(get_candidate_dao)) -> CandidateService:
+    """
+    Dependency for CandidateService instance.
+    """
+    return CandidateService(candidate_dao)
 
 
 async def get_current_user_token(
