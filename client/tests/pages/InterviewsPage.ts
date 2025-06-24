@@ -19,7 +19,7 @@ export interface InterviewFilter {
 
 /**
  * Page Object Model for Interview Management
- * Handles interview CRUD operations, status management, pass keys, and monitoring
+ * Handles interview CRUD operations, status management, and pass keys
  */
 export class InterviewsPage {
   readonly page: Page;
@@ -90,17 +90,7 @@ export class InterviewsPage {
   readonly questionsBreakdown: Locator;
   readonly conversationHistory: Locator;
   
-  // Monitoring View (In-Progress Interviews)
-  readonly monitoringView: Locator;
-  readonly currentQuestionDisplay: Locator;
-  readonly progressIndicator: Locator;
-  readonly progressBar: Locator;
-  readonly progressText: Locator;
-  readonly timeElapsed: Locator;
-  readonly candidateResponseArea: Locator;
-  readonly aiAnalysisArea: Locator;
-  readonly interventionButton: Locator;
-  readonly addNotesButton: Locator;
+
   
   // Status Management
   readonly statusBadge: Locator;
@@ -122,7 +112,7 @@ export class InterviewsPage {
   readonly editInterviewButton: Locator;
   readonly deleteInterviewButton: Locator;
   readonly generateReportButton: Locator;
-  readonly monitorButton: Locator;
+
   readonly resumeInterviewButton: Locator;
   
   // Bulk Operations
@@ -232,17 +222,7 @@ export class InterviewsPage {
     this.questionsBreakdown = page.getByTestId('questions-breakdown');
     this.conversationHistory = page.getByTestId('conversation-history');
     
-    // Monitoring View
-    this.monitoringView = page.getByTestId('monitoring-view');
-    this.currentQuestionDisplay = page.getByTestId('current-question-display');
-    this.progressIndicator = page.getByTestId('progress-indicator');
-    this.progressBar = page.getByTestId('progress-bar');
-    this.progressText = page.getByTestId('progress-text');
-    this.timeElapsed = page.getByTestId('time-elapsed');
-    this.candidateResponseArea = page.getByTestId('candidate-response-area');
-    this.aiAnalysisArea = page.getByTestId('ai-analysis-area');
-    this.interventionButton = page.getByTestId('intervention-btn');
-    this.addNotesButton = page.getByTestId('add-notes-btn');
+
     
     // Status Management
     this.statusBadge = page.getByTestId('status-badge');
@@ -264,7 +244,7 @@ export class InterviewsPage {
     this.editInterviewButton = page.getByTestId('edit-interview-btn');
     this.deleteInterviewButton = page.getByTestId('delete-interview-btn');
     this.generateReportButton = page.getByTestId('generate-report-btn');
-    this.monitorButton = page.getByTestId('monitor-btn');
+
     this.resumeInterviewButton = page.getByTestId('resume-interview-btn');
     
     // Bulk Operations
@@ -411,12 +391,7 @@ export class InterviewsPage {
     await this.interviewRows.nth(index).locator('[data-testid="view-details-btn"]').click();
   }
 
-  /**
-   * Monitor in-progress interview
-   */
-  async monitorInterview(index: number) {
-    await this.interviewRows.nth(index).locator('[data-testid="monitor-btn"]').click();
-  }
+
 
   /**
    * Cancel interview

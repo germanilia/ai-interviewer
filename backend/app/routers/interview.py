@@ -230,43 +230,7 @@ async def delete_interview(
 
 
 
-@interview_router.get("/interviews/{interview_id}/monitor")
-async def get_interview_monitoring_data(
-    interview_id: int,
-    db: Session = Depends(get_db),
-    interview_service: InterviewService = Depends(get_interview_service),
-    current_user: UserResponse = Depends(get_current_active_user)
-):
-    """
-    Get monitoring data for an in-progress interview.
-    """
-    interview = interview_service.get_interview_by_id(db=db, interview_id=interview_id)
-    if not interview:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Interview not found"
-        )
-    
-    if interview.status != InterviewStatus.IN_PROGRESS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Interview is not in progress"
-        )
-    
-    # Return monitoring data (this would be expanded with real-time data)
-    return {
-        "interview_id": interview_id,
-        "status": interview.status,
-        "current_question": "Sample question for monitoring",
-        "progress": {
-            "current": 3,
-            "total": 10,
-            "percentage": 30
-        },
-        "time_elapsed": "00:15:30",
-        "candidate_response": "Sample candidate response",
-        "ai_analysis": "Sample AI analysis"
-    }
+
 
 
 @interview_router.post("/interviews/bulk/cancel")

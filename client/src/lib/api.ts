@@ -79,6 +79,77 @@ export interface CandidateResponse {
   status?: string;
 }
 
+// Types for interviews
+export interface InterviewCreateRequest {
+  candidate_id: number;
+  job_id: number;
+  notes?: string;
+  interview_date?: string;
+}
+
+export interface InterviewUpdateRequest {
+  status?: string;
+  notes?: string;
+  interview_date?: string;
+}
+
+export interface InterviewResponse {
+  id: number;
+  candidate_id: number;
+  job_id: number;
+  status: string;
+  interview_date?: string;
+  pass_key: string;
+  score?: number;
+  integrity_score?: string;
+  risk_level?: string;
+  conversation?: any;
+  report_summary?: string;
+  risk_indicators?: any[];
+  key_concerns?: any[];
+  analysis_notes?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  // Backend returns these fields directly for InterviewWithDetails
+  candidate_name?: string;
+  candidate_email?: string;
+  job_title?: string;
+  job_department?: string;
+  // Legacy nested objects for backward compatibility
+  candidate?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    full_name: string;
+  };
+  job?: {
+    id: number;
+    title: string;
+    department?: string;
+  };
+}
+
+export interface InterviewListResponse {
+  items: InterviewResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  status_counts?: { [key: string]: number };
+}
+
+export interface JobResponse {
+  id: number;
+  title: string;
+  department?: string;
+  description?: string;
+  requirements?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CandidateListResponse {
   items: CandidateResponse[];
   total: number;
@@ -329,6 +400,106 @@ export const api = {
 
     getInterviews: async (id: number): Promise<any> => {
       return fetchFromApi(`/api/v1/candidates/${id}/interviews`);
+    },
+  },
+
+  // Interview endpoints
+  interviews: {
+    getAll: async (params?: {
+      page?: number;
+      page_size?: number;
+      status?: string;
+      search?: string;
+      candidate_id?: number;
+      job_id?: number;
+    }): Promise<InterviewListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      if (params?.status) searchParams.set('status', params.status);
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.candidate_id) searchParams.set('candidate_id', params.candidate_id.toString());
+      if (params?.job_id) searchParams.set('job_id', params.job_id.toString());
+
+      const endpoint = `/api/v1/interviews${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    getById: async (id: number): Promise<InterviewResponse> => {
+      return fetchFromApi(`/api/v1/interviews/${id}`);
+    },
+
+    create: async (data: InterviewCreateRequest): Promise<InterviewResponse> => {
+      return fetchFromApi('/api/v1/interviews', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    update: async (id: number, data: InterviewUpdateRequest): Promise<InterviewResponse> => {
+      return fetchFromApi(`/api/v1/interviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: async (id: number): Promise<void> => {
+      return fetchFromApi(`/api/v1/interviews/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    changeStatus: async (id: number, status: string, reason?: string): Promise<InterviewResponse> => {
+      return fetchFromApi(`/api/v1/interviews/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ new_status: status, reason }),
+      });
+    },
+
+    cancel: async (id: number, reason: string): Promise<InterviewResponse> => {
+      return fetchFromApi(`/api/v1/interviews/${id}/cancel`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason }),
+      });
+    },
+
+    bulkCancel: async (interview_ids: number[], reason: string): Promise<any> => {
+      return fetchFromApi('/api/v1/interviews/bulk/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ interview_ids, reason }),
+      });
+    },
+
+    bulkDelete: async (interview_ids: number[]): Promise<any> => {
+      return fetchFromApi('/api/v1/interviews/bulk/delete', {
+        method: 'POST',
+        body: JSON.stringify({ interview_ids }),
+      });
+    },
+
+    monitor: async (id: number): Promise<any> => {
+      return fetchFromApi(`/api/v1/interviews/${id}/monitor`);
+    },
+  },
+
+  // Job endpoints
+  jobs: {
+    getAll: async (params?: {
+      page?: number;
+      page_size?: number;
+      search?: string;
+    }): Promise<{ jobs: JobResponse[]; total: number; page: number; page_size: number; total_pages: number }> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      if (params?.search) searchParams.set('search', params.search);
+
+      const endpoint = `/api/v1/jobs${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    getById: async (id: number): Promise<JobResponse> => {
+      return fetchFromApi(`/api/v1/jobs/${id}`);
     },
   },
 };

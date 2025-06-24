@@ -1,10 +1,8 @@
 """
-Populate test database with test users for testing purposes.
+Populate test database with test users and sample data for testing purposes.
 """
 import sys
 import asyncio
-import logging
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
@@ -12,6 +10,12 @@ from app.models.user import User, UserRole
 from app.core.config_service import config_service
 from app.core.service_factory import get_cognito_service
 from app.core.logging_service import get_logger
+from app.db.populate_db import (
+    SAMPLE_CANDIDATES, SAMPLE_JOBS, SAMPLE_QUESTIONS,
+    create_job_question_templates, create_sample_interviews, create_sample_interview_questions
+)
+from app.models.candidate import Candidate
+from app.models.interview import Job, Question
 
 logger = get_logger(__name__)
 
@@ -127,6 +131,11 @@ async def populate_test_db():
         if config_service.use_mock_cognito():
             logger.info("Mock Cognito service configured to use database for authentication")
 
+        # Now populate with sample data (candidates, jobs, interviews, etc.)
+        if created_users:
+            admin_user = created_users[0]  # First user is admin
+            populate_sample_data(db, admin_user)
+
         return True
 
     except Exception as e:
@@ -135,6 +144,85 @@ async def populate_test_db():
         return False
     finally:
         db.close()
+
+
+def populate_sample_data(db: Session, admin_user: User):
+    """
+    Populate the test database with sample candidates, jobs, questions, and interviews.
+    """
+    logger.info("Populating test database with sample data...")
+
+    try:
+        # 1. Create Candidates
+        logger.info("Creating sample candidates...")
+        created_candidates = []
+        for candidate_data in SAMPLE_CANDIDATES:
+            candidate = Candidate(
+                first_name=candidate_data["first_name"],
+                last_name=candidate_data["last_name"],
+                email=candidate_data["email"],
+                phone=candidate_data["phone"],
+                created_by_user_id=admin_user.id
+            )
+            db.add(candidate)
+            created_candidates.append(candidate)
+
+        db.flush()
+        logger.info(f"Created {len(created_candidates)} candidates")
+
+        # 2. Create Jobs
+        logger.info("Creating sample jobs...")
+        created_jobs = []
+        for job_data in SAMPLE_JOBS:
+            job = Job(
+                title=job_data["title"],
+                description=job_data["description"],
+                department=job_data["department"],
+                created_by_user_id=admin_user.id
+            )
+            db.add(job)
+            created_jobs.append(job)
+
+        db.flush()
+        logger.info(f"Created {len(created_jobs)} jobs")
+
+        # 3. Create Questions
+        logger.info("Creating sample questions...")
+        created_questions = []
+        for question_data in SAMPLE_QUESTIONS:
+            question = Question(
+                title=question_data["title"],
+                question_text=question_data["question_text"],
+                instructions=question_data["instructions"],
+                importance=question_data["importance"],
+                category=question_data["category"],
+                created_by_user_id=admin_user.id
+            )
+            db.add(question)
+            created_questions.append(question)
+
+        db.flush()
+        logger.info(f"Created {len(created_questions)} questions")
+
+        # 4. Create Job Question Templates
+        create_job_question_templates(db, created_jobs, created_questions)
+
+        # 5. Create Sample Interviews
+        created_interviews = create_sample_interviews(db, created_candidates, created_jobs, admin_user)
+
+        # 6. Create Sample Interview Questions with Answers
+        create_sample_interview_questions(db, created_interviews, created_questions)
+
+        db.commit()
+        logger.info("Successfully populated test database with all sample data!")
+        logger.info(f"Summary: {len(created_candidates)} candidates, "
+                   f"{len(created_jobs)} jobs, {len(created_questions)} questions, "
+                   f"{len(created_interviews)} interviews")
+
+    except Exception as e:
+        logger.error(f"Error populating sample data: {e}")
+        db.rollback()
+        raise
 
 
 def populate_test_db_sync():

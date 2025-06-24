@@ -50,7 +50,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useDataLoaders } from '@/hooks/useDataLoaders';
 import { api, CandidateResponse, CandidateListResponse } from '@/lib/api';
+import { CreateInterviewFromCandidateModal } from '@/components/interviews/CreateInterviewFromCandidateModal';
 
 interface CandidateFormData {
   firstName: string;
@@ -68,6 +70,7 @@ interface FormErrors {
 
 export const Candidates: React.FC = () => {
   const { toast } = useToast();
+  const { jobs, loadingJobs, loadJobs } = useDataLoaders();
 
   // State management
   const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
@@ -86,6 +89,7 @@ export const Candidates: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showCreateInterviewModal, setShowCreateInterviewModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<CandidateResponse | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateResponse | null>(null);
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
@@ -99,6 +103,8 @@ export const Candidates: React.FC = () => {
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+
+
 
   // Fetch candidates data
   const fetchCandidates = useCallback(async () => {
@@ -129,10 +135,11 @@ export const Candidates: React.FC = () => {
     }
   }, [currentPage, pageSize, searchQuery, statusFilter, toast]);
 
-  // Load candidates on component mount and when dependencies change
+  // Load candidates and jobs on component mount and when dependencies change
   useEffect(() => {
     fetchCandidates();
-  }, [fetchCandidates]);
+    loadJobs();
+  }, [fetchCandidates, loadJobs]);
 
   // Form validation
   const validateForm = (data: CandidateFormData): FormErrors => {
@@ -321,12 +328,19 @@ export const Candidates: React.FC = () => {
     setShowDetailModal(true);
   };
 
+  // Open create interview modal
+  const openCreateInterviewModal = (candidate: CandidateResponse) => {
+    setViewingCandidate(candidate);
+    setShowCreateInterviewModal(true);
+  };
+
   // Close all modals
   const closeModals = () => {
     setShowAddModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowDetailModal(false);
+    setShowCreateInterviewModal(false);
     setEditingCandidate(null);
     setDeletingCandidate(null);
     setViewingCandidate(null);
@@ -852,7 +866,11 @@ export const Candidates: React.FC = () => {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Candidate
                 </Button>
-                <Button variant="outline" data-testid="create-interview-button">
+                <Button
+                  variant="outline"
+                  onClick={() => openCreateInterviewModal(viewingCandidate)}
+                  data-testid="create-interview-button"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Interview
                 </Button>
@@ -873,6 +891,19 @@ export const Candidates: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Create Interview Modal */}
+      <CreateInterviewFromCandidateModal
+        open={showCreateInterviewModal}
+        onOpenChange={setShowCreateInterviewModal}
+        candidate={viewingCandidate}
+        jobs={jobs}
+        loading={loadingJobs}
+        onInterviewCreated={() => {
+          fetchCandidates();
+          closeModals();
+        }}
+      />
     </div>
   );
 };
