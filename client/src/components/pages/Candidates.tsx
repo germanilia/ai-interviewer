@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
-  CheckCircle,
+
   X
 } from 'lucide-react';
 import {
@@ -72,6 +72,39 @@ export const Candidates: React.FC = () => {
   const { toast } = useToast();
   const { jobs, loadingJobs, loadJobs } = useDataLoaders();
 
+  // Helper function to get user-friendly error messages
+  const getErrorMessage = (error: any): string => {
+    if (error?.message) {
+      const message = error.message.toLowerCase();
+
+      // Handle specific error cases
+      if (message.includes('email already exists') || message.includes('duplicate')) {
+        return 'A candidate with this email already exists';
+      }
+      if (message.includes('validation') || message.includes('invalid')) {
+        return 'Please check your input and try again';
+      }
+      if (message.includes('not found') || message.includes('404')) {
+        return 'Candidate not found';
+      }
+      if (message.includes('network') || message.includes('timeout')) {
+        return 'Network error. Please check your connection and try again';
+      }
+      if (message.includes('authentication required') || message.includes('unauthorized')) {
+        return 'Please log in again to continue';
+      }
+
+      // Return the actual error message if it's user-friendly (doesn't contain technical details)
+      if (!message.includes('request failed with status') &&
+          !message.includes('fetch') &&
+          !message.includes('500') &&
+          error.message.length < 100) {
+        return error.message;
+      }
+    }
+    return 'An unexpected error occurred. Please try again';
+  };
+
   // State management
   const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +126,7 @@ export const Candidates: React.FC = () => {
   const [editingCandidate, setEditingCandidate] = useState<CandidateResponse | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateResponse | null>(null);
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CandidateFormData>({
@@ -123,7 +157,7 @@ export const Candidates: React.FC = () => {
       setTotalCandidates(response.total);
       setTotalPages(response.total_pages);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch candidates';
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       toast({
         title: 'Error',
@@ -214,7 +248,7 @@ export const Candidates: React.FC = () => {
       resetForm();
       fetchCandidates();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save candidate';
+      const errorMessage = getErrorMessage(err);
       toast({
         title: 'Error',
         description: errorMessage,
@@ -241,7 +275,7 @@ export const Candidates: React.FC = () => {
       setDeletingCandidate(null);
       fetchCandidates();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete candidate';
+      const errorMessage = getErrorMessage(err);
       toast({
         title: 'Error',
         description: errorMessage,
@@ -334,6 +368,66 @@ export const Candidates: React.FC = () => {
     setShowCreateInterviewModal(true);
   };
 
+  // Handle bulk export
+  const handleBulkExport = () => {
+    const selectedCandidatesList = candidates.filter(candidate =>
+      selectedCandidates.has(candidate.id)
+    );
+
+    // Create CSV content
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone'];
+    const csvContent = [
+      headers.join(','),
+      ...selectedCandidatesList.map(candidate =>
+        [candidate.first_name, candidate.last_name, candidate.email, candidate.phone || ''].join(',')
+      )
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `candidates-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Success',
+      description: `Exported ${selectedCandidates.size} candidates`,
+    });
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedCandidates.size} candidates? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedCandidates).map(id =>
+        api.candidates.delete(id)
+      );
+
+      await Promise.all(deletePromises);
+
+      toast({
+        title: 'Success',
+        description: `Deleted ${selectedCandidates.size} candidates`,
+      });
+
+      setSelectedCandidates(new Set());
+      fetchCandidates();
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Close all modals
   const closeModals = () => {
     setShowAddModal(false);
@@ -390,30 +484,49 @@ export const Candidates: React.FC = () => {
       <div className="flex items-center gap-4" data-testid="candidates-toolbar">
         {/* Search */}
         <form onSubmit={handleSearch} className="flex-1" data-testid="search-section">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search candidates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="candidates-search"
-            />
-            {searchQuery && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                onClick={handleClearSearch}
-                data-testid="clear-search-btn"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search candidates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="candidates-search"
+              />
+              {searchQuery && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={handleClearSearch}
+                  data-testid="clear-search-btn"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              data-testid="search-btn"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
         </form>
+
+        {/* Filters Toggle */}
+        <Button
+          variant="outline"
+          onClick={() => setShowFilters(!showFilters)}
+          data-testid="filters-toggle"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
 
         {/* Status Filter */}
         <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
@@ -447,14 +560,47 @@ export const Candidates: React.FC = () => {
             {selectedCandidates.size} candidate{selectedCandidates.size !== 1 ? 's' : ''} selected
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" data-testid="bulk-export-btn">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="bulk-export-btn"
+              onClick={handleBulkExport}
+            >
               Export Selected
             </Button>
-            <Button variant="destructive" size="sm" data-testid="bulk-delete-btn">
+            <Button
+              variant="destructive"
+              size="sm"
+              data-testid="bulk-delete-btn"
+              onClick={handleBulkDelete}
+            >
               Delete Selected
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Filters Panel */}
+      {showFilters && (
+        <Card className="p-4" data-testid="filters-panel">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Main Content */}
@@ -555,7 +701,7 @@ export const Candidates: React.FC = () => {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-testid="candidate-actions-menu">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -563,6 +709,10 @@ export const Candidates: React.FC = () => {
                             <DropdownMenuItem onClick={() => openDetailModal(candidate)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openCreateInterviewModal(candidate)} data-testid="create-interview-btn">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Interview
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEditModal(candidate)} data-testid="edit-candidate-btn">
                               <Edit className="h-4 w-4 mr-2" />

@@ -80,6 +80,66 @@ SAMPLE_CANDIDATES = [
         "last_name": "Wilson",
         "email": "david.wilson@email.com",
         "phone": "+1-555-0105"
+    },
+    {
+        "first_name": "Lisa",
+        "last_name": "Anderson",
+        "email": "lisa.anderson@email.com",
+        "phone": "+1-555-0106"
+    },
+    {
+        "first_name": "Robert",
+        "last_name": "Taylor",
+        "email": "robert.taylor@email.com",
+        "phone": "+1-555-0107"
+    },
+    {
+        "first_name": "Jennifer",
+        "last_name": "Martinez",
+        "email": "jennifer.martinez@email.com",
+        "phone": "+1-555-0108"
+    },
+    {
+        "first_name": "Christopher",
+        "last_name": "Garcia",
+        "email": "christopher.garcia@email.com",
+        "phone": "+1-555-0109"
+    },
+    {
+        "first_name": "Amanda",
+        "last_name": "Rodriguez",
+        "email": "amanda.rodriguez@email.com",
+        "phone": "+1-555-0110"
+    },
+    {
+        "first_name": "Matthew",
+        "last_name": "Lee",
+        "email": "matthew.lee@email.com",
+        "phone": "+1-555-0111"
+    },
+    {
+        "first_name": "Ashley",
+        "last_name": "White",
+        "email": "ashley.white@email.com",
+        "phone": "+1-555-0112"
+    },
+    {
+        "first_name": "Daniel",
+        "last_name": "Thompson",
+        "email": "daniel.thompson@email.com",
+        "phone": "+1-555-0113"
+    },
+    {
+        "first_name": "Jessica",
+        "last_name": "Clark",
+        "email": "jessica.clark@email.com",
+        "phone": "+1-555-0114"
+    },
+    {
+        "first_name": "James",
+        "last_name": "Lewis",
+        "email": "james.lewis@email.com",
+        "phone": "+1-555-0115"
     }
 ]
 

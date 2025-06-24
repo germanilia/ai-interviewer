@@ -172,6 +172,66 @@ export interface CandidateUpdateRequest {
   phone?: string;
 }
 
+// Question types to match backend schemas
+export interface QuestionResponse {
+  id: number;
+  title: string;
+  question_text: string;
+  instructions?: string;
+  importance: 'optional' | 'ask_once' | 'mandatory';
+  category: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+  created_by_user_id: number;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuestionCreate {
+  title: string;
+  question_text: string;
+  instructions?: string;
+  importance: 'optional' | 'ask_once' | 'mandatory';
+  category: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+}
+
+export interface QuestionUpdate {
+  title?: string;
+  question_text?: string;
+  instructions?: string;
+  importance?: 'optional' | 'ask_once' | 'mandatory';
+  category?: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+}
+
+export interface QuestionListResponse {
+  questions: QuestionResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface QuestionFilter {
+  category?: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+  importance?: 'optional' | 'ask_once' | 'mandatory';
+  search?: string;
+  created_by_user_id?: number;
+}
+
+export interface BulkQuestionDelete {
+  question_ids: number[];
+}
+
+export interface BulkQuestionCategoryUpdate {
+  question_ids: number[];
+  new_category: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+}
+
+export interface JobQuestionAssignment {
+  question_id: number;
+  job_id: number;
+  order_index?: number;
+}
+
 /**
  * Get stored auth token
  */
@@ -500,6 +560,110 @@ export const api = {
 
     getById: async (id: number): Promise<JobResponse> => {
       return fetchFromApi(`/api/v1/jobs/${id}`);
+    },
+  },
+
+  // Question endpoints
+  questions: {
+    getAll: async (params?: {
+      page?: number;
+      page_size?: number;
+      category?: QuestionFilter['category'];
+      importance?: QuestionFilter['importance'];
+      search?: string;
+      created_by_user_id?: number;
+    }): Promise<QuestionListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      if (params?.category) searchParams.set('category', params.category);
+      if (params?.importance) searchParams.set('importance', params.importance);
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.created_by_user_id) searchParams.set('created_by_user_id', params.created_by_user_id.toString());
+
+      const endpoint = `/api/v1/questions${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    getById: async (id: number): Promise<QuestionResponse> => {
+      return fetchFromApi(`/api/v1/questions/${id}`);
+    },
+
+    create: async (data: QuestionCreate): Promise<QuestionResponse> => {
+      return fetchFromApi('/api/v1/questions', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    update: async (id: number, data: QuestionUpdate): Promise<QuestionResponse> => {
+      return fetchFromApi(`/api/v1/questions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: async (id: number): Promise<void> => {
+      return fetchFromApi(`/api/v1/questions/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    getByCategory: async (category: QuestionFilter['category'], params?: {
+      page?: number;
+      page_size?: number;
+    }): Promise<QuestionListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      
+      const endpoint = `/api/v1/questions/category/${category}${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    search: async (searchTerm: string, params?: {
+      page?: number;
+      page_size?: number;
+    }): Promise<QuestionListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      
+      const endpoint = `/api/v1/questions/search/${encodeURIComponent(searchTerm)}${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
+    },
+
+    bulkDelete: async (data: BulkQuestionDelete): Promise<{ message: string }> => {
+      return fetchFromApi('/api/v1/questions/bulk/delete', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    bulkUpdateCategory: async (data: BulkQuestionCategoryUpdate): Promise<{ message: string }> => {
+      return fetchFromApi('/api/v1/questions/bulk/update-category', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    assignToJob: async (data: JobQuestionAssignment): Promise<{ message: string }> => {
+      return fetchFromApi('/api/v1/questions/assign-to-job', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    getWithCreatorInfo: async (params?: {
+      page?: number;
+      page_size?: number;
+    }): Promise<QuestionListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
+      
+      const endpoint = `/api/v1/questions/with-creator-info${searchParams.toString() ? `?${searchParams}` : ''}`;
+      return fetchFromApi(endpoint);
     },
   },
 };

@@ -192,7 +192,14 @@ export const Interviews: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="interviews-section">
-      {loading && <div data-testid="interviews-loading" className="hidden">Loading...</div>}
+      {loading && (
+        <div data-testid="interviews-loading" className="flex items-center justify-center py-8">
+          <div className="text-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Loading interviews...</p>
+          </div>
+        </div>
+      )}
 
       {/* Page Header */}
       <div className="flex items-center justify-between">

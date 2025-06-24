@@ -203,7 +203,7 @@ test.describe('Candidates Management', () => {
           route.fulfill({
             status: 400,
             contentType: 'application/json',
-            body: JSON.stringify({ error: 'Email already exists' })
+            body: JSON.stringify({ detail: 'Email already exists' })
           });
         } else {
           route.continue();
@@ -228,7 +228,7 @@ test.describe('Candidates Management', () => {
       
       // Verify error message
       await expect(candidatesPage.errorToast).toBeVisible();
-      await expect(candidatesPage.errorToast).toContainText('Email already exists');
+      await expect(candidatesPage.errorToast).toContainText('A candidate with this email already exists');
     });
 
     test('should cancel form and close modal', async () => {

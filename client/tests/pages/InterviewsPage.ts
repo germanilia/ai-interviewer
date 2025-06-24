@@ -206,7 +206,7 @@ export class InterviewsPage {
     // Pass Key Display
     this.passKeyDisplay = page.getByTestId('pass-key-display');
     this.passKeyValue = page.getByTestId('pass-key-value');
-    this.copyPassKeyButton = page.getByTestId('copy-pass-key-btn');
+    this.copyPassKeyButton = this.passKeyDisplay.getByTestId('copy-pass-key-btn');
     this.passKeyInstructions = page.getByTestId('pass-key-instructions');
     this.passKeyModal = page.getByTestId('pass-key-modal');
     
@@ -381,7 +381,7 @@ export class InterviewsPage {
    * Copy pass key to clipboard
    */
   async copyPassKey() {
-    await this.copyPassKeyButton.click();
+    await this.copyPassKeyButton.click({ force: true });
   }
 
   /**

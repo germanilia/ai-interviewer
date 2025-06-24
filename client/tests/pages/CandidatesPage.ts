@@ -125,6 +125,7 @@ export class CandidatesPage {
   // Toast Messages
   readonly successToast: Locator;
   readonly errorToast: Locator;
+  readonly errorToastDescription: Locator;
   readonly warningToast: Locator;
   readonly infoToast: Locator;
 
@@ -206,10 +207,10 @@ export class CandidatesPage {
     this.candidateStats = page.getByTestId('candidate-stats');
     this.interviewHistorySection = page.getByTestId('interview-history-section');
     this.interviewHistoryTable = page.getByTestId('interview-history-table');
-    this.createInterviewButton = page.getByTestId('create-interview-btn');
-    this.viewReportsButton = page.getByTestId('view-reports-btn');
-    this.editCandidateButton = page.getByTestId('edit-candidate-btn');
-    this.deleteCandidateButton = page.getByTestId('delete-candidate-btn');
+    this.createInterviewButton = page.getByTestId('create-interview-button');
+    this.viewReportsButton = page.getByTestId('view-reports-button');
+    this.editCandidateButton = page.getByTestId('edit-candidate-button');
+    this.deleteCandidateButton = page.getByTestId('delete-candidate-button');
     
     // Bulk Operations
     this.selectAllCheckbox = page.getByTestId('select-all-checkbox');
@@ -232,6 +233,7 @@ export class CandidatesPage {
     // Toast Messages
     this.successToast = page.getByTestId('success-toast');
     this.errorToast = page.getByTestId('error-toast');
+    this.errorToastDescription = page.getByTestId('error-toast').locator('[data-radix-toast-description]');
     this.warningToast = page.getByTestId('warning-toast');
     this.infoToast = page.getByTestId('info-toast');
   }
@@ -320,7 +322,10 @@ export class CandidatesPage {
     }
 
     if (filters.status) {
-      await this.statusFilter.selectOption(filters.status);
+      // Click the select trigger to open dropdown
+      await this.statusFilter.click();
+      // Click the specific option
+      await this.page.getByRole('option', { name: filters.status }).click();
     }
 
     if (filters.riskLevel) {
