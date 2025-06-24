@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, Any, TYPE_CHECKING
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, Any, TYPE_CHECKING, List
 from datetime import datetime
 import secrets
 import string
@@ -117,3 +117,58 @@ class InterviewReport(BaseModel):
     completed_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class InterviewWithDetails(InterviewResponse):
+    """Enhanced interview response with candidate and job details."""
+    candidate_name: Optional[str] = None
+    candidate_email: Optional[str] = None
+    job_title: Optional[str] = None
+    job_department: Optional[str] = None
+
+    @classmethod
+    def from_model_with_details(cls, interview: "Interview") -> "InterviewWithDetails":
+        """Convert SQLAlchemy model to Pydantic schema with related details."""
+        instance = cls.model_validate(interview)
+
+        # Add candidate details if available
+        if hasattr(interview, 'candidate') and interview.candidate:
+            instance.candidate_name = f"{interview.candidate.first_name} {interview.candidate.last_name}"
+            instance.candidate_email = interview.candidate.email
+
+        # Add job details if available
+        if hasattr(interview, 'job') and interview.job:
+            instance.job_title = interview.job.title
+            instance.job_department = interview.job.department
+
+        return instance
+
+
+class InterviewListResponse(BaseModel):
+    """Schema for paginated interview list responses."""
+    items: List[InterviewWithDetails]
+    total: int
+    page: int = Field(ge=1, description="Current page number")
+    page_size: int = Field(ge=1, le=100, description="Number of items per page")
+    total_pages: int = Field(ge=0, description="Total number of pages")
+    status_counts: Optional[dict[str, int]] = None  # Count by status for tabs
+
+    @classmethod
+    def create(
+        cls,
+        items: List[InterviewWithDetails],
+        total: int,
+        page: int,
+        page_size: int,
+        status_counts: Optional[dict[str, int]] = None
+    ) -> "InterviewListResponse":
+        """Create paginated response."""
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+        return cls(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            status_counts=status_counts or {}
+        )

@@ -52,6 +52,11 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
             return True
         return False
 
+    def get_by_pass_key(self, db: Session, pass_key: str) -> Optional[InterviewResponse]:
+        """Get an interview by pass key."""
+        interview = db.query(self.model).filter(self.model.pass_key == pass_key).first()
+        return InterviewResponse.from_model(interview) if interview else None
+
 
 
     def get_by_candidate(self, db: Session, candidate_id: int, *, skip: int = 0, limit: int = 100) -> List[InterviewResponse]:
