@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Plus,
   Search,
@@ -32,7 +33,9 @@ import {
   Trash2,
   Eye,
   RefreshCw,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 import { QuestionsProvider, useQuestions } from '@/contexts/QuestionsContext';
@@ -42,6 +45,7 @@ import { QuestionCreate, QuestionUpdate, QuestionResponse } from '@/lib/api';
 
 const QuestionsContent: React.FC = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     questions,
     loading,
@@ -63,6 +67,7 @@ const QuestionsContent: React.FC = () => {
     deselectQuestion,
     selectAllQuestions,
     clearSelection,
+    setPage,
     clearError
   } = useQuestions();
 
@@ -116,7 +121,23 @@ const QuestionsContent: React.FC = () => {
 
   const handleAddQuestion = async (data: QuestionCreate | QuestionUpdate) => {
     try {
-      await createQuestion(data as QuestionCreate);
+      // Ensure user is available
+      if (!user?.id) {
+        toast({
+          title: 'Error',
+          description: 'User information not available. Please refresh and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Ensure user ID is included for creation
+      const questionData = {
+        ...data,
+        created_by_user_id: user.id
+      } as QuestionCreate;
+
+      await createQuestion(questionData);
       toast({
         title: 'Success',
         description: 'Question created successfully',
@@ -478,6 +499,51 @@ const QuestionsContent: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between" data-testid="pagination-controls">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, total)} of {total} questions
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  data-testid="prev-page-btn"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(page)}
+                      data-testid={`page-${page}-btn`}
+                      className="min-w-[40px]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  data-testid="next-page-btn"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -488,7 +554,7 @@ const QuestionsContent: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Questions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
+            <div className="text-2xl font-bold" data-testid="total-questions-count">{total}</div>
             <p className="text-xs text-muted-foreground">All categories</p>
           </CardContent>
         </Card>

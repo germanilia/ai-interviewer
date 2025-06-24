@@ -28,6 +28,7 @@ export interface SignInRequest {
 }
 
 export interface UserInfo {
+  id: number;
   username: string;
   email: string;
   full_name?: string;
@@ -192,6 +193,7 @@ export interface QuestionCreate {
   instructions?: string;
   importance: 'optional' | 'ask_once' | 'mandatory';
   category: 'criminal_background' | 'drug_use' | 'ethics' | 'dismissals' | 'trustworthiness' | 'general';
+  created_by_user_id: number;
 }
 
 export interface QuestionUpdate {

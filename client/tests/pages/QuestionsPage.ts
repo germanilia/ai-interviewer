@@ -209,7 +209,7 @@ export class QuestionsPage {
     this.formErrors = page.getByTestId('form-error');
     
     // Question Preview
-    this.previewButton = page.getByTestId('preview-question-btn');
+    this.previewButton = page.getByTestId('question-form').getByTestId('preview-question-btn');
     this.previewModal = page.getByTestId('preview-modal');
     this.previewTitle = page.getByTestId('preview-title');
     this.previewQuestionText = page.getByTestId('preview-question-text');
@@ -377,6 +377,13 @@ export class QuestionsPage {
    */
   async submitQuestionForm() {
     await this.saveQuestionButton.click();
+  }
+
+  /**
+   * Wait for success toast to appear
+   */
+  async waitForSuccessToast() {
+    await this.successToast.waitFor({ state: 'visible', timeout: 10000 });
   }
 
   /**

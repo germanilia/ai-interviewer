@@ -63,6 +63,7 @@ class RefreshTokenResponse(BaseModel):
 
 class UserInfo(BaseModel):
     """User information schema"""
+    id: int
     username: str
     email: str
     full_name: Optional[str] = None

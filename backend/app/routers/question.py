@@ -85,8 +85,12 @@ async def create_question(
     """
     Create a new question.
     """
-    # Set the creator to the current user
-    question_create.created_by_user_id = current_user.id
+    # Validate that the creator matches the current user
+    if question_create.created_by_user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot create question for another user"
+        )
     
     try:
         return question_service.create_question(db, question_create)

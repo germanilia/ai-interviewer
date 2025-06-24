@@ -284,7 +284,8 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
 
   const setPage = useCallback((page: number) => {
     setCurrentPage(page);
-  }, []);
+    fetchQuestions(page, pageSize, filters);
+  }, [fetchQuestions, pageSize, filters]);
 
   const setPageSize = useCallback((size: number) => {
     setPageSizeState(size);

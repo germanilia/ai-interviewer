@@ -20,6 +20,9 @@ import {
 } from '@/components/ui/select';
 import { QuestionCreate, QuestionUpdate, QuestionResponse } from '@/lib/api';
 
+// Form data type without created_by_user_id (internal field)
+type QuestionFormData = Omit<QuestionCreate, 'created_by_user_id'>;
+
 interface QuestionFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,7 +55,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   mode,
   onPreview
 }) => {
-  const [formData, setFormData] = useState<QuestionCreate>({
+  const [formData, setFormData] = useState<QuestionFormData>({
     title: '',
     question_text: '',
     instructions: '',
@@ -135,7 +138,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
     }
   };
 
-  const handleInputChange = (field: keyof QuestionCreate, value: string) => {
+  const handleInputChange = (field: keyof QuestionFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
     if (errors[field]) {

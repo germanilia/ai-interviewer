@@ -180,6 +180,7 @@ async def sign_in(
             refresh_token=tokens.get("refresh_token"),
             expires_in=tokens["expires_in"],
             user=UserInfo(
+                id=user.id,
                 username=user.username,
                 email=user.email,
                 full_name=user.full_name,
@@ -237,6 +238,7 @@ async def get_current_user_info(current_user: UserResponse = Depends(get_current
     Get current user information.
     """
     return UserInfo(
+        id=current_user.id,
         username=current_user.username,
         email=current_user.email,
         full_name=current_user.full_name,
