@@ -47,7 +47,7 @@ def test_interview_question_dao_create_returns_pydantic_object(db, interview_que
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.CRIMINAL_BACKGROUND,
         created_by_user_id=created_user.id
-    )
+    ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
     
     # Create an interview question
@@ -109,7 +109,7 @@ def test_interview_question_dao_get_returns_pydantic_object(db, interview_questi
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.DRUG_USE,
         created_by_user_id=created_user.id
-    )
+    ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
     
     interview_question_create = InterviewQuestionCreate(
@@ -176,7 +176,7 @@ def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
-        )
+        ) # type: ignore
         created_question = question_dao.create(db, obj_in=question_create)
 
         interview_question_create = InterviewQuestionCreate(
@@ -237,7 +237,7 @@ def test_interview_question_dao_get_multi_with_pagination(db, interview_question
             importance=QuestionImportance.OPTIONAL,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
-        )
+        ) # type: ignore
         created_question = question_dao.create(db, obj_in=question_create)
 
         interview_question_create = InterviewQuestionCreate(
@@ -297,7 +297,7 @@ def test_interview_question_dao_update_returns_pydantic_object(db, interview_que
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.DISMISSALS,
         created_by_user_id=created_user.id
-    )
+    ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 
     interview_question_create = InterviewQuestionCreate(
@@ -379,7 +379,7 @@ def test_interview_question_dao_update_partial_fields(db, interview_question_dao
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.ETHICS,
         created_by_user_id=created_user.id
-    )
+    ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 
     interview_question_create = InterviewQuestionCreate(
@@ -446,7 +446,7 @@ def test_interview_question_dao_delete_existing_interview_question(db, interview
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
         created_by_user_id=created_user.id
-    )
+    ) # type: ignore
     created_question = question_dao.create(db, obj_in=question_create)
 
     interview_question_create = InterviewQuestionCreate(

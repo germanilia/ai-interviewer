@@ -225,8 +225,8 @@ def test_question_dao_update_returns_pydantic_object(db, question_dao, user_dao)
     question_update = QuestionUpdate(
         title="Updated Title",
         importance=QuestionImportance.MANDATORY,
-        instructions="New instructions"
-    )
+        instructions="New instructions",
+    ) # type: ignore
     result = question_dao.update(db, db_obj=db_question, obj_in=question_update)
 
     # Verify it returns a QuestionResponse (Pydantic object)
@@ -263,7 +263,7 @@ def test_question_dao_update_partial_fields(db, question_dao, user_dao):
     db_question = db.query(Question).filter(Question.id == created_question.id).first()
 
     # Update only the question text
-    question_update = QuestionUpdate(question_text="This is the updated question text with sufficient length for validation")
+    question_update = QuestionUpdate(question_text="This is the updated question text with sufficient length for validation") # type: ignore
     result = question_dao.update(db, db_obj=db_question, obj_in=question_update)
 
     # Verify only question text was updated
