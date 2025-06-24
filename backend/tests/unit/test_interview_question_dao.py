@@ -172,19 +172,19 @@ def test_interview_question_dao_get_multi_returns_pydantic_objects(db, interview
     for i in range(3):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
         )
         created_question = question_dao.create(db, obj_in=question_create)
-        
+
         interview_question_create = InterviewQuestionCreate(
             interview_id=created_interview.id,
             question_id=created_question.id,
             status=InterviewQuestionStatus.PENDING,
             order_index=i + 1,
-            question_text_snapshot=f"Question text {i}"
+            question_text_snapshot=f"This is a detailed question text for question number {i} with sufficient length"
         )
         interview_question_dao.create(db, obj_in=interview_question_create)
     
@@ -233,19 +233,19 @@ def test_interview_question_dao_get_multi_with_pagination(db, interview_question
     for i in range(5):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
             importance=QuestionImportance.OPTIONAL,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
         )
         created_question = question_dao.create(db, obj_in=question_create)
-        
+
         interview_question_create = InterviewQuestionCreate(
             interview_id=created_interview.id,
             question_id=created_question.id,
             status=InterviewQuestionStatus.PENDING,
             order_index=i + 1,
-            question_text_snapshot=f"Question text {i}"
+            question_text_snapshot=f"This is a detailed question text for question number {i} with sufficient length"
         )
         interview_question_dao.create(db, obj_in=interview_question_create)
     
@@ -293,19 +293,19 @@ def test_interview_question_dao_update_returns_pydantic_object(db, interview_que
     
     question_create = QuestionCreate(
         title="Update Question",
-        question_text="Update question text",
+        question_text="This is a comprehensive update question text with sufficient length for validation",
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.DISMISSALS,
         created_by_user_id=created_user.id
     )
     created_question = question_dao.create(db, obj_in=question_create)
-    
+
     interview_question_create = InterviewQuestionCreate(
         interview_id=created_interview.id,
         question_id=created_question.id,
         status=InterviewQuestionStatus.PENDING,
         order_index=1,
-        question_text_snapshot="Update question text"
+        question_text_snapshot="This is a comprehensive update question text with sufficient length for validation"
     )
     created_interview_question = interview_question_dao.create(db, obj_in=interview_question_create)
     
@@ -375,19 +375,19 @@ def test_interview_question_dao_update_partial_fields(db, interview_question_dao
     
     question_create = QuestionCreate(
         title="Partial Question",
-        question_text="Partial question text",
+        question_text="This is a comprehensive partial question text with sufficient length for validation",
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.ETHICS,
         created_by_user_id=created_user.id
     )
     created_question = question_dao.create(db, obj_in=question_create)
-    
+
     interview_question_create = InterviewQuestionCreate(
         interview_id=created_interview.id,
         question_id=created_question.id,
         status=InterviewQuestionStatus.PENDING,
         order_index=1,
-        question_text_snapshot="Partial question text"
+        question_text_snapshot="This is a comprehensive partial question text with sufficient length for validation"
     )
     created_interview_question = interview_question_dao.create(db, obj_in=interview_question_create)
     
@@ -442,19 +442,19 @@ def test_interview_question_dao_delete_existing_interview_question(db, interview
     
     question_create = QuestionCreate(
         title="Delete Question",
-        question_text="Delete question text",
+        question_text="This is a comprehensive delete question text with sufficient length for validation",
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
         created_by_user_id=created_user.id
     )
     created_question = question_dao.create(db, obj_in=question_create)
-    
+
     interview_question_create = InterviewQuestionCreate(
         interview_id=created_interview.id,
         question_id=created_question.id,
         status=InterviewQuestionStatus.PENDING,
         order_index=1,
-        question_text_snapshot="Delete question text"
+        question_text_snapshot="This is a comprehensive delete question text with sufficient length for validation"
     )
     created_interview_question = interview_question_dao.create(db, obj_in=interview_question_create)
     

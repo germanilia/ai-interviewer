@@ -1,13 +1,12 @@
 """
 Interview service layer for business logic.
 """
-from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
+from typing import Optional, Dict
+from sqlalchemy.orm import Session
 from app.crud.interview import InterviewDAO
 from app.crud.candidate import CandidateDAO
 from app.crud.job import JobDAO
-from app.models.interview import Interview, InterviewStatus
+from app.models.interview import InterviewStatus
 from app.schemas.interview import (
     InterviewResponse, 
     InterviewCreate, 
@@ -79,61 +78,17 @@ class InterviewService:
             InterviewListResponse with paginated results
         """
         logger.info(f"Getting interviews with page={page}, page_size={page_size}, status={status}, search={search}")
-        
-        # Validate pagination parameters
-        if page < 1:
-            page = 1
-        if page_size < 1 or page_size > 100:
-            page_size = 10
-            
-        skip = (page - 1) * page_size
-        
-        # Build query with joins for candidate and job details
-        query = db.query(Interview).options(
-            joinedload(Interview.candidate),
-            joinedload(Interview.job)
-        )
-        
-        # Apply filters
-        filters = []
-        
-        if status and status != "all":
-            try:
-                # Convert string status to enum
-                status_enum = InterviewStatus(status)
-                filters.append(Interview.status == status_enum)
-            except ValueError:
-                logger.warning(f"Invalid status filter: {status}")
-        
-        if candidate_id:
-            filters.append(Interview.candidate_id == candidate_id)
-            
-        if job_id:
-            filters.append(Interview.job_id == job_id)
-            
-        if search:
-            # Search in candidate name
-            from app.models.candidate import Candidate
-            query = query.join(Candidate)
-            search_filter = or_(
-                func.lower(func.concat(Candidate.first_name, " ", Candidate.last_name)).contains(search.lower()),
-                func.lower(Candidate.email).contains(search.lower())
-            )
-            filters.append(search_filter)
-        
-        if filters:
-            print(f"DEBUG: Applying {len(filters)} filters to query")
-            query = query.filter(and_(*filters))
-        else:
-            print("DEBUG: No filters to apply")
 
-        # Get total count
-        total = query.count()
-        print(f"DEBUG: Total interviews found after filtering: {total}")
-        
-        # Apply pagination and ordering
-        interviews = query.order_by(Interview.created_at.desc()).offset(skip).limit(page_size).all()
-        
+        interviews, total = self.interview_dao.get_interviews_paginated(
+            db,
+            page=page,
+            page_size=page_size,
+            status=status,
+            search=search,
+            candidate_id=candidate_id,
+            job_id=job_id,
+        )
+
         # Convert to response objects with details
         interview_items = [
             InterviewWithDetails.from_model_with_details(interview) 
@@ -141,7 +96,9 @@ class InterviewService:
         ]
         
         # Get status counts for tabs
-        status_counts = self._get_status_counts(db, candidate_id, job_id, search)
+        status_counts = self.interview_dao.get_status_counts(
+            db, candidate_id=candidate_id, job_id=job_id, search=search
+        )
         
         return InterviewListResponse.create(
             items=interview_items,
@@ -150,48 +107,6 @@ class InterviewService:
             page_size=page_size,
             status_counts=status_counts
         )
-
-    def _get_status_counts(
-        self, 
-        db: Session, 
-        candidate_id: Optional[int] = None,
-        job_id: Optional[int] = None,
-        search: Optional[str] = None
-    ) -> Dict[str, int]:
-        """Get count of interviews by status for tab display."""
-        base_query = db.query(Interview)
-        
-        # Apply same filters as main query (except status)
-        filters = []
-        
-        if candidate_id:
-            filters.append(Interview.candidate_id == candidate_id)
-            
-        if job_id:
-            filters.append(Interview.job_id == job_id)
-            
-        if search:
-            from app.models.candidate import Candidate
-            base_query = base_query.join(Candidate)
-            search_filter = or_(
-                func.lower(func.concat(Candidate.first_name, " ", Candidate.last_name)).contains(search.lower()),
-                func.lower(Candidate.email).contains(search.lower())
-            )
-            filters.append(search_filter)
-        
-        if filters:
-            base_query = base_query.filter(and_(*filters))
-        
-        # Count by status
-        status_counts = {}
-        for status in InterviewStatus:
-            count = base_query.filter(Interview.status == status).count()
-            status_counts[status.value] = count
-        
-        # Total count
-        status_counts["all"] = base_query.count()
-        
-        return status_counts
 
     def create_interview(self, db: Session, interview_create: InterviewCreate) -> InterviewResponse:
         """
@@ -236,7 +151,7 @@ class InterviewService:
         logger.info(f"Updating interview: {interview_id}")
 
         # Get the SQLAlchemy model for update
-        db_interview = db.query(Interview).filter(Interview.id == interview_id).first()
+        db_interview = self.interview_dao.get_model(db, interview_id)
         if not db_interview:
             return None
 

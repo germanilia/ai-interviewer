@@ -28,6 +28,7 @@ def test_job_question_dao_create_returns_pydantic_object(db, job_question_dao, j
     question_create = QuestionCreate(
         title="Criminal Background",
         question_text="Have you ever been convicted of a crime?",
+        instructions=None,
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.CRIMINAL_BACKGROUND,
         created_by_user_id=created_user.id
@@ -70,6 +71,7 @@ def test_job_question_dao_get_returns_pydantic_object(db, job_question_dao, job_
     question_create = QuestionCreate(
         title="Drug Use",
         question_text="Have you used illegal drugs?",
+        instructions=None,
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.DRUG_USE,
         created_by_user_id=created_user.id
@@ -121,7 +123,8 @@ def test_job_question_dao_get_multi_returns_pydantic_objects(db, job_question_da
     for i in range(3):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
+            instructions=None,
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
@@ -169,7 +172,8 @@ def test_job_question_dao_get_multi_with_pagination(db, job_question_dao, job_da
     for i in range(5):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
+            instructions=None,
             importance=QuestionImportance.OPTIONAL,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
@@ -215,6 +219,7 @@ def test_job_question_dao_update_returns_pydantic_object(db, job_question_dao, j
     question_create = QuestionCreate(
         title="Update Question",
         question_text="Update question text",
+        instructions=None,
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.DISMISSALS,
         created_by_user_id=created_user.id
@@ -264,6 +269,7 @@ def test_job_question_dao_delete_existing_job_question(db, job_question_dao, job
         question_text="Delete question text",
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
+        instructions=None,
         created_by_user_id=created_user.id
     )
     created_question = question_dao.create(db, obj_in=question_create)
@@ -319,7 +325,8 @@ def test_job_question_dao_get_by_job_returns_pydantic_objects(db, job_question_d
     for i in range(3):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
+            instructions=None,
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id
@@ -385,11 +392,13 @@ def test_job_question_dao_get_by_question_returns_pydantic_objects(db, job_quest
         question_text="This question is used in multiple jobs",
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.CRIMINAL_BACKGROUND,
+        instructions=None,
         created_by_user_id=created_user.id
     )
     question2_create = QuestionCreate(
         title="Unique Question",
         question_text="This question is used in one job only",
+        instructions=None,
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.ETHICS,
         created_by_user_id=created_user.id
@@ -453,6 +462,7 @@ def test_job_question_dao_bulk_create_for_job(db, job_question_dao, job_dao, que
         question_create = QuestionCreate(
             title=f"Bulk Question {i}",
             question_text=f"Bulk question text {i}",
+            instructions=None,
             importance=QuestionImportance.ASK_ONCE,
             category=QuestionCategory.ETHICS,
             created_by_user_id=created_user.id

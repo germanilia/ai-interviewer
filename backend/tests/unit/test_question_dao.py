@@ -58,7 +58,8 @@ def test_question_dao_create_without_instructions(db, question_dao, user_dao):
         question_text="Have you used illegal drugs in the past year?",
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.DRUG_USE,
-        created_by_user_id=created_user.id
+        created_by_user_id=created_user.id,
+        instructions=None
     )
 
     result = question_dao.create(db, obj_in=question_create)
@@ -87,7 +88,8 @@ def test_question_dao_get_returns_pydantic_object(db, question_dao, user_dao):
         question_text="Have you ever been dismissed from a job?",
         importance=QuestionImportance.MANDATORY,
         category=QuestionCategory.DISMISSALS,
-        created_by_user_id=created_user.id
+        created_by_user_id=created_user.id,
+        instructions=None
     )
     created_question = question_dao.create(db, obj_in=question_create)
 
@@ -175,10 +177,11 @@ def test_question_dao_get_multi_with_pagination(db, question_dao, user_dao):
     for i in range(5):
         question_create = QuestionCreate(
             title=f"Question {i}",
-            question_text=f"Question text {i}",
+            question_text=f"This is a detailed question text for question number {i} with sufficient length",
             importance=QuestionImportance.OPTIONAL,
             category=QuestionCategory.ETHICS,
-            created_by_user_id=created_user.id
+            created_by_user_id=created_user.id,
+            instructions=None
         )
         question_dao.create(db, obj_in=question_create)
     
@@ -207,10 +210,11 @@ def test_question_dao_update_returns_pydantic_object(db, question_dao, user_dao)
     
     question_create = QuestionCreate(
         title="Original Title",
-        question_text="Original question text",
+        question_text="This is the original question text with sufficient length for validation",
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
-        created_by_user_id=created_user.id
+        created_by_user_id=created_user.id,
+        instructions=None
     )
     created_question = question_dao.create(db, obj_in=question_create)
 
@@ -228,7 +232,7 @@ def test_question_dao_update_returns_pydantic_object(db, question_dao, user_dao)
     # Verify it returns a QuestionResponse (Pydantic object)
     assert isinstance(result, QuestionResponse)
     assert result.title == "Updated Title"
-    assert result.question_text == "Original question text"  # Unchanged
+    assert result.question_text == "This is the original question text with sufficient length for validation"  # Unchanged
     assert result.importance == QuestionImportance.MANDATORY
     assert result.instructions == "New instructions"
     assert result.category == QuestionCategory.ETHICS  # Unchanged
@@ -247,10 +251,11 @@ def test_question_dao_update_partial_fields(db, question_dao, user_dao):
     
     question_create = QuestionCreate(
         title="Test Question",
-        question_text="Test question text",
+        question_text="This is a comprehensive test question text with adequate length for validation",
         importance=QuestionImportance.ASK_ONCE,
         category=QuestionCategory.DRUG_USE,
-        created_by_user_id=created_user.id
+        created_by_user_id=created_user.id,
+        instructions=None
     )
     created_question = question_dao.create(db, obj_in=question_create)
 
@@ -258,12 +263,12 @@ def test_question_dao_update_partial_fields(db, question_dao, user_dao):
     db_question = db.query(Question).filter(Question.id == created_question.id).first()
 
     # Update only the question text
-    question_update = QuestionUpdate(question_text="Updated question text only")
+    question_update = QuestionUpdate(question_text="This is the updated question text with sufficient length for validation")
     result = question_dao.update(db, db_obj=db_question, obj_in=question_update)
 
     # Verify only question text was updated
     assert result.title == "Test Question"  # Unchanged
-    assert result.question_text == "Updated question text only"  # Updated
+    assert result.question_text == "This is the updated question text with sufficient length for validation"  # Updated
     assert result.importance == QuestionImportance.ASK_ONCE  # Unchanged
     assert result.category == QuestionCategory.DRUG_USE  # Unchanged
 
@@ -283,7 +288,8 @@ def test_question_dao_delete_existing_question(db, question_dao, user_dao):
         question_text="This question will be deleted",
         importance=QuestionImportance.OPTIONAL,
         category=QuestionCategory.ETHICS,
-        created_by_user_id=created_user.id
+        created_by_user_id=created_user.id,
+        instructions=None
     )
     created_question = question_dao.create(db, obj_in=question_create)
     
@@ -318,19 +324,19 @@ def test_question_dao_get_by_category_returns_pydantic_objects(db, question_dao,
     questions_data = [
         {
             "title": "Ethics 1",
-            "question_text": "Ethics question 1",
+            "question_text": "This is a comprehensive ethics question about moral behavior and decision making",
             "category": QuestionCategory.ETHICS,
             "importance": QuestionImportance.MANDATORY
         },
         {
             "title": "Ethics 2",
-            "question_text": "Ethics question 2",
+            "question_text": "This is another detailed ethics question about professional conduct and integrity",
             "category": QuestionCategory.ETHICS,
             "importance": QuestionImportance.ASK_ONCE
         },
         {
             "title": "Criminal",
-            "question_text": "Criminal question",
+            "question_text": "This is a detailed criminal background question about past legal issues and convictions",
             "category": QuestionCategory.CRIMINAL_BACKGROUND,
             "importance": QuestionImportance.MANDATORY
         }
@@ -368,19 +374,19 @@ def test_question_dao_get_by_importance_returns_pydantic_objects(db, question_da
     questions_data = [
         {
             "title": "Mandatory 1",
-            "question_text": "Mandatory importance 1",
+            "question_text": "This is a mandatory importance question that must be answered completely and thoroughly",
             "importance": QuestionImportance.MANDATORY,
             "category": QuestionCategory.ETHICS
         },
         {
             "title": "Mandatory 2",
-            "question_text": "Mandatory importance 2",
+            "question_text": "This is another mandatory importance question requiring detailed and honest responses",
             "importance": QuestionImportance.MANDATORY,
             "category": QuestionCategory.CRIMINAL_BACKGROUND
         },
         {
             "title": "Ask Once",
-            "question_text": "Ask once importance",
+            "question_text": "This is an ask once importance question that should be presented only one time during the interview",
             "importance": QuestionImportance.ASK_ONCE,
             "category": QuestionCategory.DRUG_USE
         }
