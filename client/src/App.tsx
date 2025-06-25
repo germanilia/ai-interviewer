@@ -11,6 +11,7 @@ import { Settings } from '@/components/pages/Settings';
 import { Candidates } from '@/components/pages/Candidates';
 import { Interviews } from '@/components/pages/Interviews';
 import { Questions } from '@/components/pages/Questions';
+import { CustomPrompts } from '@/components/pages/CustomPrompts';
 import UserList from '@/components/UserList';
 import { InterviewLanding } from '@/components/interview/InterviewLanding';
 import { CandidateChat } from '@/components/interview/CandidateChat';
@@ -95,7 +96,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            <Route
+              path="/custom-prompts"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CustomPrompts />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/users"

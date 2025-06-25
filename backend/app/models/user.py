@@ -29,3 +29,4 @@ class User(Base):
     created_questions = relationship("Question", back_populates="created_by")
     created_candidates = relationship("Candidate", back_populates="created_by")
     created_interviews = relationship("Interview", back_populates="created_by")
+    created_custom_prompts = relationship("CustomPrompt", back_populates="created_by")

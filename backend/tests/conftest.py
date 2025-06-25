@@ -125,6 +125,13 @@ def interview_question_dao():
 
 
 @pytest.fixture
+def custom_prompt_dao():
+    """Create a CustomPromptDAO instance."""
+    from app.crud.custom_prompt import CustomPromptDAO
+    return CustomPromptDAO()
+
+
+@pytest.fixture
 def user_service(user_dao):
     """Create a UserService instance with injected UserDAO."""
     return UserService(user_dao)

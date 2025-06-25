@@ -241,7 +241,8 @@ class CandidateService:
     def reset_candidate_interview(self, db: Session, candidate_id: int) -> Optional[CandidateResponse]:
         """
         Reset candidate interview status and date.
-        This removes the interview status and interview date, allowing the candidate to retake the interview.
+        This removes the interview status, interview date, and deletes any associated report,
+        allowing the candidate to retake the interview.
 
         Args:
             db: Database session
@@ -256,6 +257,36 @@ class CandidateService:
         existing_candidate = self.candidate_dao.get(db, candidate_id)
         if not existing_candidate:
             return None
+
+        # Delete associated candidate report if it exists
+        from app.crud.candidate_report import CandidateReportDAO
+        report_dao = CandidateReportDAO()
+        existing_report = report_dao.get_by_candidate_id(db, candidate_id)
+        if existing_report:
+            logger.info(f"Deleting report for candidate: {candidate_id}")
+            report_dao.delete(db, id=existing_report.id)
+
+        # Delete or mark as abandoned any interview sessions for this candidate
+        from app.crud.interview_session import InterviewSessionDAO
+        from app.models.interview_session import InterviewSession, InterviewSessionStatus
+        session_dao = InterviewSessionDAO()
+
+        # Get all sessions for this candidate
+        candidate_sessions = db.query(InterviewSession).filter(
+            InterviewSession.candidate_id == candidate_id
+        ).all()
+
+        for session in candidate_sessions:
+            if session.status.value == InterviewSessionStatus.ACTIVE.value:
+                logger.info(f"Marking session {session.id} as abandoned for candidate: {candidate_id}")
+                # Mark active sessions as abandoned rather than deleting them for audit purposes
+                from app.schemas.interview_session import InterviewSessionUpdate
+                session_dao.update(
+                    db=db,
+                    db_obj=session,
+                    obj_in=InterviewSessionUpdate(status=InterviewSessionStatus.ABANDONED)
+                )
+            # Completed sessions are kept for historical purposes
 
         # Create update object to reset interview fields
         reset_update = CandidateUpdate(

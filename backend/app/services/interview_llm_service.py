@@ -4,6 +4,7 @@ LLM service for interview conversations with hard-coded responses.
 import logging
 from typing import Optional, Tuple, TYPE_CHECKING
 from app.schemas.interview_session import InterviewContext, ChatMessage
+from app.core.llm_service import LLMConfig, LLMFactory, ModelName, ReasoningConfig
 
 if TYPE_CHECKING:
     from app.schemas.question import QuestionResponse
@@ -15,6 +16,10 @@ class InterviewLLMService:
     """Service for handling LLM interactions during interviews"""
 
     def __init__(self):
+        llm_config_reasoning = LLMConfig(reasoning=ReasoningConfig(enabled=True, budget_tokens=1000))
+        self.small_llm = LLMFactory.create_client(model_name=ModelName.CLAUDE_3_5_HAIKU)
+        self.judge_llm = LLMFactory.create_client(model_name=ModelName.CLAUDE_4_SONNET, config=llm_config_reasoning)
+        self.guardian_llm = LLMFactory.create_client(model_name=ModelName.CLAUDE_3_5_HAIKU)
         self.hard_coded_responses = {
             "en": [
                 "Thank you for that response. Can you tell me more about your background and experience?",
@@ -93,6 +98,11 @@ class InterviewLLMService:
     def _generate_response(self, context: InterviewContext, user_message: str, language: str = "en") -> str:
         """Generate a response based on context and user message"""
         # Get responses for the specified language, fallback to English
+        allowed_to_proceed = self.guardian_llm.generate() 
+        if not allowed_to_proceed:
+            return "I'm sorry, I can't allow you to proceed with this interview."
+        small_llm_response = self.small_llm.generate()
+        final_response = self.judge_llm.generate()
         responses = self.hard_coded_responses.get(language, self.hard_coded_responses["en"])
 
         # For now, use hard-coded responses in sequence

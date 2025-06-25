@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+
 import { Send, User, Bot, LogOut, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
@@ -57,7 +57,7 @@ export const CandidateChat: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme, setTheme, actualTheme } = useTheme();
+  const { setTheme, actualTheme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [interviewState, setInterviewState] = useState<InterviewState | null>(null);
@@ -94,26 +94,29 @@ export const CandidateChat: React.FC = () => {
 
   const initializeSession = async (state: InterviewState) => {
     try {
-      if (state.sessionId) {
-        // Resume existing session
-        setSessionId(state.sessionId);
-        // TODO: Load existing conversation history
-      } else {
-        // Start new session
-        const response = await api.interviewSession.startSession(
-          state.candidateId,
-          state.interviewId
-        );
-        setSessionId(response.id);
-        
-        // Add welcome message
-        const welcomeMessage: ChatMessage = {
-          role: 'assistant',
-          content: `Hello ${state.candidateName}! Welcome to your interview for ${state.interviewTitle}. Let's start with a simple question: Can you tell me a bit about yourself and why you're interested in this position?`,
-          timestamp: new Date().toISOString()
-        };
-        setMessages([welcomeMessage]);
+      if (!state.sessionId) {
+        // This should not happen anymore since login creates a session
+        toast({
+          title: "Error",
+          description: "No session found. Please log in again.",
+          variant: "destructive",
+        });
+        navigate('/interview');
+        return;
       }
+
+      // Set the session ID from login
+      setSessionId(state.sessionId);
+
+      // TODO: Load existing conversation history if any
+      // For now, add welcome message if no conversation history exists
+      const welcomeMessage: ChatMessage = {
+        role: 'assistant',
+        content: `Hello ${state.candidateName}! Welcome to your interview for ${state.interviewTitle}. Let's start with a simple question: Can you tell me a bit about yourself and why you're interested in this position?`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages([welcomeMessage]);
+
     } catch (error) {
       console.error('Failed to initialize session:', error);
       toast({

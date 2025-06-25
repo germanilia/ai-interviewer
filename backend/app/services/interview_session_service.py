@@ -28,7 +28,8 @@ class InterviewSessionService:
 
     def authenticate_candidate(self, db: Session, pass_key: str) -> CandidateLoginResponse:
         """
-        Authenticate candidate using pass key and return interview context
+        Authenticate candidate using pass key and return interview context.
+        Creates a new session immediately upon successful login.
         """
         # Find candidate by pass key
         candidate = candidate_dao.get_by_pass_key(db=db, pass_key=pass_key)
@@ -52,6 +53,15 @@ class InterviewSessionService:
             interview_id=candidate.interview_id
         )
 
+        # If no active session exists, create one immediately upon login
+        if not existing_session:
+            existing_session = self.session_dao.create_session(
+                db=db,
+                candidate_id=candidate.id,
+                interview_id=candidate.interview_id
+            )
+            logger.info(f"Created new session {existing_session.id} for candidate {candidate.id} upon login")
+
         candidate_name = f"{candidate.first_name} {candidate.last_name}"
 
         return CandidateLoginResponse(
@@ -59,7 +69,7 @@ class InterviewSessionService:
             candidate_name=candidate_name,
             interview_id=candidate.interview_id,
             interview_title=interview.job_title,
-            session_id=existing_session.id if existing_session else None,
+            session_id=existing_session.id,
             message=f"Welcome {candidate_name}! You are logged in for the {interview.job_title} interview."
         )
 

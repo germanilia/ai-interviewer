@@ -1,13 +1,10 @@
 from enum import Enum
 from typing import Dict, List, Optional, Any, Type, TypeVar, Generic, Union, cast
 import json
-try:
-    import boto3
-    from botocore.exceptions import ClientError
-    BOTO3_AVAILABLE = True
-except ImportError:
-    BOTO3_AVAILABLE = False
 from pydantic import BaseModel, Field
+
+# Define boto3 at module level to ensure it's always defined
+import boto3
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -18,9 +15,8 @@ class ModelFamily(str, Enum):
 
 class ModelName(str, Enum):
     # Claude models
-    CLAUDE_3_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
-    CLAUDE_3_SONNET = "anthropic.claude-3-sonnet-20240229-v1:0"
-    CLAUDE_3_7_SONNET = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+    CLAUDE_3_5_HAIKU = "anthropic.claude-3-5-haiku-20241022-v1:0"
+    CLAUDE_4_SONNET = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     
     # Llama models
     LLAMA_3_8B = "meta.llama3-8b-instruct-v1:0"
@@ -45,8 +41,8 @@ class ReasoningConfig(BaseModel):
     budget_tokens: int = 2000
 
 class LLMConfig(BaseModel):
-    max_tokens: int = 512
-    temperature: float = 0.5
+    max_tokens: int = 8000
+    temperature: float = 0.4
     top_p: float = 0.9
     reasoning: Optional[ReasoningConfig] = None
 
@@ -61,8 +57,6 @@ class LLMClient(Generic[T]):
         region_name: str = "us-east-1",
         config: Optional[LLMConfig] = None
     ):
-        if not BOTO3_AVAILABLE:
-            raise ImportError("boto3 is required for AWS Bedrock integration. Please install it with 'pip install boto3'.")
             
         self.model_id = model_id
         self.client = boto3.client("bedrock-runtime", region_name=region_name)

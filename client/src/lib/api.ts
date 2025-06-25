@@ -37,6 +37,42 @@ export interface UserInfo {
   user_sub?: string;
 }
 
+// Custom Prompt types
+export interface CustomPrompt {
+  id: number;
+  prompt_type: 'small_llm' | 'judge' | 'guardrails';
+  name: string;
+  content: string;
+  description?: string;
+  is_active: boolean;
+  created_by_user_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomPromptCreate {
+  prompt_type: 'small_llm' | 'judge' | 'guardrails';
+  name: string;
+  content: string;
+  description?: string;
+  is_active?: boolean;
+  created_by_user_id: number;
+}
+
+export interface CustomPromptUpdate {
+  name?: string;
+  content?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface CustomPromptListResponse {
+  prompts: CustomPrompt[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
 export interface SignInResponse {
   access_token: string;
   id_token: string;
@@ -777,6 +813,63 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       });
+    },
+  },
+
+  // Custom Prompts endpoints
+  customPrompts: {
+    getAll: async (params?: {
+      skip?: number;
+      limit?: number;
+      prompt_type?: 'small_llm' | 'judge' | 'guardrails';
+      active_only?: boolean;
+    }): Promise<CustomPromptListResponse> => {
+      const searchParams = new URLSearchParams();
+      if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+      if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+      if (params?.prompt_type) searchParams.append('prompt_type', params.prompt_type);
+      if (params?.active_only !== undefined) searchParams.append('active_only', params.active_only.toString());
+
+      const queryString = searchParams.toString();
+      return fetchFromApi(`/api/v1/custom-prompts${queryString ? `?${queryString}` : ''}`);
+    },
+
+    getById: async (id: number): Promise<CustomPrompt> => {
+      return fetchFromApi(`/api/v1/custom-prompts/${id}`);
+    },
+
+    create: async (data: CustomPromptCreate): Promise<CustomPrompt> => {
+      return fetchFromApi('/api/v1/custom-prompts', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    update: async (id: number, data: CustomPromptUpdate): Promise<CustomPrompt> => {
+      return fetchFromApi(`/api/v1/custom-prompts/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    delete: async (id: number): Promise<{ message: string }> => {
+      return fetchFromApi(`/api/v1/custom-prompts/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    activate: async (id: number, deactivateOthers: boolean = true): Promise<CustomPrompt> => {
+      return fetchFromApi(`/api/v1/custom-prompts/${id}/activate?deactivate_others=${deactivateOthers}`, {
+        method: 'POST',
+      });
+    },
+
+    getActiveByType: async (promptType: 'small_llm' | 'judge' | 'guardrails'): Promise<CustomPrompt | null> => {
+      return fetchFromApi(`/api/v1/custom-prompts/types/${promptType}/active`);
+    },
+
+    getCountByType: async (): Promise<{ counts: Record<string, number> }> => {
+      return fetchFromApi('/api/v1/custom-prompts/stats/count-by-type');
     },
   },
 };

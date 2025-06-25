@@ -9,6 +9,7 @@ from .interview import interview_router
 from .interview_session import interview_session_router
 from .question import question_router
 from .reports import reports_router
+from .custom_prompt import custom_prompt_router
 from app.core.config_service import config_service
 
 router = APIRouter()
@@ -47,5 +48,6 @@ router.include_router(candidate_router, prefix="/api/v1", tags=["candidates"])
 router.include_router(interview_router, prefix="/api/v1", tags=["interviews"])
 router.include_router(interview_session_router, tags=["interview-sessions"])
 router.include_router(question_router, prefix="/api/v1", tags=["questions"])
+router.include_router(custom_prompt_router, prefix="/api/v1", tags=["custom-prompts"])
 router.include_router(reports_router, prefix="/api/v1", tags=["reports"])
 router.include_router(dev_router, prefix="/api/v1/dev", tags=["development"])

@@ -33,7 +33,9 @@ def test_candidate_service_create_candidate_returns_pydantic(db, candidate_servi
         first_name="John",
         last_name="Doe",
         email="john.doe@example.com",
-        phone="+1234567890"
+        phone="+1234567890",
+        interview_id=None,
+        pass_key=None
     )
 
     result = candidate_service.create_candidate(db, candidate_create, test_user_id)
@@ -51,7 +53,9 @@ def test_candidate_service_create_candidate_duplicate_email_raises_error(db, can
     candidate_create = CandidateCreate(
         first_name="John",
         last_name="Doe",
-        email="duplicate@example.com"
+        email="duplicate@example.com",
+        interview_id=None,
+        pass_key=None
     )
 
     # Create first candidate
@@ -61,7 +65,9 @@ def test_candidate_service_create_candidate_duplicate_email_raises_error(db, can
     duplicate_candidate = CandidateCreate(
         first_name="Jane",
         last_name="Smith",
-        email="duplicate@example.com"
+        email="duplicate@example.com",
+        interview_id=None,
+        pass_key=None
     )
 
     with pytest.raises(ValueError, match="Email already exists"):
@@ -74,7 +80,9 @@ def test_candidate_service_get_candidate_by_id_returns_pydantic(db, candidate_se
     candidate_create = CandidateCreate(
         first_name="Alice",
         last_name="Johnson",
-        email="alice.johnson@example.com"
+        email="alice.johnson@example.com",
+        interview_id=None,
+        pass_key=None
     )
     created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
@@ -97,9 +105,9 @@ def test_candidate_service_get_candidates_returns_paginated_response(db, candida
     """Test that CandidateService.get_candidates returns CandidateListResponse."""
     # Create multiple candidates
     candidates_data = [
-        {"first_name": "Bob", "last_name": "Wilson", "email": "bob.wilson@example.com"},
-        {"first_name": "Carol", "last_name": "Brown", "email": "carol.brown@example.com"},
-        {"first_name": "David", "last_name": "Davis", "email": "david.davis@example.com"}
+        {"first_name": "Bob", "last_name": "Wilson", "email": "bob.wilson@example.com", "interview_id": None, "pass_key": None},
+        {"first_name": "Carol", "last_name": "Brown", "email": "carol.brown@example.com", "interview_id": None, "pass_key": None},
+        {"first_name": "David", "last_name": "Davis", "email": "david.davis@example.com", "interview_id": None, "pass_key": None}
     ]
 
     for candidate_data in candidates_data:
@@ -124,9 +132,9 @@ def test_candidate_service_get_candidates_with_search(db, candidate_service, tes
     """Test that CandidateService.get_candidates supports search functionality."""
     # Create candidates with different names
     candidates_data = [
-        {"first_name": "John", "last_name": "Smith", "email": "john.smith@example.com"},
-        {"first_name": "Jane", "last_name": "Johnson", "email": "jane.johnson@example.com"},
-        {"first_name": "Bob", "last_name": "Smith", "email": "bob.smith@example.com"}
+        {"first_name": "John", "last_name": "Smith", "email": "john.smith@example.com", "interview_id": None, "pass_key": None},
+        {"first_name": "Jane", "last_name": "Johnson", "email": "jane.johnson@example.com", "interview_id": None, "pass_key": None},
+        {"first_name": "Bob", "last_name": "Smith", "email": "bob.smith@example.com", "interview_id": None, "pass_key": None}
     ]
 
     for candidate_data in candidates_data:
@@ -165,7 +173,9 @@ def test_candidate_service_get_candidate_by_email_returns_pydantic(db, candidate
     candidate_create = CandidateCreate(
         first_name="Email",
         last_name="Test",
-        email="email.test@example.com"
+        email="email.test@example.com",
+        interview_id=None,
+        pass_key=None
     )
     candidate_service.create_candidate(db, candidate_create, test_user_id)
     
@@ -190,7 +200,9 @@ def test_candidate_service_update_candidate_returns_pydantic(db, candidate_servi
         first_name="Original",
         last_name="Name",
         email="original@example.com",
-        phone="+1111111111"
+        phone="+1111111111",
+        interview_id=None,
+        pass_key=None
     )
     created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
@@ -222,12 +234,16 @@ def test_candidate_service_update_candidate_duplicate_email_raises_error(db, can
     candidate1 = CandidateCreate(
         first_name="First",
         last_name="User",
-        email="first@example.com"
+        email="first@example.com",
+        interview_id=None,
+        pass_key=None
     )
     candidate2 = CandidateCreate(
         first_name="Second",
         last_name="User",
-        email="second@example.com"
+        email="second@example.com",
+        interview_id=None,
+        pass_key=None
     )
 
     created1 = candidate_service.create_candidate(db, candidate1, test_user_id)
@@ -246,7 +262,9 @@ def test_candidate_service_delete_candidate_success(db, candidate_service, test_
     candidate_create = CandidateCreate(
         first_name="Delete",
         last_name="Me",
-        email="delete@example.com"
+        email="delete@example.com",
+        interview_id=None,
+        pass_key=None
     )
     created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
     
@@ -272,12 +290,71 @@ def test_candidate_service_get_candidate_interview_history(db, candidate_service
     candidate_create = CandidateCreate(
         first_name="History",
         last_name="Test",
-        email="history@example.com"
+        email="history@example.com",
+        interview_id=None,
+        pass_key=None
     )
     created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
-    
+
     # Get interview history (should be empty for now)
     result = candidate_service.get_candidate_interview_history(db, created_candidate.id)
-    
+
     assert isinstance(result, list)
     assert len(result) == 0  # No interviews yet
+
+
+def test_candidate_service_reset_candidate_interview_success(db, candidate_service, test_user_id):
+    """Test that CandidateService.reset_candidate_interview clears interview data."""
+    # Create candidate with interview data
+    candidate_create = CandidateCreate(
+        first_name="Reset",
+        last_name="Test",
+        email="reset@example.com",
+        interview_id=None,
+        pass_key=None
+    )
+    created_candidate = candidate_service.create_candidate(db, candidate_create, test_user_id)
+
+    # Update candidate with interview data
+    from datetime import datetime, timezone
+    update_data = CandidateUpdate(
+        interview_status="completed",
+        interview_date=datetime.now(timezone.utc),
+        score=85,
+        integrity_score="high",
+        risk_level="low",
+        conversation={"messages": ["test"]},
+        report_summary="Test summary",
+        risk_indicators=[{"type": "none", "description": "No risks identified"}],
+        key_concerns=[{"area": "none", "details": "No concerns"}],
+        analysis_notes="Test notes"
+    )
+    updated_candidate = candidate_service.update_candidate(db, created_candidate.id, update_data)
+
+    # Verify data was set
+    assert updated_candidate.interview_status == "completed"
+    assert updated_candidate.score == 85
+    assert updated_candidate.conversation is not None
+
+    # Reset the candidate
+    reset_candidate = candidate_service.reset_candidate_interview(db, created_candidate.id)
+
+    # Verify reset worked
+    assert isinstance(reset_candidate, CandidateResponse)
+    assert reset_candidate.id == created_candidate.id
+    assert reset_candidate.interview_status is None
+    assert reset_candidate.interview_date is None
+    assert reset_candidate.score is None
+    assert reset_candidate.integrity_score is None
+    assert reset_candidate.risk_level is None
+    assert reset_candidate.conversation is None
+    assert reset_candidate.report_summary is None
+    assert reset_candidate.risk_indicators is None
+    assert reset_candidate.key_concerns is None
+    assert reset_candidate.analysis_notes is None
+
+
+def test_candidate_service_reset_candidate_interview_nonexistent_returns_none(db, candidate_service):
+    """Test that resetting nonexistent candidate returns None."""
+    result = candidate_service.reset_candidate_interview(db, 99999)
+    assert result is None

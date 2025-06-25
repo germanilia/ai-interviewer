@@ -5,6 +5,7 @@ from .candidate import CandidateBase, CandidateCreate, CandidateUpdate, Candidat
 from .interview import InterviewBase, InterviewCreate, InterviewUpdate, InterviewResponse, InterviewInDB, InterviewReport
 from .question import QuestionBase, QuestionCreate, QuestionUpdate, QuestionResponse, QuestionInDB
 from .interview_question import InterviewQuestionBase, InterviewQuestionCreate, InterviewQuestionUpdate, InterviewQuestionResponse, InterviewQuestionInDB
+from .custom_prompt import CustomPromptBase, CustomPromptCreate, CustomPromptUpdate, CustomPromptResponse, CustomPromptInDB, CustomPromptListResponse
 from .auth import SignUpRequest, SignUpResponse, ConfirmSignUpRequest, ConfirmSignUpResponse, SignInRequest, SignInResponse, RefreshTokenRequest, RefreshTokenResponse, UserInfo, TokenData, PasswordChangeRequest, PasswordResetRequest
 from .interview import InterviewListResponse, InterviewWithDetails
 from .reports import (
@@ -28,6 +29,8 @@ __all__ = [
     "QuestionBase", "QuestionCreate", "QuestionUpdate", "QuestionResponse", "QuestionInDB",
     # Interview Question schemas
     "InterviewQuestionBase", "InterviewQuestionCreate", "InterviewQuestionUpdate", "InterviewQuestionResponse", "InterviewQuestionInDB",
+    # Custom Prompt schemas
+    "CustomPromptBase", "CustomPromptCreate", "CustomPromptUpdate", "CustomPromptResponse", "CustomPromptInDB", "CustomPromptListResponse",
     # Auth schemas
     "SignUpRequest", "SignUpResponse", "ConfirmSignUpRequest", "ConfirmSignUpResponse", "SignInRequest", "SignInResponse", "RefreshTokenRequest", "RefreshTokenResponse", "UserInfo", "TokenData", "PasswordChangeRequest", "PasswordResetRequest",
     # Common schemas

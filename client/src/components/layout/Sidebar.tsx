@@ -47,6 +47,11 @@ const navItems: NavItem[] = [
     icon: HelpCircle,
   },
   {
+    title: 'Custom Prompts',
+    href: '/custom-prompts',
+    icon: MessageSquare,
+  },
+  {
     title: 'Users',
     href: '/users',
     icon: Users,
