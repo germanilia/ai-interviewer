@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api, QuestionResponse, QuestionCreate, QuestionUpdate, QuestionListResponse, QuestionFilter } from '@/lib/api';
 
 interface QuestionsContextType {
@@ -290,6 +290,11 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
   const setPageSize = useCallback((size: number) => {
     setPageSizeState(size);
   }, []);
+
+  // Fetch questions on mount
+  useEffect(() => {
+    fetchQuestions(1, 50); // Fetch first 50 questions for template builder
+  }, [fetchQuestions]);
 
   const value: QuestionsContextType = {
     // State

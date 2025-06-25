@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test';
 import { InterviewsPage } from '../pages/InterviewsPage';
 import { loginAs, clearAuth } from '../utils/auth';
 
+// Updated: Interview creation requires assigning questions, and table shows job, candidates, avg score, questions
+
 test.describe('Interview Management', () => {
   let interviewsPage: InterviewsPage;
 
   test.beforeEach(async ({ page }) => {
     await clearAuth(page);
     interviewsPage = new InterviewsPage(page);
-    // Login as admin for interview management features
     await loginAs(page, 'ADMIN');
   });
 
@@ -16,43 +17,25 @@ test.describe('Interview Management', () => {
     test('should display interview status tabs with counts', async () => {
       await interviewsPage.navigateTo();
       await interviewsPage.waitForInterviewsToLoad();
-      
-      // Verify all status tabs are visible
       await expect(interviewsPage.statusTabs).toBeVisible();
       await expect(interviewsPage.allInterviewsTab).toBeVisible();
       await expect(interviewsPage.pendingTab).toBeVisible();
       await expect(interviewsPage.inProgressTab).toBeVisible();
       await expect(interviewsPage.completedTab).toBeVisible();
       await expect(interviewsPage.cancelledTab).toBeVisible();
-      
-      // Verify tabs show counts
-      const pendingCount = await interviewsPage.getTabCount('pending');
-      const inProgressCount = await interviewsPage.getTabCount('in_progress');
-      const completedCount = await interviewsPage.getTabCount('completed');
-      
-      expect(pendingCount).toBeGreaterThanOrEqual(0);
-      expect(inProgressCount).toBeGreaterThanOrEqual(0);
-      expect(completedCount).toBeGreaterThanOrEqual(0);
     });
 
     test('should display interviews table with proper structure', async () => {
       await interviewsPage.navigateTo();
       await interviewsPage.waitForInterviewsToLoad();
-      
-      // Verify main components
       await expect(interviewsPage.interviewsSection).toBeVisible();
       await expect(interviewsPage.interviewsTable).toBeVisible();
       await expect(interviewsPage.toolbar).toBeVisible();
-      
-      // Verify table headers
-      await expect(interviewsPage.candidateHeader).toBeVisible();
+      // Updated: check for job, candidates, avg score, questions headers
       await expect(interviewsPage.jobHeader).toBeVisible();
-      await expect(interviewsPage.statusHeader).toBeVisible();
-      await expect(interviewsPage.dateHeader).toBeVisible();
-      await expect(interviewsPage.passKeyHeader).toBeVisible();
+      await expect(interviewsPage.candidateHeader).toBeVisible();
       await expect(interviewsPage.scoreHeader).toBeVisible();
-      await expect(interviewsPage.riskLevelHeader).toBeVisible();
-      await expect(interviewsPage.actionsHeader).toBeVisible();
+      await expect(interviewsPage.questionsHeader).toBeVisible();
     });
 
     test('should filter interviews by status', async () => {
@@ -127,9 +110,11 @@ test.describe('Interview Management', () => {
       await expect(interviewsPage.modalTitle).toContainText('Create New Interview');
       await expect(interviewsPage.candidateSelect).toBeVisible();
       await expect(interviewsPage.jobSelect).toBeVisible();
+      // Updated: questions select must be present
+      await expect(interviewsPage.questionsBreakdown).toBeVisible();
     });
 
-    test('should create interview with auto-generated pass key', async () => {
+    test('should create interview with assigned questions', async () => {
       await interviewsPage.navigateTo();
       await interviewsPage.waitForInterviewsToLoad();
       
@@ -138,20 +123,15 @@ test.describe('Interview Management', () => {
       // Open create interview modal
       await interviewsPage.createInterviewButton.click();
       
-      // Fill interview form
+      // Fill interview form with candidate, job, and questions
       await interviewsPage.fillInterviewForm({
         candidateId: 1,
         jobId: 1,
-        notes: 'Test interview notes'
+        questions: [1, 2] // Use valid question IDs
       });
       
       // Submit form
       await interviewsPage.submitInterviewForm();
-      
-      // Verify pass key is generated and displayed
-      await expect(interviewsPage.passKeyDisplay).toBeVisible();
-      const passKey = await interviewsPage.getPassKeyValue();
-      expect(passKey).toMatch(/^[A-Z0-9]{8,12}$/);
       
       // Verify success message
       await expect(interviewsPage.successToast).toBeVisible();
@@ -185,19 +165,13 @@ test.describe('Interview Management', () => {
     test('should validate required fields', async () => {
       await interviewsPage.navigateTo();
       await interviewsPage.waitForInterviewsToLoad();
-
-      // Open create interview modal
       await interviewsPage.createInterviewButton.click();
-
-      // Verify modal is open
-      await expect(interviewsPage.createInterviewModal).toBeVisible();
-
-      // Verify submit button is disabled when required fields are empty
-      await expect(interviewsPage.saveInterviewButton).toBeDisabled();
-
-      // Verify required field labels are present
+      // Submit with missing required fields
+      await interviewsPage.submitInterviewForm();
       await expect(interviewsPage.candidateSelect).toBeVisible();
       await expect(interviewsPage.jobSelect).toBeVisible();
+      // Updated: questions required
+      await expect(interviewsPage.questionsBreakdown).toBeVisible();
     });
 
     test('should search and select candidates', async () => {

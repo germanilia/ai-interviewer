@@ -64,6 +64,7 @@ export interface CandidateData {
   lastName: string;
   email: string;
   phone?: string;
+  interview_id?: number;
 }
 
 export interface CandidateResponse {
@@ -75,32 +76,14 @@ export interface CandidateResponse {
   created_at: string;
   updated_at: string;
   full_name?: string;
-  interview_count?: number;
-  last_interview_date?: string;
-  status?: string;
-}
 
-// Types for interviews
-export interface InterviewCreateRequest {
-  candidate_id: number;
-  job_id: number;
-  notes?: string;
-  interview_date?: string;
-}
+  // Interview assignment
+  interview_id?: number;
+  pass_key?: string;
 
-export interface InterviewUpdateRequest {
-  status?: string;
-  notes?: string;
+  // Interview-specific data for this candidate
+  interview_status?: string;
   interview_date?: string;
-}
-
-export interface InterviewResponse {
-  id: number;
-  candidate_id: number;
-  job_id: number;
-  status: string;
-  interview_date?: string;
-  pass_key: string;
   score?: number;
   integrity_score?: string;
   risk_level?: string;
@@ -109,27 +92,32 @@ export interface InterviewResponse {
   risk_indicators?: any[];
   key_concerns?: any[];
   analysis_notes?: string;
+  completed_at?: string;
+}
+
+// Types for interviews - moved to after InterviewListResponse
+
+export interface InterviewResponse {
+  id: number;
+
+  // Job information (merged from Job model)
+  job_title: string;
+  job_description?: string;
+  job_department?: string;
+
+  // General interview data
+  avg_score?: number;
+  total_candidates: number;
+  completed_candidates: number;
+  instructions?: string;
+
   created_at: string;
   updated_at: string;
   completed_at?: string;
-  // Backend returns these fields directly for InterviewWithDetails
-  candidate_name?: string;
-  candidate_email?: string;
-  job_title?: string;
-  job_department?: string;
-  // Legacy nested objects for backward compatibility
-  candidate?: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    full_name: string;
-  };
-  job?: {
-    id: number;
-    title: string;
-    department?: string;
-  };
+
+  // For backward compatibility with existing components
+  assigned_candidates?: any[];
+  candidates_count?: number;
 }
 
 export interface InterviewListResponse {
@@ -141,15 +129,25 @@ export interface InterviewListResponse {
   status_counts?: { [key: string]: number };
 }
 
-export interface JobResponse {
-  id: number;
-  title: string;
-  department?: string;
-  description?: string;
-  requirements?: string;
-  created_at: string;
-  updated_at: string;
+export interface InterviewCreateRequest {
+  job_title: string;
+  job_description?: string;
+  job_department?: string;
+  instructions?: string;
+  question_ids: number[]; // Required - interviews must have questions
 }
+
+export interface InterviewUpdateRequest {
+  job_title?: string;
+  job_description?: string;
+  job_department?: string;
+  instructions?: string;
+  avg_score?: number;
+  total_candidates?: number;
+  completed_candidates?: number;
+}
+
+
 
 export interface CandidateListResponse {
   items: CandidateResponse[];
@@ -164,6 +162,7 @@ export interface CandidateCreateRequest {
   last_name: string;
   email: string;
   phone?: string;
+  interview_id: number; // Required - candidates must be assigned to an interview
 }
 
 export interface CandidateUpdateRequest {
@@ -171,6 +170,7 @@ export interface CandidateUpdateRequest {
   last_name?: string;
   email?: string;
   phone?: string;
+  interview_id?: number;
 }
 
 // Question types to match backend schemas
@@ -324,7 +324,17 @@ async function fetchFromApi(endpoint: string, options: RequestInit = {}) {
       throw new Error(errorMessage);
     }
 
-    return await response.json();
+    // Handle responses with no content (like DELETE operations)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    }
+
+    return null;
   } catch (error) {
     console.error('API request failed:', error);
     throw error;
@@ -539,31 +549,10 @@ export const api = {
       });
     },
 
-    monitor: async (id: number): Promise<any> => {
-      return fetchFromApi(`/api/v1/interviews/${id}/monitor`);
-    },
+
   },
 
-  // Job endpoints
-  jobs: {
-    getAll: async (params?: {
-      page?: number;
-      page_size?: number;
-      search?: string;
-    }): Promise<{ jobs: JobResponse[]; total: number; page: number; page_size: number; total_pages: number }> => {
-      const searchParams = new URLSearchParams();
-      if (params?.page) searchParams.set('page', params.page.toString());
-      if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
-      if (params?.search) searchParams.set('search', params.search);
 
-      const endpoint = `/api/v1/jobs${searchParams.toString() ? `?${searchParams}` : ''}`;
-      return fetchFromApi(endpoint);
-    },
-
-    getById: async (id: number): Promise<JobResponse> => {
-      return fetchFromApi(`/api/v1/jobs/${id}`);
-    },
-  },
 
   // Question endpoints
   questions: {

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 from app.dependencies import get_db, get_current_active_user
 from app.schemas.user import UserResponse
 from app.schemas.interview import (
@@ -17,7 +18,8 @@ from app.models.interview import InterviewStatus
 from app.services.interview_service import InterviewService
 from app.crud.interview import InterviewDAO
 from app.crud.candidate import CandidateDAO
-from app.crud.job import JobDAO
+from app.crud.interview_question import InterviewQuestionDAO
+from app.crud.question import QuestionDAO
 
 interview_router = APIRouter()
 
@@ -27,7 +29,8 @@ def get_interview_service() -> InterviewService:
     return InterviewService(
         interview_dao=InterviewDAO(),
         candidate_dao=CandidateDAO(),
-        job_dao=JobDAO()
+        interview_question_dao=InterviewQuestionDAO(),
+        question_dao=QuestionDAO()
     )
 
 
@@ -38,7 +41,6 @@ async def get_interviews(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     search: Optional[str] = Query(None, description="Search term for candidate name"),
     candidate_id: Optional[int] = Query(None, description="Filter by candidate ID"),
-    job_id: Optional[int] = Query(None, description="Filter by job ID"),
     db: Session = Depends(get_db),
     interview_service: InterviewService = Depends(get_interview_service),
     current_user: UserResponse = Depends(get_current_active_user)
@@ -53,8 +55,7 @@ async def get_interviews(
             page_size=page_size,
             status=status_filter,
             search=search,
-            candidate_id=candidate_id,
-            job_id=job_id
+            candidate_id=candidate_id
         )
     except Exception as e:
         raise HTTPException(
@@ -90,10 +91,19 @@ async def create_interview(
     current_user: UserResponse = Depends(get_current_active_user)
 ):
     """
-    Create a new interview.
+    Create a new interview with required questions.
+
+    Requires:
+    - candidate_id: Valid candidate ID
+    - question_ids: List of at least one valid question ID
     """
     try:
         return interview_service.create_interview(db=db, interview_create=interview_create, created_by_user_id=current_user.id)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -138,67 +148,6 @@ async def update_interview(
         )
 
 
-@interview_router.patch("/interviews/{interview_id}/status")
-async def change_interview_status(
-    interview_id: int,
-    new_status: InterviewStatus,
-    reason: Optional[str] = None,
-    db: Session = Depends(get_db),
-    interview_service: InterviewService = Depends(get_interview_service),
-    current_user: UserResponse = Depends(get_current_active_user)
-):
-    """
-    Change interview status.
-    """
-    try:
-        updated_interview = interview_service.change_interview_status(
-            db=db,
-            interview_id=interview_id,
-            new_status=new_status,
-            reason=reason
-        )
-        if not updated_interview:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Interview not found"
-            )
-        return updated_interview
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to change interview status: {str(e)}"
-        )
-
-
-@interview_router.patch("/interviews/{interview_id}/cancel")
-async def cancel_interview(
-    interview_id: int,
-    reason: str = Body(..., description="Cancellation reason"),
-    db: Session = Depends(get_db),
-    interview_service: InterviewService = Depends(get_interview_service),
-    current_user: UserResponse = Depends(get_current_active_user)
-):
-    """
-    Cancel an interview.
-    """
-    try:
-        updated_interview = interview_service.cancel_interview(
-            db=db,
-            interview_id=interview_id,
-            reason=reason
-        )
-        if not updated_interview:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Interview not found"
-            )
-        return updated_interview
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to cancel interview: {str(e)}"
-        )
-
 
 @interview_router.delete("/interviews/{interview_id}")
 async def delete_interview(
@@ -224,47 +173,6 @@ async def delete_interview(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete interview: {str(e)}"
-        )
-
-
-
-
-
-
-
-
-@interview_router.post("/interviews/bulk/cancel")
-async def bulk_cancel_interviews(
-    interview_ids: List[int] = Body(..., description="List of interview IDs to cancel"),
-    reason: str = Body(..., description="Cancellation reason"),
-    db: Session = Depends(get_db),
-    interview_service: InterviewService = Depends(get_interview_service),
-    current_user: UserResponse = Depends(get_current_active_user)
-):
-    """
-    Cancel multiple interviews in bulk.
-    """
-    try:
-        results = []
-        for interview_id in interview_ids:
-            try:
-                updated_interview = interview_service.cancel_interview(
-                    db=db,
-                    interview_id=interview_id,
-                    reason=reason
-                )
-                if updated_interview:
-                    results.append({"interview_id": interview_id, "status": "cancelled"})
-                else:
-                    results.append({"interview_id": interview_id, "status": "not_found"})
-            except Exception as e:
-                results.append({"interview_id": interview_id, "status": "error", "error": str(e)})
-
-        return {"results": results}
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to cancel interviews: {str(e)}"
         )
 
 

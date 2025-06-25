@@ -21,7 +21,7 @@ populate_db:
 
 # Run the backend server
 run-backend:
-    cd backend && uvicorn app.main:app --host 0.0.0.0 --port 9010 --reload
+    cd backend && uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
 
 # Run the frontend client
 run-client:
@@ -139,6 +139,12 @@ test-ui-file file:
     #!/bin/bash
     ./run-tests.sh clean || true
     ./run-partial-tests.sh file "{{file}}"
+
+# Run specific UI test file with grep pattern (e.g., just test-ui-file-grep "tests/mcp.spec.ts" "should login")
+test-ui-file-grep file pattern:
+    #!/bin/bash
+    ./run-tests.sh clean || true
+    ./run-partial-tests.sh file-grep "{{file}}" "{{pattern}}"
 
 # Run UI tests by suite name (e.g., just test-ui-suite mcp, just test-ui-suite login)
 test-ui-suite suite:

@@ -12,10 +12,10 @@ from app.core.service_factory import get_cognito_service
 from app.core.logging_service import get_logger
 from app.db.populate_db import (
     SAMPLE_CANDIDATES, SAMPLE_JOBS, SAMPLE_QUESTIONS,
-    create_job_question_templates, create_sample_interviews, create_sample_interview_questions
+    create_sample_interview_data
 )
 from app.models.candidate import Candidate
-from app.models.interview import Job, Question
+from app.models.interview import Question
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ TEST_USERS = [
         "role": UserRole.ADMIN
     },
     {
-        "email": "user@test.com", 
+        "email": "user@test.com",
         "password": "TestPassword123!",
         "full_name": "Test Regular User",
         "role": UserRole.USER
@@ -47,7 +47,8 @@ async def create_cognito_test_user(user_data: dict) -> str:
             if config_service.use_mock_cognito():
                 # For mock, return deterministic user_sub
                 import hashlib
-                email_hash = hashlib.md5(user_data["email"].encode()).hexdigest()[:8]
+                email_hash = hashlib.md5(
+                    user_data["email"].encode()).hexdigest()[:8]
                 return f"mock-user-{email_hash}"
 
         # Create new user
@@ -58,11 +59,13 @@ async def create_cognito_test_user(user_data: dict) -> str:
         )
 
         user_sub = cognito_response["user_sub"]
-        logger.info(f"✓ Created Cognito user: {user_data['email']} (sub: {user_sub})")
+        logger.info(
+            f"✓ Created Cognito user: {user_data['email']} (sub: {user_sub})")
         return user_sub
 
     except Exception as e:
-        logger.error(f"Failed to create Cognito user {user_data['email']}: {e}")
+        logger.error(
+            f"Failed to create Cognito user {user_data['email']}: {e}")
         raise
 
 
@@ -70,9 +73,11 @@ def create_database_user(db: Session, user_data: dict, cognito_sub: str) -> User
     """Create a user in the database"""
     try:
         # Check if user already exists
-        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
+        existing_user = db.query(User).filter(
+            User.email == user_data["email"]).first()
         if existing_user:
-            logger.info(f"User {user_data['email']} already exists in database")
+            logger.info(
+                f"User {user_data['email']} already exists in database")
             return existing_user
 
         # Create new user
@@ -89,12 +94,14 @@ def create_database_user(db: Session, user_data: dict, cognito_sub: str) -> User
         db.commit()
         db.refresh(db_user)
 
-        logger.info(f"✓ Created database user: {user_data['email']} ({user_data['role'].value})")
+        logger.info(
+            f"✓ Created database user: {user_data['email']} ({user_data['role'].value})")
         return db_user
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create database user {user_data['email']}: {e}")
+        logger.error(
+            f"Failed to create database user {user_data['email']}: {e}")
         raise
 
 
@@ -118,10 +125,12 @@ async def populate_test_db():
                 db_user = create_database_user(db, user_data, cognito_sub)
                 created_users.append(db_user)
 
-                logger.info(f"✓ Created complete user: {user_data['email']} (Cognito + DB)")
+                logger.info(
+                    f"✓ Created complete user: {user_data['email']} (Cognito + DB)")
 
             except Exception as e:
-                logger.error(f"Error creating test user {user_data['email']}: {e}")
+                logger.error(
+                    f"Error creating test user {user_data['email']}: {e}")
                 # Continue with other users
                 continue
 
@@ -129,7 +138,8 @@ async def populate_test_db():
 
         # If using mock Cognito, log that we're using database-backed authentication
         if config_service.use_mock_cognito():
-            logger.info("Mock Cognito service configured to use database for authentication")
+            logger.info(
+                "Mock Cognito service configured to use database for authentication")
 
         # Now populate with sample data (candidates, jobs, interviews, etc.)
         if created_users:
@@ -170,22 +180,6 @@ def populate_sample_data(db: Session, admin_user: User):
         db.flush()
         logger.info(f"Created {len(created_candidates)} candidates")
 
-        # 2. Create Jobs
-        logger.info("Creating sample jobs...")
-        created_jobs = []
-        for job_data in SAMPLE_JOBS:
-            job = Job(
-                title=job_data["title"],
-                description=job_data["description"],
-                department=job_data["department"],
-                created_by_user_id=admin_user.id
-            )
-            db.add(job)
-            created_jobs.append(job)
-
-        db.flush()
-        logger.info(f"Created {len(created_jobs)} jobs")
-
         # 3. Create Questions
         logger.info("Creating sample questions...")
         created_questions = []
@@ -204,20 +198,16 @@ def populate_sample_data(db: Session, admin_user: User):
         db.flush()
         logger.info(f"Created {len(created_questions)} questions")
 
-        # 4. Create Job Question Templates
-        create_job_question_templates(db, created_jobs, created_questions)
+        # 4. Update candidates with sample interview data
+        create_sample_interview_data(
+            db, created_candidates, created_questions, admin_user)
 
-        # 5. Create Sample Interviews
-        created_interviews = create_sample_interviews(db, created_candidates, created_jobs, admin_user)
-
-        # 6. Create Sample Interview Questions with Answers
-        create_sample_interview_questions(db, created_interviews, created_questions)
-
+        
         db.commit()
-        logger.info("Successfully populated test database with all sample data!")
+        logger.info(
+            "Successfully populated test database with all sample data!")
         logger.info(f"Summary: {len(created_candidates)} candidates, "
-                   f"{len(created_jobs)} jobs, {len(created_questions)} questions, "
-                   f"{len(created_interviews)} interviews")
+                    f"{len(created_questions)} questions")
 
     except Exception as e:
         logger.error(f"Error populating sample data: {e}")

@@ -9,9 +9,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db import Base
 # Import all models to ensure they are registered with Base
-from app.models.user import User
-from app.models.candidate import Candidate
-from app.models.interview import Interview, Job, Question, JobQuestion, InterviewQuestion
 # Import app components to create test app
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +18,6 @@ from app.middlewaremiddleware.logging_middleware import RequestLoggingMiddleware
 from app.dependencies import get_db
 from app.crud.user import UserDAO
 from app.services.user_service import UserService
-from app.core.service_factory import get_cognito_service, get_jwt_validator
 from app.services.mock_cognito_service import mock_cognito_service
 from app.core.mock_jwt_utils import mock_jwt_validator
 
@@ -120,21 +116,6 @@ def question_dao():
     """Create a QuestionDAO instance."""
     from app.crud.question import QuestionDAO
     return QuestionDAO()
-
-
-@pytest.fixture
-def job_dao():
-    """Create a JobDAO instance."""
-    from app.crud.job import JobDAO
-    return JobDAO()
-
-
-@pytest.fixture
-def job_question_dao():
-    """Create a JobQuestionDAO instance."""
-    from app.crud.job_question import JobQuestionDAO
-    return JobQuestionDAO()
-
 
 @pytest.fixture
 def interview_question_dao():
@@ -284,29 +265,10 @@ def authenticated_client(client, test_user, mock_cognito):
 def sample_data(db, test_user):
     """Create sample data for testing reports."""
     from app.models.candidate import Candidate
-    from app.models.interview import Interview, Job, InterviewStatus, RiskLevel
+    from app.models.interview import Interview, InterviewStatus, RiskLevel
     from datetime import datetime, timedelta
 
-    # Create sample jobs
-    job1 = Job(
-        title="Software Engineer",
-        department="Engineering",
-        description="Backend developer position",
-        created_by_user_id=test_user["db_user"].id
-    )
-    job2 = Job(
-        title="Sales Manager",
-        department="Sales",
-        description="Sales team lead position",
-        created_by_user_id=test_user["db_user"].id
-    )
-
-    db.add_all([job1, job2])
-    db.commit()
-    db.refresh(job1)
-    db.refresh(job2)
-
-    # Create sample candidates
+       # Create sample candidates
     candidate1 = Candidate(
         first_name="John",
         last_name="Doe",
@@ -334,7 +296,6 @@ def sample_data(db, test_user):
 
     interview1 = Interview(
         candidate_id=candidate1.id,
-        job_id=job1.id,
         interview_date=base_date + timedelta(days=1),
         status=InterviewStatus.COMPLETED,
         score=85.5,
@@ -346,7 +307,6 @@ def sample_data(db, test_user):
 
     interview2 = Interview(
         candidate_id=candidate2.id,
-        job_id=job2.id,
         interview_date=base_date + timedelta(days=5),
         status=InterviewStatus.COMPLETED,
         score=72.0,
@@ -358,7 +318,6 @@ def sample_data(db, test_user):
 
     interview3 = Interview(
         candidate_id=candidate1.id,
-        job_id=job2.id,
         interview_date=base_date + timedelta(days=10),
         status=InterviewStatus.IN_PROGRESS,
         score=None,
@@ -371,7 +330,6 @@ def sample_data(db, test_user):
     db.commit()
 
     return {
-        "jobs": [job1, job2],
         "candidates": [candidate1, candidate2],
         "interviews": [interview1, interview2, interview3]
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useDataLoaders } from '@/hooks/useDataLoaders';
+
 import {
   Plus,
   Search,
@@ -24,14 +24,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  Copy,
   X,
-  RefreshCw,
-  Play,
-  Pause,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
+  RefreshCw} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +33,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import api, { InterviewResponse, InterviewListResponse } from '@/lib/api';
-import { CreateInterviewModal } from '@/components/interviews/CreateInterviewModal';
 import { InterviewDetailsModal } from '@/components/interviews/InterviewDetailsModal';
-import { StatusChangeModal } from '@/components/interviews/StatusChangeModal';
+import { CreateInterviewModal } from '../interviews/CreateInterviewModal';
 
 export const Interviews: React.FC = () => {
   const [interviews, setInterviews] = useState<InterviewResponse[]>([]);
@@ -52,7 +45,6 @@ export const Interviews: React.FC = () => {
   const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<InterviewResponse | null>(null);
   const [pagination, setPagination] = useState({
@@ -63,15 +55,7 @@ export const Interviews: React.FC = () => {
   });
 
   const { toast } = useToast();
-  const {
-    candidates,
-    jobs,
-    loadingCandidates,
-    loadingJobs,
-    loadCandidates,
-    loadJobs,
-    loadAllData
-  } = useDataLoaders();
+  // Remove unused data loaders since interviews now contain job info
 
 
 
@@ -113,15 +97,8 @@ export const Interviews: React.FC = () => {
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        loadAllData(),
-        loadInterviews()
-      ]);
-    };
-
-    loadData();
-  }, [currentTab, searchTerm, pagination.page, loadAllData]);
+    loadInterviews();
+  }, [currentTab, searchTerm, pagination.page]);
 
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
@@ -131,18 +108,6 @@ export const Interviews: React.FC = () => {
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: 'Pending', variant: 'secondary' as const },
-      in_progress: { label: 'In Progress', variant: 'default' as const },
-      completed: { label: 'Completed', variant: 'success' as const },
-      cancelled: { label: 'Cancelled', variant: 'destructive' as const },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'secondary' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const getTabCount = (status: string) => {
@@ -158,10 +123,7 @@ export const Interviews: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  const handleChangeStatus = (interview: InterviewResponse) => {
-    setSelectedInterview(interview);
-    setShowStatusModal(true);
-  };
+
 
   const handleDeleteInterview = (interview: InterviewResponse) => {
     setSelectedInterview(interview);
@@ -338,13 +300,13 @@ export const Interviews: React.FC = () => {
                             data-testid="select-all-checkbox"
                           />
                         </TableHead>
-                        <TableHead data-testid="candidate-header">Candidate</TableHead>
-                        <TableHead data-testid="job-header">Job</TableHead>
-                        <TableHead data-testid="status-header">Status</TableHead>
-                        <TableHead data-testid="date-header">Date</TableHead>
-                        <TableHead data-testid="pass-key-header">Pass Key</TableHead>
-                        <TableHead data-testid="score-header">Score</TableHead>
-                        <TableHead data-testid="risk-level-header">Risk Level</TableHead>
+                        <TableHead data-testid="job-title-header">Job Title</TableHead>
+                        <TableHead data-testid="department-header">Department</TableHead>
+                        <TableHead data-testid="candidates-header">Candidates</TableHead>
+                        <TableHead data-testid="questions-header">Questions</TableHead>
+                        <TableHead data-testid="avg-score-header">Avg Score</TableHead>
+                        <TableHead data-testid="completion-header">Completion</TableHead>
+                        <TableHead data-testid="created-header">Created</TableHead>
                         <TableHead data-testid="actions-header">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -364,47 +326,57 @@ export const Interviews: React.FC = () => {
                               data-testid="interview-checkbox"
                             />
                           </TableCell>
-                          <TableCell data-testid="interview-candidate">
-                            {interview.candidate_name ||
-                             interview.candidate?.full_name ||
-                             (interview.candidate?.first_name && interview.candidate?.last_name
-                               ? `${interview.candidate.first_name} ${interview.candidate.last_name}`
-                               : interview.candidate?.first_name || interview.candidate?.last_name || 'Unknown')}
-                          </TableCell>
-                          <TableCell data-testid="interview-job">
-                            {interview.job_title || interview.job?.title || 'Unknown'}
-                          </TableCell>
-                          <TableCell data-testid="interview-status">
-                            {getStatusBadge(interview.status)}
-                          </TableCell>
-                          <TableCell data-testid="interview-date">
-                            {interview.interview_date ? new Date(interview.interview_date).toLocaleDateString() : 'Not scheduled'}
-                          </TableCell>
-                          <TableCell data-testid="interview-pass-key">
-                            <div className="flex items-center gap-2">
-                              <code className="bg-muted px-2 py-1 rounded text-sm">{interview.pass_key}</code>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(interview.pass_key);
-                                  toast({ title: 'Pass key copied to clipboard' });
-                                }}
-                                data-testid="copy-pass-key-btn"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
+                          <TableCell data-testid="interview-job-title">
+                            <div>
+                              <div className="font-medium">{interview.job_title}</div>
+                              {interview.job_description && (
+                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                  {interview.job_description}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
-                          <TableCell data-testid="interview-score">
-                            {interview.score ? `${interview.score}%` : '-'}
+                          <TableCell data-testid="interview-department">
+                            {interview.job_department ? (
+                              <Badge variant="secondary">{interview.job_department}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
-                          <TableCell data-testid="interview-risk-level">
-                            {interview.risk_level ? (
-                              <Badge variant={interview.risk_level === 'high' ? 'destructive' : interview.risk_level === 'medium' ? 'secondary' : 'success'}>
-                                {interview.risk_level}
-                              </Badge>
-                            ) : '-'}
+                          <TableCell data-testid="interview-candidates">
+                            <div className="flex items-center gap-2">
+                              <span>{interview.completed_candidates}/{interview.total_candidates}</span>
+                              <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary transition-all"
+                                  style={{
+                                    width: interview.total_candidates > 0
+                                      ? `${(interview.completed_candidates / interview.total_candidates) * 100}%`
+                                      : '0%'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell data-testid="interview-questions">
+                            <Badge variant="outline">{interview.assigned_candidates?.length || 0} questions</Badge>
+                          </TableCell>
+                          <TableCell data-testid="interview-avg-score">
+                            {interview.avg_score ? `${interview.avg_score}%` : '-'}
+                          </TableCell>
+                          <TableCell data-testid="interview-completion">
+                            <div className="text-sm">
+                              {interview.total_candidates > 0 ? (
+                                <span className={interview.completed_candidates === interview.total_candidates ? 'text-green-600' : 'text-muted-foreground'}>
+                                  {Math.round((interview.completed_candidates / interview.total_candidates) * 100)}%
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">No candidates</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell data-testid="interview-created">
+                            {new Date(interview.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -422,18 +394,12 @@ export const Interviews: React.FC = () => {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleChangeStatus(interview)}
-                                  data-testid="change-status-btn"
+                                  onClick={() => handleViewDetails(interview)}
+                                  data-testid="edit-interview-btn"
                                 >
                                   <Edit className="h-4 w-4 mr-2" />
-                                  Change Status
+                                  Edit Interview
                                 </DropdownMenuItem>
-                                {interview.status === 'pending' && (
-                                  <DropdownMenuItem data-testid="cancel-interview-btn">
-                                    <X className="h-4 w-4 mr-2" />
-                                    Cancel
-                                  </DropdownMenuItem>
-                                )}
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() => handleDeleteInterview(interview)}
@@ -504,22 +470,12 @@ export const Interviews: React.FC = () => {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onInterviewCreated={loadInterviews}
-        candidates={candidates}
-        jobs={jobs}
-        loading={loadingCandidates || loadingJobs}
       />
 
       <InterviewDetailsModal
         open={showDetailsModal}
         onOpenChange={setShowDetailsModal}
         interview={selectedInterview}
-      />
-
-      <StatusChangeModal
-        open={showStatusModal}
-        onOpenChange={setShowStatusModal}
-        interview={selectedInterview}
-        onStatusChanged={loadInterviews}
       />
 
       {/* Delete Confirmation Modal */}
@@ -532,16 +488,35 @@ export const Interviews: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedInterview && (
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground">
-                <strong>Candidate:</strong> {selectedInterview.candidate_name || 'Unknown'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Job:</strong> {selectedInterview.job_title || 'Unknown'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Status:</strong> {selectedInterview.status}
-              </p>
+            <div className="py-4 space-y-3">
+              <div>
+                <p className="text-sm font-medium">Job Title</p>
+                <p className="text-sm text-muted-foreground">{selectedInterview.job_title}</p>
+              </div>
+              {selectedInterview.job_department && (
+                <div>
+                  <p className="text-sm font-medium">Department</p>
+                  <p className="text-sm text-muted-foreground">{selectedInterview.job_department}</p>
+                </div>
+              )}
+              {selectedInterview.job_description && (
+                <div>
+                  <p className="text-sm font-medium">Job Description</p>
+                  <p className="text-sm text-muted-foreground">{selectedInterview.job_description}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium">Candidates</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedInterview.completed_candidates} completed / {selectedInterview.total_candidates} total
+                </p>
+              </div>
+              {selectedInterview.avg_score && (
+                <div>
+                  <p className="text-sm font-medium">Average Score</p>
+                  <p className="text-sm text-muted-foreground">{selectedInterview.avg_score}%</p>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>

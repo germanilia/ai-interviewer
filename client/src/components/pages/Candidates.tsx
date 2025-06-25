@@ -51,14 +51,15 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useDataLoaders } from '@/hooks/useDataLoaders';
-import { api, CandidateResponse, CandidateListResponse } from '@/lib/api';
-import { CreateInterviewFromCandidateModal } from '@/components/interviews/CreateInterviewFromCandidateModal';
+import { api, CandidateResponse } from '@/lib/api';
+
 
 interface CandidateFormData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+  interviewId: string;
 }
 
 interface FormErrors {
@@ -66,11 +67,12 @@ interface FormErrors {
   lastName?: string;
   email?: string;
   phone?: string;
+  interviewId?: string;
 }
 
 export const Candidates: React.FC = () => {
   const { toast } = useToast();
-  const { jobs, loadingJobs, loadJobs } = useDataLoaders();
+  const { interviews, loadInterviews } = useDataLoaders();
 
   // Helper function to get user-friendly error messages
   const getErrorMessage = (error: any): string => {
@@ -122,7 +124,7 @@ export const Candidates: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showCreateInterviewModal, setShowCreateInterviewModal] = useState(false);
+
   const [editingCandidate, setEditingCandidate] = useState<CandidateResponse | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateResponse | null>(null);
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
@@ -133,7 +135,8 @@ export const Candidates: React.FC = () => {
     firstName: '',
     lastName: '',
     email: '',
-    phone: ''
+    phone: '',
+    interviewId: ''
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -169,11 +172,11 @@ export const Candidates: React.FC = () => {
     }
   }, [currentPage, pageSize, searchQuery, statusFilter, toast]);
 
-  // Load candidates and jobs on component mount and when dependencies change
+  // Load candidates and interviews on component mount and when dependencies change
   useEffect(() => {
     fetchCandidates();
-    loadJobs();
-  }, [fetchCandidates, loadJobs]);
+    loadInterviews();
+  }, [fetchCandidates, loadInterviews]);
 
   // Form validation
   const validateForm = (data: CandidateFormData): FormErrors => {
@@ -193,6 +196,10 @@ export const Candidates: React.FC = () => {
       errors.email = 'Invalid email format';
     }
 
+    if (!data.interviewId.trim()) {
+      errors.interviewId = 'Interview assignment is required';
+    }
+
     return errors;
   };
 
@@ -202,7 +209,8 @@ export const Candidates: React.FC = () => {
       firstName: '',
       lastName: '',
       email: '',
-      phone: ''
+      phone: '',
+      interviewId: ''
     });
     setFormErrors({});
   };
@@ -226,6 +234,7 @@ export const Candidates: React.FC = () => {
         last_name: formData.lastName,
         email: formData.email,
         phone: formData.phone || undefined,
+        interview_id: parseInt(formData.interviewId),
       };
 
       if (editingCandidate) {
@@ -344,6 +353,7 @@ export const Candidates: React.FC = () => {
       lastName: candidate.last_name,
       email: candidate.email,
       phone: candidate.phone || '',
+      interviewId: candidate.interview_id?.toString() || '',
     });
     setFormErrors({});
     setEditingCandidate(candidate);
@@ -362,11 +372,7 @@ export const Candidates: React.FC = () => {
     setShowDetailModal(true);
   };
 
-  // Open create interview modal
-  const openCreateInterviewModal = (candidate: CandidateResponse) => {
-    setViewingCandidate(candidate);
-    setShowCreateInterviewModal(true);
-  };
+
 
   // Handle bulk export
   const handleBulkExport = () => {
@@ -434,7 +440,7 @@ export const Candidates: React.FC = () => {
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowDetailModal(false);
-    setShowCreateInterviewModal(false);
+
     setEditingCandidate(null);
     setDeletingCandidate(null);
     setViewingCandidate(null);
@@ -664,8 +670,8 @@ export const Candidates: React.FC = () => {
                     <TableHead data-testid="name-header">Name</TableHead>
                     <TableHead data-testid="email-header">Email</TableHead>
                     <TableHead data-testid="phone-header">Phone</TableHead>
-                    <TableHead data-testid="interviews-header">Interviews</TableHead>
-                    <TableHead data-testid="last-interview-header">Last Interview</TableHead>
+                    <TableHead data-testid="interview-assignment-header">Interview Assignment</TableHead>
+                    <TableHead data-testid="interview-date-header">Interview Date</TableHead>
                     <TableHead data-testid="status-header">Status</TableHead>
                     <TableHead data-testid="actions-header" className="w-12"></TableHead>
                   </TableRow>
@@ -691,11 +697,17 @@ export const Candidates: React.FC = () => {
                       </TableCell>
                       <TableCell data-testid="candidate-email">{candidate.email}</TableCell>
                       <TableCell data-testid="candidate-phone">{candidate.phone || '-'}</TableCell>
-                      <TableCell data-testid="candidate-interviews">{candidate.interview_count || 0}</TableCell>
-                      <TableCell data-testid="candidate-last-interview">{formatDate(candidate.last_interview_date)}</TableCell>
+                      <TableCell data-testid="candidate-interview">
+                        {candidate.interview_id ? (
+                          <Badge variant="outline">Assigned</Badge>
+                        ) : (
+                          <Badge variant="secondary">Unassigned</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell data-testid="candidate-interview-date">{formatDate(candidate.interview_date)}</TableCell>
                       <TableCell data-testid="candidate-status">
-                        <Badge variant={getStatusVariant(candidate.status)}>
-                          {candidate.status || 'new'}
+                        <Badge variant={getStatusVariant(candidate.interview_status)}>
+                          {candidate.interview_status || 'new'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -710,10 +722,7 @@ export const Candidates: React.FC = () => {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openCreateInterviewModal(candidate)} data-testid="create-interview-btn">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create Interview
-                            </DropdownMenuItem>
+
                             <DropdownMenuItem onClick={() => openEditModal(candidate)} data-testid="edit-candidate-btn">
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
@@ -890,6 +899,34 @@ export const Candidates: React.FC = () => {
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interview">Interview Assignment *</Label>
+              <Select
+                value={formData.interviewId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, interviewId: value }))}
+              >
+                <SelectTrigger data-testid="interview-select">
+                  <SelectValue placeholder="Select an interview" />
+                </SelectTrigger>
+                <SelectContent>
+                  {interviews.map((interview) => (
+                    <SelectItem
+                      key={interview.id}
+                      value={interview.id.toString()}
+                      data-testid="interview-option"
+                    >
+                      {interview.job_title} {interview.job_department && `(${interview.job_department})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formErrors.interviewId && (
+                <p className="text-sm text-destructive" data-testid="interview-error">
+                  {formErrors.interviewId}
+                </p>
+              )}
+            </div>
           </form>
 
           <DialogFooter>
@@ -972,8 +1009,8 @@ export const Candidates: React.FC = () => {
                   {viewingCandidate.phone && (
                     <p className="text-muted-foreground">{viewingCandidate.phone}</p>
                   )}
-                  <Badge variant={getStatusVariant(viewingCandidate.status)} className="mt-2">
-                    {viewingCandidate.status || 'new'}
+                  <Badge variant={getStatusVariant(viewingCandidate.interview_status)} className="mt-2">
+                    {viewingCandidate.interview_status || 'new'}
                   </Badge>
                 </div>
               </div>
@@ -982,14 +1019,14 @@ export const Candidates: React.FC = () => {
               <div className="grid grid-cols-3 gap-4" data-testid="candidate-stats">
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold">{viewingCandidate.interview_count || 0}</div>
-                    <div className="text-sm text-muted-foreground">Interviews</div>
+                    <div className="text-2xl font-bold">{viewingCandidate.interview_id ? '1' : '0'}</div>
+                    <div className="text-sm text-muted-foreground">Interview Assignment</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold">{formatDate(viewingCandidate.last_interview_date)}</div>
-                    <div className="text-sm text-muted-foreground">Last Interview</div>
+                    <div className="text-2xl font-bold">{formatDate(viewingCandidate.interview_date)}</div>
+                    <div className="text-sm text-muted-foreground">Interview Date</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -1016,14 +1053,7 @@ export const Candidates: React.FC = () => {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Candidate
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => openCreateInterviewModal(viewingCandidate)}
-                  data-testid="create-interview-button"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Interview
-                </Button>
+
                 <Button variant="outline" data-testid="view-reports-button">
                   <Eye className="h-4 w-4 mr-2" />
                   View Reports
@@ -1042,18 +1072,7 @@ export const Candidates: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create Interview Modal */}
-      <CreateInterviewFromCandidateModal
-        open={showCreateInterviewModal}
-        onOpenChange={setShowCreateInterviewModal}
-        candidate={viewingCandidate}
-        jobs={jobs}
-        loading={loadingJobs}
-        onInterviewCreated={() => {
-          fetchCandidates();
-          closeModals();
-        }}
-      />
+
     </div>
   );
 };

@@ -785,22 +785,7 @@ test.describe('Interview Management', () => {
     await expect(completedRows.first().locator('[data-testid="status-badge"]')).toContainText('Completed');
   });
 
-  test('should monitor in-progress interviews', async () => {
-    await interviewsPage.inProgressTab.click();
 
-    // Click on in-progress interview
-    await interviewsPage.interviewRows.first().locator('[data-testid="monitor-btn"]').click();
-
-    // Verify monitoring view
-    await expect(interviewsPage.monitoringView).toBeVisible();
-    await expect(interviewsPage.currentQuestionDisplay).toBeVisible();
-    await expect(interviewsPage.progressIndicator).toBeVisible();
-    await expect(interviewsPage.timeElapsed).toBeVisible();
-
-    // Verify progress indicator shows correct values
-    await expect(interviewsPage.progressText).toContainText('3 of 10 questions');
-    await expect(interviewsPage.progressBar).toHaveAttribute('value', '30');
-  });
 
   test('should display interview details', async () => {
     // Click on interview to view details

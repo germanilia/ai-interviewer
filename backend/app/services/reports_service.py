@@ -1,17 +1,15 @@
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from app.crud.interview import InterviewDAO
 from app.crud.candidate import CandidateDAO
-from app.crud.job import JobDAO
 from app.crud.reports import ReportsDAO
 from app.schemas.reports import (
     OverviewData, AnalyticsData, ChartData, ChartDataPoint, SummaryCard,
     AnalyticsFilters, ReportGenerationRequest, ReportMetadata, ReportResponse,
-    CustomReportDefinition, CustomReportRequest, AvailableFieldsResponse,
-    CustomReportField, ChartType, ReportFormat, ReportType
+    AvailableFieldsResponse,
+    CustomReportField, ChartType, ReportType
 )
 from app.core.logging_service import get_logger
 
@@ -25,12 +23,10 @@ class ReportsService:
         self,
         interview_dao: InterviewDAO,
         candidate_dao: CandidateDAO,
-        job_dao: JobDAO,
         reports_dao: ReportsDAO
     ):
         self.interview_dao = interview_dao
         self.candidate_dao = candidate_dao
-        self.job_dao = job_dao
         self.reports_dao = reports_dao
 
     def get_overview_data(self, db: Session, filters: Optional[AnalyticsFilters] = None) -> OverviewData:

@@ -15,7 +15,6 @@ from app.schemas.reports import (
 from app.services.reports_service import ReportsService
 from app.crud.interview import InterviewDAO
 from app.crud.candidate import CandidateDAO
-from app.crud.job import JobDAO
 from app.crud.reports import ReportsDAO
 from app.core.logging_service import get_logger
 
@@ -42,7 +41,6 @@ def get_reports_service() -> ReportsService:
     return ReportsService(
         interview_dao=InterviewDAO(),
         candidate_dao=CandidateDAO(),
-        job_dao=JobDAO(),
         reports_dao=ReportsDAO()
     )
 

@@ -21,8 +21,10 @@ export const LoginForm: React.FC = () => {
   // Load remembered email on component mount
   useEffect(() => {
     const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail) {
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    if (rememberedEmail && rememberedPassword) {
       setEmail(rememberedEmail);
+      setPassword(rememberedPassword);
       setRememberMe(true);
     }
   }, []);
@@ -38,8 +40,10 @@ export const LoginForm: React.FC = () => {
       // Handle remember me functionality
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedPassword', password);
       } else {
         localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberedPassword');
       }
 
       navigate('/dashboard');
@@ -104,7 +108,7 @@ export const LoginForm: React.FC = () => {
                 htmlFor="remember-me"
                 className="text-sm font-normal cursor-pointer"
               >
-                Remember my email
+                Remember me
               </Label>
             </div>
 

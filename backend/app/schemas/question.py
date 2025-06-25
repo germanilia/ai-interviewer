@@ -141,11 +141,7 @@ class BulkQuestionCategoryUpdate(BulkQuestionOperation):
     new_category: QuestionCategory = Field(..., description="New category to assign to selected questions")
 
 
-class JobQuestionAssignment(BaseModel):
-    """Schema for assigning questions to jobs."""
-    question_id: int
-    job_id: int
-    order_index: Optional[int] = Field(None, description="Order of question in job template")
+
 
 
 class QuestionImportData(BaseModel):

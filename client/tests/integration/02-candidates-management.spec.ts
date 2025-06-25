@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { CandidatesPage } from '../pages/CandidatesPage';
 import { loginAs, clearAuth } from '../utils/auth';
 
+// Updated: Candidates must be assigned to interviews, and interview info is shown in the table and details
+
 test.describe('Candidates Management', () => {
   let candidatesPage: CandidatesPage;
 
@@ -15,8 +17,6 @@ test.describe('Candidates Management', () => {
     test('should display candidates page components', async () => {
       await candidatesPage.navigateTo();
       await candidatesPage.waitForCandidatesToLoad();
-
-      // Verify main components are always visible
       await expect(candidatesPage.candidatesSection).toBeVisible();
       await expect(candidatesPage.toolbar).toBeVisible();
       await expect(candidatesPage.addCandidateButton).toBeVisible();
@@ -25,19 +25,11 @@ test.describe('Candidates Management', () => {
     test('should display candidates list with proper table structure', async () => {
       await candidatesPage.navigateTo();
       await candidatesPage.waitForCandidatesToLoad();
-
-      // Verify main components are visible
       await expect(candidatesPage.candidatesSection).toBeVisible();
       await expect(candidatesPage.toolbar).toBeVisible();
-
-      // Check if we have candidates or empty state
       const candidateCount = await candidatesPage.getCandidateCount();
-
       if (candidateCount > 0) {
-        // If we have candidates, verify table structure
         await expect(candidatesPage.candidatesTable).toBeVisible();
-
-        // Verify table headers
         await expect(candidatesPage.nameHeader).toBeVisible();
         await expect(candidatesPage.emailHeader).toBeVisible();
         await expect(candidatesPage.phoneHeader).toBeVisible();
@@ -46,7 +38,6 @@ test.describe('Candidates Management', () => {
         await expect(candidatesPage.statusHeader).toBeVisible();
         await expect(candidatesPage.actionsHeader).toBeVisible();
       } else {
-        // If no candidates, verify empty state
         await expect(candidatesPage.emptyState).toBeVisible();
       }
     });
@@ -54,16 +45,14 @@ test.describe('Candidates Management', () => {
     test('should display candidate data in table rows', async () => {
       await candidatesPage.navigateTo();
       await candidatesPage.waitForCandidatesToLoad();
-      
-      // Should have at least some candidates from test data
       const candidateCount = await candidatesPage.getCandidateCount();
       expect(candidateCount).toBeGreaterThan(0);
-      
-      // Verify first candidate has proper data structure
       if (candidateCount > 0) {
         const firstCandidate = await candidatesPage.getCandidateByIndex(0);
         expect(firstCandidate.name).toBeTruthy();
         expect(firstCandidate.email).toContain('@');
+        // Interview info should be present
+        expect(firstCandidate.interviews).not.toBeUndefined();
       }
     });
 
@@ -131,13 +120,14 @@ test.describe('Candidates Management', () => {
       // Open add candidate modal
       await candidatesPage.addCandidateButton.click();
       
-      // Fill form with valid data
+      // Fill form with valid data, including interview assignment
       const timestamp = Date.now();
       const newCandidate = {
         firstName: 'TestUser',
         lastName: `${timestamp}`,
         email: `test.${timestamp}@example.com`,
-        phone: '+1234567890'
+        phone: '+1234567890',
+        interviewId: '1' // Use a valid interviewId from the select (mock or real)
       };
       await candidatesPage.fillCandidateForm(newCandidate);
       
@@ -173,6 +163,8 @@ test.describe('Candidates Management', () => {
       await expect(candidatesPage.lastNameError).toContainText('required');
       await expect(candidatesPage.emailError).toBeVisible();
       await expect(candidatesPage.emailError).toContainText('required');
+      // Interview assignment is required
+      await expect(candidatesPage.interviewError).toBeVisible();
     });
 
     test('should validate email format', async () => {

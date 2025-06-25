@@ -55,32 +55,26 @@ class InterviewQuestionStatus(StrEnum):
 
 class Interview(Base):
     """
-    SQLAlchemy Interview model for integrity interviews
+    SQLAlchemy Interview model for integrity interviews with job information
     """
     __tablename__ = "interviews"
 
     id = Column(Integer, primary_key=True, index=True)
-    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
-    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False)
 
-    # Interview basic info
-    status = Column(Enum(InterviewStatus), default=InterviewStatus.PENDING, nullable=False)
-    interview_date = Column(DateTime(timezone=True), nullable=True)
-    pass_key = Column(String(12), unique=True, nullable=False, index=True)
-    
-    # Interview results
-    score = Column(Integer, nullable=True)  # Numeric score 0-100
-    integrity_score = Column(Enum(IntegrityScore), nullable=True)
-    risk_level = Column(Enum(RiskLevel), nullable=True)
-    
-    # Conversation and analysis
-    conversation = Column(JSON, nullable=True)  # Full conversation in JSON format
-    
-    # Report fields (integrated based on documentation)
-    report_summary = Column(Text, nullable=True)  # Applicant profile overview
-    risk_indicators = Column(JSON, nullable=True)  # Array of identified red flags
-    key_concerns = Column(JSON, nullable=True)  # Areas requiring further investigation
-    analysis_notes = Column(Text, nullable=True)  # Additional analysis notes
+    # Job information (merged from Job model)
+    job_title = Column(String, nullable=False)
+    job_description = Column(Text, nullable=True)
+    job_department = Column(String, nullable=True)
+
+
+
+    # General interview data (aggregated from candidates)
+    avg_score = Column(Integer, nullable=True)  # Average score from all candidates
+    total_candidates = Column(Integer, default=0, nullable=False)
+    completed_candidates = Column(Integer, default=0, nullable=False)
+
+    # General notes and instructions
+    instructions = Column(Text, nullable=True)  # General interview instructions
     
     # Metadata
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -90,8 +84,7 @@ class Interview(Base):
 
     # Relationships
     created_by = relationship("User", back_populates="created_interviews")
-    candidate = relationship("Candidate", back_populates="interviews")
-    job = relationship("Job", back_populates="interviews")
+    candidates = relationship("Candidate", back_populates="interview")
     interview_questions = relationship("InterviewQuestion", back_populates="interview", cascade="all, delete-orphan")
 
 
@@ -114,41 +107,6 @@ class Question(Base):
     # Relationships
     created_by = relationship("User", back_populates="created_questions")
     interview_questions = relationship("InterviewQuestion", back_populates="question")
-    job_questions = relationship("JobQuestion", back_populates="question")
-
-
-class Job(Base):
-    """Job positions that candidates interview for"""
-    __tablename__ = "jobs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    department = Column(String, nullable=True)
-
-    # Metadata
-    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-
-    # Relationships
-    created_by = relationship("User", back_populates="created_jobs")
-    job_questions = relationship("JobQuestion", back_populates="job", cascade="all, delete-orphan")
-    interviews = relationship("Interview", back_populates="job")
-
-
-class JobQuestion(Base):
-    """Questions template for a specific job position"""
-    __tablename__ = "job_questions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False)
-    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
-    order_index = Column(Integer, nullable=False)
-
-    # Relationships
-    job = relationship("Job", back_populates="job_questions")
-    question = relationship("Question", back_populates="job_questions")
 
 
 class InterviewQuestion(Base):

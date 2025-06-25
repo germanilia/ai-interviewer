@@ -3,6 +3,7 @@ import { Page, Locator } from '@playwright/test';
 export interface InterviewData {
   candidateId: number;
   jobId: number;
+  questions: number[]; // array of question IDs
   notes?: string;
   scheduledDate?: string;
 }
@@ -49,6 +50,7 @@ export class InterviewsPage {
   readonly scoreHeader: Locator;
   readonly riskLevelHeader: Locator;
   readonly actionsHeader: Locator;
+  readonly questionsHeader: Locator;
   
   // Toolbar
   readonly toolbar: Locator;
@@ -181,6 +183,7 @@ export class InterviewsPage {
     this.scoreHeader = page.getByTestId('score-header');
     this.riskLevelHeader = page.getByTestId('risk-level-header');
     this.actionsHeader = page.getByTestId('actions-header');
+    this.questionsHeader = page.getByTestId('questions-header');
     
     // Toolbar
     this.toolbar = page.getByTestId('interviews-toolbar');

@@ -1,9 +1,19 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from typing import Optional, TYPE_CHECKING, List
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from typing import Optional, TYPE_CHECKING, List, Any
 from datetime import datetime
+import secrets
+import string
 
 if TYPE_CHECKING:
     from app.models.candidate import Candidate
+
+
+def generate_pass_key() -> str:
+    """Generate a unique 8-character alphanumeric pass key."""
+    characters = string.ascii_uppercase + string.digits
+    # Exclude confusing characters like 0, O, I, 1
+    characters = characters.replace('0', '').replace('O', '').replace('I', '').replace('1', '')
+    return ''.join(secrets.choice(characters) for _ in range(8))
 
 
 class CandidateBase(BaseModel):
@@ -15,7 +25,14 @@ class CandidateBase(BaseModel):
 
 
 class CandidateCreate(CandidateBase):
-    """Schema for creating a new candidate."""
+    """Schema for creating a new candidate with interview assignment."""
+    interview_id: Optional[int] = Field(None, description="Interview ID to assign candidate to")
+    pass_key: Optional[str] = Field(None, description="Pass key for interview access (auto-generated if not provided)")
+
+    def model_post_init(self, __context: Any) -> None:
+        """Auto-generate pass_key if not provided and interview is assigned."""
+        if self.interview_id and self.pass_key is None:
+            self.pass_key = generate_pass_key()
 
     def to_model(self, created_by_user_id: int) -> "Candidate":
         """Convert Pydantic schema to SQLAlchemy model."""
@@ -25,28 +42,66 @@ class CandidateCreate(CandidateBase):
             last_name=self.last_name,
             email=self.email,
             phone=self.phone,
+            interview_id=self.interview_id,
+            pass_key=self.pass_key,
             created_by_user_id=created_by_user_id
         )
 
 
 class CandidateUpdate(BaseModel):
     """Schema for updating a candidate."""
+    # Basic candidate info
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
 
+    # Interview assignment
+    interview_id: Optional[int] = None
+    pass_key: Optional[str] = None
+
+    # Interview-specific data for this candidate
+    interview_status: Optional[str] = None
+    interview_date: Optional[datetime] = None
+    score: Optional[int] = None
+    integrity_score: Optional[str] = None
+    risk_level: Optional[str] = None
+    conversation: Optional[dict[str, Any]] = None
+    report_summary: Optional[str] = None
+    risk_indicators: Optional[list[dict[str, Any]]] = None
+    key_concerns: Optional[list[dict[str, Any]]] = None
+    analysis_notes: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
 
 class CandidateResponse(CandidateBase):
     """Schema for candidate responses."""
     id: int
+
+    # Interview assignment
+    interview_id: Optional[int] = None
+    pass_key: Optional[str] = None
+
+    # Interview-specific data for this candidate
+    interview_status: Optional[str] = None
+    interview_date: Optional[datetime] = None
+    score: Optional[int] = None
+    integrity_score: Optional[str] = None
+    risk_level: Optional[str] = None
+    conversation: Optional[dict[str, Any]] = None
+    report_summary: Optional[str] = None
+    risk_indicators: Optional[list[dict[str, Any]]] = None
+    key_concerns: Optional[list[dict[str, Any]]] = None
+    analysis_notes: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
+    # Metadata
     created_at: datetime
     updated_at: datetime
+
     # Additional computed fields for UI
     full_name: Optional[str] = None
-    interview_count: Optional[int] = None
-    last_interview_date: Optional[datetime] = None
-    status: Optional[str] = None
+    interview_title: Optional[str] = None  # Job title from assigned interview
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,24 +111,11 @@ class CandidateResponse(CandidateBase):
         instance = cls.model_validate(candidate)
         # Compute full name
         instance.full_name = f"{candidate.first_name} {candidate.last_name}"
-        # Compute interview stats (will be populated by service layer)
-        instance.interview_count = len(candidate.interviews) if hasattr(candidate, 'interviews') and candidate.interviews else 0
-        instance.last_interview_date = (
-            max(interview.created_at for interview in candidate.interviews)
-            if hasattr(candidate, 'interviews') and candidate.interviews
-            else None
-        )
-        # Determine status based on interviews
-        if hasattr(candidate, 'interviews') and candidate.interviews:
-            recent_interviews = [i for i in candidate.interviews if hasattr(i, 'status')]
-            if any(i.status == 'in_progress' for i in recent_interviews):
-                instance.status = 'active'
-            elif any(i.status == 'completed' for i in recent_interviews):
-                instance.status = 'completed'
-            else:
-                instance.status = 'pending'
-        else:
-            instance.status = 'new'
+
+        # Add interview title if assigned to an interview
+        if hasattr(candidate, 'interview') and candidate.interview:
+            instance.interview_title = candidate.interview.job_title
+
         return instance
 
 

@@ -255,6 +255,31 @@ class CognitoService:
             user_friendly_message = get_user_friendly_error_message(error_code, error_message)
             raise CognitoError(user_friendly_message, error_code=error_code)
 
+    def user_exists(self, email: str) -> bool:
+        """Check if user exists in Cognito"""
+        try:
+            # Use email directly as username since Cognito is configured with username-attributes email
+            cognito_username = email
+            
+            # Try to get user info using admin_get_user
+            self.client.admin_get_user(
+                UserPoolId=self.config["user_pool_id"],
+                Username=cognito_username
+            )
+            return True
+            
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            if error_code == "UserNotFoundException":
+                return False
+            else:
+                # For other errors, log and assume user doesn't exist
+                logger.warning(f"Error checking if user exists: {error_code} - {e.response['Error']['Message']}")
+                return False
+        except Exception as e:
+            logger.warning(f"Unexpected error checking if user exists: {str(e)}")
+            return False
+
 
 # Global instance
 cognito_service = CognitoService()

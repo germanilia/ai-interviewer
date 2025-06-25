@@ -90,6 +90,7 @@ export class CandidatesPage {
   readonly emailError: Locator;
   readonly phoneError: Locator;
   readonly formErrors: Locator;
+  readonly interviewError: Locator;
   
   // Detail View
   readonly candidateDetailView: Locator;
@@ -199,6 +200,7 @@ export class CandidatesPage {
     this.emailError = page.getByTestId('email-error');
     this.phoneError = page.getByTestId('phone-error');
     this.formErrors = page.getByTestId('form-error');
+    this.interviewError = page.getByTestId('interview-error');
     
     // Detail View
     this.candidateDetailView = page.getByTestId('candidate-detail-view');

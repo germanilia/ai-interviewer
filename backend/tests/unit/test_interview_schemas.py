@@ -1,118 +1,102 @@
 """
-Unit tests for Interview schemas to verify pass_key functionality and validation.
+Unit tests for Interview schemas to verify validation and model conversion.
 """
 import pytest
 from datetime import datetime
-from app.schemas.interview import InterviewCreate, InterviewResponse, generate_pass_key
-from app.models.interview import InterviewStatus
+from app.schemas.interview import InterviewCreate, InterviewResponse, InterviewWithDetails
+from app.models.interview import Interview, InterviewStatus
+from app.models.candidate import Candidate
 
 
-def test_generate_pass_key_format():
-    """Test that generate_pass_key creates properly formatted keys."""
-    pass_key = generate_pass_key()
-    
-    # Should be 8 characters
-    assert len(pass_key) == 8
-    
-    # Should be alphanumeric uppercase
-    assert pass_key.isalnum()
-    assert pass_key.isupper()
-    
-    # Should not contain confusing characters
-    assert '0' not in pass_key
-    assert 'O' not in pass_key
-    assert 'I' not in pass_key
-    assert '1' not in pass_key
+def test_interview_create_success():
+    """Test successful creation of InterviewCreate schema."""
+    interview_data = {
+        "job_title": "Software Engineer",
+        "job_description": "Develop and maintain web applications.",
+        "job_department": "Engineering",
+        "instructions": "Please answer all questions to the best of your ability.",
+        "question_ids": [1, 2, 3]
+    }
+    interview_create = InterviewCreate(**interview_data)
+    assert interview_create.job_title == interview_data["job_title"]
+    assert interview_create.question_ids == interview_data["question_ids"]
 
 
-def test_generate_pass_key_uniqueness():
-    """Test that generate_pass_key creates unique keys."""
-    keys = set()
-    for _ in range(100):
-        key = generate_pass_key()
-        keys.add(key)
-    
-    # All keys should be unique
-    assert len(keys) == 100
-
-
-def test_interview_create_auto_generates_pass_key():
-    """Test that InterviewCreate automatically generates pass_key."""
-    interview_create = InterviewCreate(
-        candidate_id=1,
-        job_id=1,
-        status=InterviewStatus.PENDING
-    )
-    
-    # Pass key should be auto-generated
-    assert interview_create.pass_key is not None
-    assert len(interview_create.pass_key) == 8
-    assert interview_create.pass_key.isalnum()
-
-
-def test_interview_create_preserves_custom_pass_key():
-    """Test that InterviewCreate preserves custom pass_key when provided."""
-    custom_key = "CUSTOM12"
-    interview_create = InterviewCreate(
-        candidate_id=1,
-        job_id=1,
-        status=InterviewStatus.PENDING,
-        pass_key=custom_key
-    )
-    
-    # Custom pass key should be preserved
-    assert interview_create.pass_key == custom_key
-
-
-def test_interview_create_to_model_includes_pass_key():
-    """Test that to_model() includes the pass_key."""
-    interview_create = InterviewCreate(
-        candidate_id=1,
-        job_id=1,
-        status=InterviewStatus.PENDING
-    )
-    
-    # Convert to model
-    interview_model = interview_create.to_model(created_by_user_id=1)
-    
-    # Model should have the pass_key
-    assert getattr(interview_model, "pass_key") == interview_create.pass_key
-    assert getattr(interview_model, "candidate_id") == 1
-    assert getattr(interview_model, "job_id") == 1
-    assert getattr(interview_model, "status") == InterviewStatus.PENDING
-
-
-def test_interview_response_requires_pass_key():
-    """Test that InterviewResponse requires pass_key field."""
-    # This should work with pass_key
-    timestamp_str = "2023-01-01T00:00:00Z"
-    timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-    pass_key = "TESTPASS"
-    interview_response = InterviewResponse(
-        id=1,
-        candidate_id=1,
-        job_id=1,
-        status=InterviewStatus.PENDING,
-        pass_key=pass_key,
-        created_at=timestamp,
-        updated_at=timestamp
-    )
-    
-    assert interview_response.pass_key == pass_key
-    assert interview_response.id == 1
-
-
-def test_multiple_interview_creates_have_unique_pass_keys():
-    """Test that multiple InterviewCreate instances get unique pass_keys."""
-    interviews = []
-    for i in range(10):
-        interview = InterviewCreate(
-            candidate_id=i + 1,
-            job_id=1,
-            status=InterviewStatus.PENDING
+def test_interview_create_empty_questions_fails():
+    """Test that InterviewCreate fails with an empty question_ids list."""
+    with pytest.raises(ValueError):
+        InterviewCreate(
+            job_title="Software Engineer",
+            question_ids=[]
         )
-        interviews.append(interview)
-    
-    # All pass_keys should be unique
-    pass_keys = [interview.pass_key for interview in interviews]
-    assert len(set(pass_keys)) == 10
+
+
+def test_interview_create_duplicate_questions_fails():
+    """Test that InterviewCreate fails with duplicate question IDs."""
+    with pytest.raises(ValueError):
+        InterviewCreate(
+            job_title="Software Engineer",
+            question_ids=[1, 2, 2]
+        )
+
+
+def test_interview_create_to_model():
+    """Test the conversion from InterviewCreate schema to Interview model."""
+    interview_create = InterviewCreate(
+        job_title="Software Engineer",
+        job_description="Backend developer",
+        question_ids=[1, 2]
+    )
+    user_id = 1
+    interview_model = interview_create.to_model(created_by_user_id=user_id)
+
+    assert isinstance(interview_model, Interview)
+    assert getattr(interview_model, "job_title") == "Software Engineer"
+    assert getattr(interview_model, "job_description") == "Backend developer"
+    assert getattr(interview_model, "created_by_user_id") == user_id
+
+
+def test_interview_response_from_model():
+    """Test the conversion from Interview model to InterviewResponse schema."""
+    now = datetime.utcnow()
+    interview_model = Interview(
+        id=1,
+        job_title="Product Manager",
+        total_candidates=5,
+        completed_candidates=2,
+        avg_score=85,
+        created_at=now,
+        updated_at=now
+    )
+    interview_response = InterviewResponse.from_model(interview_model)
+
+    assert interview_response.id == 1
+    assert interview_response.job_title == "Product Manager"
+    assert interview_response.total_candidates == 5
+    assert interview_response.completed_candidates == 2
+    assert interview_response.avg_score == 85
+    assert interview_response.created_at == now
+
+
+def test_interview_with_details_from_model():
+    """Test conversion to InterviewWithDetails, including candidate list."""
+    now = datetime.utcnow()
+    interview_model = Interview(
+        id=1,
+        job_title="UX Designer",
+        created_at=now,
+        updated_at=now,
+        candidates=[
+            Candidate(id=1, first_name="John", last_name="Doe", email="john.doe@example.com"),
+            Candidate(id=2, first_name="Jane", last_name="Smith", email="jane.smith@example.com")
+        ]
+    )
+
+    interview_details = InterviewWithDetails.from_model_with_details(interview_model)
+
+    assert interview_details.id == 1
+    assert interview_details.job_title == "UX Designer"
+    assert interview_details.candidates_count == 2
+    assert interview_details.assigned_candidates is not None
+    assert len(interview_details.assigned_candidates) == 2
+    assert interview_details.assigned_candidates[0]["name"] == "John Doe"

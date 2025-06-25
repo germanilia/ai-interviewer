@@ -2,7 +2,7 @@
 Candidate DAO for database operations.
 """
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from app.crud.base import BaseDAO
 from app.models.candidate import Candidate
@@ -16,20 +16,14 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         super().__init__(Candidate, CandidateResponse)
 
     def get(self, db: Session, id: int) -> Optional[CandidateResponse]:
-        """Get a candidate by ID with interview data."""
-        candidate = (
-            db.query(self.model)
-            .options(joinedload(self.model.interviews))
-            .filter(self.model.id == id)
-            .first()
-        )
+        """Get a candidate by ID."""
+        candidate = db.query(self.model).filter(self.model.id == id).first()
         return CandidateResponse.from_model(candidate) if candidate else None
 
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[CandidateResponse]:
-        """Get multiple candidates with pagination and interview data."""
+        """Get multiple candidates with pagination."""
         candidates = (
             db.query(self.model)
-            .options(joinedload(self.model.interviews))
             .offset(skip)
             .limit(limit)
             .all()
@@ -46,7 +40,7 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         status: Optional[str] = None
     ) -> Tuple[List[CandidateResponse], int]:
         """Get candidates with search, filtering, and pagination."""
-        query = db.query(self.model).options(joinedload(self.model.interviews))
+        query = db.query(self.model)
 
         # Apply search filter
         if search:
@@ -112,33 +106,30 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
 
     def get_by_email(self, db: Session, email: str) -> Optional[CandidateResponse]:
         """Get a candidate by email."""
-        candidate = (
-            db.query(self.model)
-            .options(joinedload(self.model.interviews))
-            .filter(self.model.email == email)
-            .first()
-        )
+        candidate = db.query(self.model).filter(self.model.email == email).first()
         return CandidateResponse.from_model(candidate) if candidate else None
 
     def get_interview_history(self, db: Session, candidate_id: int) -> List:
-        """Get interview history for a candidate."""
-        candidate = (
-            db.query(self.model)
-            .options(joinedload(self.model.interviews))
-            .filter(self.model.id == candidate_id)
-            .first()
-        )
-        if candidate and candidate.interviews:
-            # Return interview data - this would need proper interview schema
+        """Get interview assignment for a candidate."""
+        from app.models.interview import Interview
+
+        candidate = db.query(self.model).filter(self.model.id == candidate_id).first()
+        if not candidate or candidate.interview_id is None:
+            return []
+
+        # Get the assigned interview
+        interview = db.query(Interview).filter(Interview.id == candidate.interview_id).first()
+        if interview:
             return [
                 {
                     "id": interview.id,
-                    "status": interview.status,
+                    "job_title": interview.job_title,
+                    "job_department": interview.job_department,
                     "created_at": interview.created_at,
-                    "pass_key": interview.pass_key,
-                    "job_title": interview.job.title if hasattr(interview, 'job') and interview.job else None
+                    "interview_status": candidate.interview_status,
+                    "interview_date": candidate.interview_date,
+                    "score": candidate.score,
                 }
-                for interview in candidate.interviews
             ]
         return []
 

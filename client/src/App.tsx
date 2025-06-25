@@ -11,7 +11,6 @@ import { Settings } from '@/components/pages/Settings';
 import { Candidates } from '@/components/pages/Candidates';
 import { Interviews } from '@/components/pages/Interviews';
 import { Questions } from '@/components/pages/Questions';
-import { Jobs } from '@/components/pages/Jobs';
 import { Reports } from '@/components/pages/Reports';
 import UserList from '@/components/UserList';
 import { Toaster } from '@/components/ui/toaster';
@@ -91,16 +90,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/job-positions"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Jobs />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/reports"
               element={

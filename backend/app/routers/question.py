@@ -9,14 +9,12 @@ from app.dependencies import get_db, get_current_active_user
 from app.schemas.user import UserResponse
 from app.schemas.question import (
     QuestionResponse, QuestionCreate, QuestionUpdate, QuestionListResponse,
-    QuestionFilter, BulkQuestionDelete, BulkQuestionCategoryUpdate,
-    JobQuestionAssignment
+    QuestionFilter, BulkQuestionDelete, BulkQuestionCategoryUpdate
 )
 from app.models.interview import QuestionCategory, QuestionImportance
 from app.services.question_service import QuestionService
 from app.crud.question import QuestionDAO
-from app.crud.job import JobDAO
-from app.crud.job_question import JobQuestionDAO
+
 
 question_router = APIRouter()
 
@@ -25,19 +23,23 @@ def get_question_service() -> QuestionService:
     """Dependency to get QuestionService instance."""
     return QuestionService(
         question_dao=QuestionDAO(),
-        job_dao=JobDAO(),
-        job_question_dao=JobQuestionDAO()
+
     )
 
 
 @question_router.get("/questions", response_model=QuestionListResponse)
 async def get_questions(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
-    category: Optional[QuestionCategory] = Query(None, description="Filter by category"),
-    importance: Optional[QuestionImportance] = Query(None, description="Filter by importance"),
-    search: Optional[str] = Query(None, description="Search term for title or question text"),
-    created_by_user_id: Optional[int] = Query(None, description="Filter by creator user ID"),
+    page_size: int = Query(
+        10, ge=1, le=100, description="Number of items per page"),
+    category: Optional[QuestionCategory] = Query(
+        None, description="Filter by category"),
+    importance: Optional[QuestionImportance] = Query(
+        None, description="Filter by importance"),
+    search: Optional[str] = Query(
+        None, description="Search term for title or question text"),
+    created_by_user_id: Optional[int] = Query(
+        None, description="Filter by creator user ID"),
     db: Session = Depends(get_db),
     question_service: QuestionService = Depends(get_question_service),
     current_user: UserResponse = Depends(get_current_active_user)
@@ -52,7 +54,7 @@ async def get_questions(
         search=search,
         created_by_user_id=created_by_user_id
     )
-    
+
     return question_service.get_questions(db, page=page, page_size=page_size, filters=filters)
 
 
@@ -91,7 +93,7 @@ async def create_question(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot create question for another user"
         )
-    
+
     try:
         return question_service.create_question(db, question_create)
     except Exception as e:
@@ -112,7 +114,8 @@ async def update_question(
     """
     Update an existing question.
     """
-    question = question_service.update_question(db, question_id, question_update)
+    question = question_service.update_question(
+        db, question_id, question_update)
     if not question:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -143,7 +146,8 @@ async def delete_question(
 async def get_questions_by_category(
     category: QuestionCategory,
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    page_size: int = Query(
+        10, ge=1, le=100, description="Number of items per page"),
     db: Session = Depends(get_db),
     question_service: QuestionService = Depends(get_question_service),
     current_user: UserResponse = Depends(get_current_active_user)
@@ -158,7 +162,8 @@ async def get_questions_by_category(
 async def search_questions(
     search_term: str,
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    page_size: int = Query(
+        10, ge=1, le=100, description="Number of items per page"),
     db: Session = Depends(get_db),
     question_service: QuestionService = Depends(get_question_service),
     current_user: UserResponse = Depends(get_current_active_user)
@@ -209,41 +214,12 @@ async def bulk_update_category(
         )
 
 
-@question_router.post("/questions/assign-to-job")
-async def assign_question_to_job(
-    assignment: JobQuestionAssignment,
-    db: Session = Depends(get_db),
-    question_service: QuestionService = Depends(get_question_service),
-    current_user: UserResponse = Depends(get_current_active_user)
-):
-    """
-    Assign a question to a job.
-    """
-    try:
-        success = question_service.assign_question_to_job(db, assignment)
-        if success:
-            return {"message": "Question successfully assigned to job"}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to assign question to job"
-            )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to assign question to job: {str(e)}"
-        )
-
 
 @question_router.get("/questions/with-creator-info", response_model=QuestionListResponse)
 async def get_questions_with_creator_info(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    page_size: int = Query(
+        10, ge=1, le=100, description="Number of items per page"),
     db: Session = Depends(get_db),
     question_service: QuestionService = Depends(get_question_service),
     current_user: UserResponse = Depends(get_current_active_user)

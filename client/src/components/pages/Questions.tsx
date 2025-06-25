@@ -54,7 +54,6 @@ const QuestionsContent: React.FC = () => {
     currentPage,
     pageSize,
     total,
-    filters,
     selectedQuestions,
     fetchQuestions,
     createQuestion,

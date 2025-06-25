@@ -2,18 +2,14 @@
 Question service layer for business logic and coordination.
 """
 import logging
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.crud.question import QuestionDAO
-from app.crud.job import JobDAO
-from app.crud.job_question import JobQuestionDAO
 from app.schemas.question import (
     QuestionResponse, QuestionCreate, QuestionUpdate, QuestionListResponse,
-    QuestionFilter, BulkQuestionDelete, BulkQuestionCategoryUpdate,
-    JobQuestionAssignment
+    QuestionFilter, BulkQuestionDelete, BulkQuestionCategoryUpdate
 )
-from app.schemas.job_question import JobQuestionCreate
-from app.models.interview import QuestionCategory, QuestionImportance
+from app.models.interview import QuestionCategory
 
 logger = logging.getLogger(__name__)
 
@@ -24,18 +20,14 @@ class QuestionService:
     Handles business logic and coordinates between routers and DAOs.
     """
 
-    def __init__(self, question_dao: QuestionDAO, job_dao: JobDAO, job_question_dao: JobQuestionDAO):
+    def __init__(self, question_dao: QuestionDAO):
         """
         Initialize QuestionService with DAO dependencies.
-        
+
         Args:
             question_dao: QuestionDAO instance for database operations
-            job_dao: JobDAO instance for job-related operations
-            job_question_dao: JobQuestionDAO instance for job-question relationships
         """
         self.question_dao = question_dao
-        self.job_dao = job_dao
-        self.job_question_dao = job_question_dao
 
     def get_question_by_id(self, db: Session, question_id: int) -> Optional[QuestionResponse]:
         """
@@ -219,48 +211,7 @@ class QuestionService:
         logger.info(f"Bulk updating category for {len(bulk_update.question_ids)} questions to {bulk_update.new_category}")
         return self.question_dao.update_category_bulk(db, bulk_update.question_ids, bulk_update.new_category)
 
-    def assign_question_to_job(self, db: Session, assignment: JobQuestionAssignment) -> bool:
-        """
-        Assign a question to a job.
-        
-        Args:
-            db: Database session
-            assignment: Job question assignment data
-            
-        Returns:
-            True if successful, False otherwise
-            
-        Raises:
-            ValueError: If question or job not found
-        """
-        logger.info(f"Assigning question {assignment.question_id} to job {assignment.job_id}")
-        
-        # Validate question exists
-        question = self.question_dao.get(db, assignment.question_id)
-        if not question:
-            raise ValueError("Question not found")
-        
-        # Validate job exists
-        job = self.job_dao.get(db, assignment.job_id)
-        if not job:
-            raise ValueError("Job not found")
-        
-        # Determine order index if not provided
-        order_index = assignment.order_index
-        if order_index is None:
-            # Get the next order index for this job
-            existing_assignments = self.job_question_dao.get_by_job(db, assignment.job_id)
-            order_index = len(existing_assignments) + 1
-        
-        # Create the job question assignment
-        job_question_create = JobQuestionCreate(
-            job_id=assignment.job_id,
-            question_id=assignment.question_id,
-            order_index=order_index
-        )
-        
-        self.job_question_dao.create(db, obj_in=job_question_create)
-        return True
+
 
     def get_questions_with_creator_info(self, db: Session, page: int = 1, page_size: int = 10) -> QuestionListResponse:
         """

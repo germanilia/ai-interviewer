@@ -5,7 +5,6 @@ from sqlalchemy import func, and_, or_, desc, text, case
 
 from app.models.interview import Interview, InterviewStatus, RiskLevel, IntegrityScore
 from app.models.candidate import Candidate
-from app.models.interview import Job
 
 from app.schemas.reports import AnalyticsFilters
 from app.core.config_service import config_service
@@ -55,7 +54,7 @@ class ReportsDAO:
         filters: Optional[AnalyticsFilters] = None
     ) -> List[Interview]:
         """Get interviews with applied filters."""
-        query = db.query(Interview).join(Candidate).join(Job)
+        query = db.query(Interview).join(Candidate)
         
         if filters:
             query = self._apply_filters(query, filters)
@@ -66,9 +65,8 @@ class ReportsDAO:
         """Get summary statistics for dashboard cards."""
         query = db.query(Interview)
 
-        # Add JOIN if we might need it for filtering
-        if filters and filters.department:
-            query = query.join(Job)
+        # Department filtering is now done through interview.job_department
+        # No need to join Job table since job info is in Interview
 
         if filters:
             query = self._apply_filters(query, filters)
@@ -108,8 +106,8 @@ class ReportsDAO:
         ).filter(Interview.interview_date.isnot(None))
 
         # Add JOIN if we might need it for filtering
-        if filters and filters.department:
-            query = query.join(Job)
+        # Department filtering is now done through interview.job_department
+        # No need to join Job table since job info is in Interview
 
         if filters:
             query = self._apply_filters(query, filters)
@@ -138,14 +136,14 @@ class ReportsDAO:
     def get_department_breakdown(self, db: Session, filters: Optional[AnalyticsFilters] = None) -> List[Dict[str, Any]]:
         """Get department breakdown."""
         query = db.query(
-            Job.department,
+            Interview.job_department,
             func.count(Interview.id).label('count')
-        ).join(Job).filter(Job.department.isnot(None))
-        
+        ).filter(Interview.job_department.isnot(None))
+
         if filters:
             query = self._apply_filters(query, filters)
-        
-        query = query.group_by(Job.department)
+
+        query = query.group_by(Interview.job_department)
         
         results = query.all()
         return [{"department": result.department, "count": result.count} for result in results]
@@ -258,19 +256,19 @@ class ReportsDAO:
     def get_department_avg_scores(self, db: Session, filters: Optional[AnalyticsFilters] = None) -> List[Dict[str, Any]]:
         """Get average scores by department."""
         query = db.query(
-            Job.department,
-            func.avg(Interview.score).label('avg_score')
-        ).join(Job).filter(
+            Interview.job_department,
+            func.avg(Candidate.score).label('avg_score')
+        ).join(Candidate).filter(
             and_(
-                Job.department.isnot(None),
-                Interview.score.isnot(None)
+                Interview.job_department.isnot(None),
+                Candidate.score.isnot(None)
             )
         )
-        
+
         if filters:
             query = self._apply_filters(query, filters)
-        
-        query = query.group_by(Job.department)
+
+        query = query.group_by(Interview.job_department)
         
         results = query.all()
         return [
@@ -319,7 +317,7 @@ class ReportsDAO:
 
     def get_recent_interviews(self, db: Session, limit: int = 5) -> List[Interview]:
         """Get recent interviews with related data."""
-        return db.query(Interview).join(Candidate).join(Job).order_by(
+        return db.query(Interview).join(Candidate).order_by(
             desc(Interview.created_at)
         ).limit(limit).all()
 
@@ -334,16 +332,13 @@ class ReportsDAO:
         if filters.candidate_id:
             query = query.filter(Interview.candidate_id == filters.candidate_id)
 
-        if filters.job_id:
-            query = query.filter(Interview.job_id == filters.job_id)
-
         if filters.department:
-            query = query.filter(Job.department == filters.department)
+            query = query.filter(Interview.job_department == filters.department)
 
         if filters.risk_level:
-            query = query.filter(Interview.risk_level == filters.risk_level)
+            query = query.filter(Candidate.risk_level == filters.risk_level)
 
         if filters.status:
-            query = query.filter(Interview.status == filters.status)
+            query = query.filter(Candidate.interview_status == filters.status)
 
         return query

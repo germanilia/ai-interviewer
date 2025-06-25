@@ -4,19 +4,19 @@ import api from '@/lib/api';
 
 export interface UseDataLoadersReturn {
   candidates: any[];
-  jobs: any[];
+  interviews: any[];
   loadingCandidates: boolean;
-  loadingJobs: boolean;
+  loadingInterviews: boolean;
   loadCandidates: () => Promise<void>;
-  loadJobs: () => Promise<void>;
+  loadInterviews: () => Promise<void>;
   loadAllData: () => Promise<void>;
 }
 
 export const useDataLoaders = (): UseDataLoadersReturn => {
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
-  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [loadingInterviews, setLoadingInterviews] = useState(false);
 
   const { toast } = useToast();
 
@@ -37,34 +37,34 @@ export const useDataLoaders = (): UseDataLoadersReturn => {
     }
   }, [toast]);
 
-  const loadJobs = useCallback(async () => {
+  const loadInterviews = useCallback(async () => {
     try {
-      setLoadingJobs(true);
-      const response = await api.jobs.getAll({ page_size: 100 });
-      setJobs(response.jobs || []);
+      setLoadingInterviews(true);
+      const response = await api.interviews.getAll({ page_size: 100 });
+      setInterviews(response.items || []);
     } catch (error) {
-      console.error('Failed to load jobs:', error);
+      console.error('Failed to load interviews:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load jobs',
+        description: 'Failed to load interviews',
         variant: 'destructive',
       });
     } finally {
-      setLoadingJobs(false);
+      setLoadingInterviews(false);
     }
   }, [toast]);
 
   const loadAllData = useCallback(async () => {
-    await Promise.all([loadCandidates(), loadJobs()]);
-  }, [loadCandidates, loadJobs]);
+    await Promise.all([loadCandidates(), loadInterviews()]);
+  }, [loadCandidates, loadInterviews]);
 
   return {
     candidates,
-    jobs,
+    interviews,
     loadingCandidates,
-    loadingJobs,
+    loadingInterviews,
     loadCandidates,
-    loadJobs,
+    loadInterviews,
     loadAllData,
   };
 };

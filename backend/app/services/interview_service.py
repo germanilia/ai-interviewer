@@ -1,19 +1,21 @@
 """
 Interview service layer for business logic.
 """
-from typing import Optional, Dict
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.crud.interview import InterviewDAO
 from app.crud.candidate import CandidateDAO
-from app.crud.job import JobDAO
-from app.models.interview import InterviewStatus
+from app.crud.interview_question import InterviewQuestionDAO
+from app.crud.question import QuestionDAO
+
 from app.schemas.interview import (
-    InterviewResponse, 
-    InterviewCreate, 
-    InterviewUpdate, 
+    InterviewResponse,
+    InterviewCreate,
+    InterviewUpdate,
     InterviewListResponse,
     InterviewWithDetails
 )
+from app.schemas.interview_question import InterviewQuestionCreate
 from app.core.logging_service import get_logger
 
 logger = get_logger(__name__)
@@ -25,18 +27,21 @@ class InterviewService:
     Handles business logic and coordinates between routers and DAOs.
     """
 
-    def __init__(self, interview_dao: InterviewDAO, candidate_dao: CandidateDAO, job_dao: JobDAO):
+    def __init__(self, interview_dao: InterviewDAO, candidate_dao: CandidateDAO,
+                 interview_question_dao: InterviewQuestionDAO, question_dao: QuestionDAO):
         """
         Initialize InterviewService with DAO dependencies.
-        
+
         Args:
             interview_dao: InterviewDAO instance for database operations
             candidate_dao: CandidateDAO instance for candidate operations
-            job_dao: JobDAO instance for job operations
+            interview_question_dao: InterviewQuestionDAO instance for interview question operations
+            question_dao: QuestionDAO instance for question operations
         """
         self.interview_dao = interview_dao
         self.candidate_dao = candidate_dao
-        self.job_dao = job_dao
+        self.interview_question_dao = interview_question_dao
+        self.question_dao = question_dao
 
     def get_interview_by_id(self, db: Session, interview_id: int) -> Optional[InterviewResponse]:
         """
@@ -53,14 +58,13 @@ class InterviewService:
         return self.interview_dao.get(db, interview_id)
 
     def get_interviews(
-        self, 
-        db: Session, 
-        page: int = 1, 
+        self,
+        db: Session,
+        page: int = 1,
         page_size: int = 10,
         status: Optional[str] = None,
         search: Optional[str] = None,
-        candidate_id: Optional[int] = None,
-        job_id: Optional[int] = None
+        candidate_id: Optional[int] = None
     ) -> InterviewListResponse:
         """
         Get interviews with pagination, search, and filtering.
@@ -72,7 +76,6 @@ class InterviewService:
             status: Status filter
             search: Search term for candidate name
             candidate_id: Filter by candidate ID
-            job_id: Filter by job ID
             
         Returns:
             InterviewListResponse with paginated results
@@ -83,10 +86,8 @@ class InterviewService:
             db,
             page=page,
             page_size=page_size,
-            status=status,
             search=search,
             candidate_id=candidate_id,
-            job_id=job_id,
         )
 
         # Convert to response objects with details
@@ -97,7 +98,7 @@ class InterviewService:
         
         # Get status counts for tabs
         status_counts = self.interview_dao.get_status_counts(
-            db, candidate_id=candidate_id, job_id=job_id, search=search
+            db, candidate_id=candidate_id, search=search
         )
         
         return InterviewListResponse.create(
@@ -110,7 +111,7 @@ class InterviewService:
 
     def create_interview(self, db: Session, interview_create: InterviewCreate, created_by_user_id: int) -> InterviewResponse:
         """
-        Create a new interview.
+        Create a new interview with required questions.
 
         Args:
             db: Database session
@@ -121,21 +122,32 @@ class InterviewService:
             Created InterviewResponse
 
         Raises:
-            ValueError: If candidate or job not found
+            ValueError: If candidate or questions not found
         """
-        logger.info(f"Creating interview for candidate {interview_create.candidate_id}, job {interview_create.job_id}")
 
-        # Validate candidate exists
-        candidate = self.candidate_dao.get(db, interview_create.candidate_id)
-        if not candidate:
-            raise ValueError("Candidate not found")
+        # Validate all questions exist (questions are now required)
+        valid_questions = []
+        for question_id in interview_create.question_ids:
+            question = self.question_dao.get(db, question_id)
+            if not question:
+                raise ValueError(f"Question with ID {question_id} not found")
+            valid_questions.append(question)
 
-        # Validate job exists
-        job = self.job_dao.get(db, interview_create.job_id)
-        if not job:
-            raise ValueError("Job not found")
+        # Create the interview
+        interview = self.interview_dao.create(db, obj_in=interview_create, created_by_user_id=created_by_user_id)
 
-        return self.interview_dao.create(db, obj_in=interview_create, created_by_user_id=created_by_user_id)
+        # Create interview questions (now guaranteed to have questions)
+        logger.info(f"Creating {len(interview_create.question_ids)} interview questions")
+        for index, (question_id, question) in enumerate(zip(interview_create.question_ids, valid_questions)):
+            interview_question_create = InterviewQuestionCreate(
+                interview_id=interview.id,
+                question_id=question_id,
+                order_index=index + 1,
+                question_text_snapshot=question.question_text
+            )
+            self.interview_question_dao.create(db, obj_in=interview_question_create)
+
+        return interview
 
     def update_interview(self, db: Session, interview_id: int, interview_update: InterviewUpdate) -> Optional[InterviewResponse]:
         """
@@ -158,54 +170,6 @@ class InterviewService:
 
         return self.interview_dao.update(db, db_obj=db_interview, obj_in=interview_update)
 
-    def change_interview_status(
-        self, 
-        db: Session, 
-        interview_id: int, 
-        new_status: InterviewStatus,
-        reason: Optional[str] = None
-    ) -> Optional[InterviewResponse]:
-        """
-        Change interview status.
-        
-        Args:
-            db: Database session
-            interview_id: Interview ID
-            new_status: New status to set
-            reason: Optional reason for status change
-            
-        Returns:
-            Updated InterviewResponse if found, None otherwise
-        """
-        logger.info(f"Changing interview {interview_id} status to {new_status}")
-        
-        interview_update = InterviewUpdate(
-            status=new_status,
-            analysis_notes=reason if reason else None
-        )
-        
-        return self.update_interview(db, interview_id, interview_update)
-
-    def cancel_interview(self, db: Session, interview_id: int, reason: str) -> Optional[InterviewResponse]:
-        """
-        Cancel an interview.
-        
-        Args:
-            db: Database session
-            interview_id: Interview ID
-            reason: Cancellation reason
-            
-        Returns:
-            Updated InterviewResponse if found, None otherwise
-        """
-        logger.info(f"Cancelling interview: {interview_id}")
-        
-        return self.change_interview_status(
-            db, 
-            interview_id, 
-            InterviewStatus.CANCELLED, 
-            f"Cancelled: {reason}"
-        )
 
     def delete_interview(self, db: Session, interview_id: int) -> bool:
         """

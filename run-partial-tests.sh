@@ -164,7 +164,8 @@ setup_test_environment() {
 run_tests() {
     local test_type=$1
     local test_pattern=$2
-    
+    local grep_pattern=$3
+
     print_status "Running Playwright tests ($test_type: $test_pattern)..."
     cd client
     
@@ -178,6 +179,15 @@ run_tests() {
             ;;
         "file")
             npx playwright test "$test_pattern" --reporter=html
+            ;;
+        "file-grep")
+            local file_pattern=$test_pattern
+            local grep_pattern=$3
+            if [ -z "$grep_pattern" ]; then
+                print_error "file-grep requires both file pattern and grep pattern"
+                exit 1
+            fi
+            npx playwright test "$file_pattern" -g "$grep_pattern" --reporter=html
             ;;
         "suite")
             npx playwright test -g "$test_pattern" --reporter=html
@@ -207,18 +217,20 @@ run_tests() {
 main() {
     local test_type=$1
     local test_pattern=$2
-    
+    local grep_pattern=$3
+
     if [ -z "$test_type" ] || [ -z "$test_pattern" ]; then
-        print_error "Usage: $0 <grep|file|suite> <pattern>"
+        print_error "Usage: $0 <grep|file|suite|file-grep> <pattern> [grep_pattern]"
         print_error "Examples:"
         print_error "  $0 grep \"validation errors\""
         print_error "  $0 file \"tests/mcp.spec.ts\""
         print_error "  $0 suite \"mcp\""
+        print_error "  $0 file-grep \"tests/mcp.spec.ts\" \"should login\""
         exit 1
     fi
-    
+
     setup_test_environment
-    run_tests "$test_type" "$test_pattern"
+    run_tests "$test_type" "$test_pattern" "$grep_pattern"
 }
 
 # Run main function with all arguments

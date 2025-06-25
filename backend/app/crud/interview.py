@@ -4,7 +4,7 @@ Interview DAO for database operations.
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
 from sqlalchemy import func, and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from app.crud.base import BaseDAO
 from app.models.interview import Interview, InterviewStatus
 from app.models.candidate import Candidate
@@ -60,19 +60,15 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
             return True
         return False
 
-    def get_by_pass_key(self, db: Session, pass_key: str) -> Optional[InterviewResponse]:
-        """Get an interview by pass key."""
-        interview = db.query(self.model).filter(self.model.pass_key == pass_key).first()
-        return InterviewResponse.from_model(interview) if interview else None
+    def get_by_candidate(self, db: Session, candidate_id: int) -> List[InterviewResponse]:
+        """Get interview for a specific candidate (candidates are now assigned to one interview)."""
+        # Get the candidate first to find their assigned interview
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate or candidate.interview_id is None:
+            return []
 
-
-
-    def get_by_candidate(self, db: Session, candidate_id: int, *, skip: int = 0, limit: int = 100) -> List[InterviewResponse]:
-        """Get all interviews for a specific candidate."""
-        interviews = db.query(self.model).filter(
-            self.model.candidate_id == candidate_id
-        ).offset(skip).limit(limit).all()
-        return [InterviewResponse.from_model(interview) for interview in interviews]
+        interview = db.query(self.model).filter(self.model.id == candidate.interview_id).first()
+        return [InterviewResponse.from_model(interview)] if interview else []
 
     def get_by_status(self, db: Session, status: InterviewStatus, *, skip: int = 0, limit: int = 100) -> List[InterviewResponse]:
         """Get interviews by status."""
@@ -100,20 +96,15 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
         return InterviewResponse.from_model(interview)
 
     def get_report(self, db: Session, id: int) -> Optional[InterviewReport]:
-        """Get interview report with candidate and job details."""
-        interview = db.query(self.model).options(
-            joinedload(self.model.candidate),
-            joinedload(self.model.job)
-        ).filter(self.model.id == id).first()
+        """Get interview report with assigned candidates details."""
+        interview = db.query(self.model).filter(self.model.id == id).first()
 
-        if interview and interview.candidate and interview.job:
+        if interview and interview.candidate:
             # Create a dict with the report data
             report_data = {
                 "interview_id": interview.id,
                 "candidate_name": f"{interview.candidate.first_name} {interview.candidate.last_name}",
                 "candidate_email": interview.candidate.email,
-                "job_title": interview.job.title,
-                "job_department": interview.job.department,
                 "interview_date": interview.interview_date,
                 "status": interview.status,
                 "score": interview.score,
@@ -133,10 +124,8 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
         db: Session,
         page: int = 1,
         page_size: int = 10,
-        status: Optional[str] = None,
         search: Optional[str] = None,
         candidate_id: Optional[int] = None,
-        job_id: Optional[int] = None,
     ) -> tuple[List[Interview], int]:
         """
         Get interviews with pagination, search, and filtering.
@@ -149,29 +138,29 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
 
         skip = (page - 1) * page_size
 
-        query = db.query(self.model).options(
-            joinedload(self.model.candidate), joinedload(self.model.job)
-        )
+        # Base query for interviews
+        query = db.query(self.model)
 
         filters = []
-        if status and status != "all":
-            try:
-                status_enum = InterviewStatus(status)
-                filters.append(self.model.status == status_enum)
-            except ValueError:
-                pass  # Ignore invalid status
+
+        # Note: Interviews don't have status in the new model - they contain job info
+        # Status is now on candidates who are assigned to interviews
 
         if candidate_id:
-            filters.append(self.model.candidate_id == candidate_id)
-
-        if job_id:
-            filters.append(self.model.job_id == job_id)
+            # Filter interviews that have this candidate assigned
+            filters.append(
+                db.query(Candidate).filter(
+                    Candidate.interview_id == self.model.id,
+                    Candidate.id == candidate_id
+                ).exists()
+            )
 
         if search:
-            query = query.join(Candidate)
+            # Search in job title, description, or department
             search_filter = or_(
-                func.lower(func.concat(Candidate.first_name, " ", Candidate.last_name)).contains(search.lower()),
-                func.lower(Candidate.email).contains(search.lower()),
+                func.lower(self.model.job_title).contains(search.lower()),
+                func.lower(self.model.job_description).contains(search.lower()),
+                func.lower(self.model.job_department).contains(search.lower()),
             )
             filters.append(search_filter)
 
@@ -191,33 +180,47 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
         self,
         db: Session,
         candidate_id: Optional[int] = None,
-        job_id: Optional[int] = None,
         search: Optional[str] = None,
     ) -> Dict[str, int]:
-        """Get count of interviews by status."""
+        """Get count of interviews by completion status."""
         base_query = db.query(self.model)
 
         filters = []
         if candidate_id:
-            filters.append(self.model.candidate_id == candidate_id)
-
-        if job_id:
-            filters.append(self.model.job_id == job_id)
+            # Filter interviews that have this candidate assigned
+            filters.append(
+                db.query(Candidate).filter(
+                    Candidate.interview_id == self.model.id,
+                    Candidate.id == candidate_id
+                ).exists()
+            )
 
         if search:
-            base_query = base_query.join(Candidate)
+            # Search in job title, description, or department
             search_filter = or_(
-                func.lower(func.concat(Candidate.first_name, " ", Candidate.last_name)).contains(search.lower()),
-                func.lower(Candidate.email).contains(search.lower()),
+                func.lower(self.model.job_title).contains(search.lower()),
+                func.lower(self.model.job_description).contains(search.lower()),
+                func.lower(self.model.job_department).contains(search.lower()),
             )
             filters.append(search_filter)
 
         if filters:
             base_query = base_query.filter(and_(*filters))
 
-        status_counts = {
-            status.value: base_query.filter(self.model.status == status).count()
-            for status in InterviewStatus
+        # Since interviews don't have status anymore, we'll categorize by completion
+        total_count = base_query.count()
+        completed_count = base_query.filter(self.model.completed_candidates == self.model.total_candidates).count()
+        in_progress_count = base_query.filter(
+            and_(
+                self.model.completed_candidates > 0,
+                self.model.completed_candidates < self.model.total_candidates
+            )
+        ).count()
+        pending_count = base_query.filter(self.model.completed_candidates == 0).count()
+
+        return {
+            "all": total_count,
+            "completed": completed_count,
+            "in_progress": in_progress_count,
+            "pending": pending_count,
         }
-        status_counts["all"] = base_query.count()
-        return status_counts

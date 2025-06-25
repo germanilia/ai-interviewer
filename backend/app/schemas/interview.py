@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, Any, TYPE_CHECKING, List
 from datetime import datetime
 import secrets
@@ -18,63 +18,68 @@ def generate_pass_key() -> str:
 
 
 class InterviewBase(BaseModel):
-    """Base interview schema with common fields."""
-    candidate_id: int
-    job_id: int
-    status: InterviewStatus = InterviewStatus.PENDING
-    interview_date: Optional[datetime] = None
+    """Base interview schema with common fields including job information."""
+    # Job information (merged from Job model)
+    job_title: str
+    job_description: Optional[str] = None
+    job_department: Optional[str] = None
+
+    # General interview instructions
+    instructions: Optional[str] = None
 
 
 class InterviewCreate(InterviewBase):
     """Schema for creating a new interview."""
-    pass_key: Optional[str] = None  # Will be auto-generated if not provided
+    question_ids: list[int] = Field(..., min_length=1, description="List of question IDs to include in the interview")
 
-    def model_post_init(self, __context: Any) -> None:
-        """Auto-generate pass_key if not provided."""
-        if self.pass_key is None:
-            self.pass_key = generate_pass_key()
+    @field_validator("question_ids")
+    @classmethod
+    def validate_question_ids(cls, v):
+        """Validate that question_ids is not empty and contains valid IDs."""
+        if not v:
+            raise ValueError("At least one question is required for an interview")
+        if len(v) == 0:
+            raise ValueError("At least one question is required for an interview")
+        # Check for duplicate question IDs
+        if len(v) != len(set(v)):
+            raise ValueError("Duplicate question IDs are not allowed")
+        # Check for invalid question IDs (negative or zero)
+        if any(qid <= 0 for qid in v):
+            raise ValueError("Question IDs must be positive integers")
+        return v
 
     def to_model(self, created_by_user_id: int) -> "Interview":
         """Convert Pydantic schema to SQLAlchemy model."""
         from app.models.interview import Interview
         return Interview(
-            candidate_id=self.candidate_id,
-            job_id=self.job_id,
-            status=self.status,
-            interview_date=self.interview_date,
-            pass_key=self.pass_key,
+            job_title=self.job_title,
+            job_description=self.job_description,
+            job_department=self.job_department,
+            instructions=self.instructions,
             created_by_user_id=created_by_user_id
         )
 
 
 class InterviewUpdate(BaseModel):
     """Schema for updating an interview."""
-    job_id: Optional[int] = None
-    status: Optional[InterviewStatus] = None
-    interview_date: Optional[datetime] = None
-    score: Optional[float] = None
-    integrity_score: Optional[IntegrityScore] = None
-    risk_level: Optional[RiskLevel] = None
-    conversation: Optional[dict[str, Any]] = None
-    report_summary: Optional[str] = None
-    risk_indicators: Optional[list[dict[str, Any]]] = None
-    key_concerns: Optional[list[dict[str, Any]]] = None
-    analysis_notes: Optional[str] = None
-    completed_at: Optional[datetime] = None
+    # Job fields
+    job_title: Optional[str] = None
+    job_description: Optional[str] = None
+    job_department: Optional[str] = None
+
+    # General interview fields
+    instructions: Optional[str] = None
+    avg_score: Optional[int] = None
+    total_candidates: Optional[int] = None
+    completed_candidates: Optional[int] = None
 
 
 class InterviewResponse(InterviewBase):
     """Schema for interview responses."""
     id: int
-    pass_key: str  # Required in response
-    score: Optional[float] = None
-    integrity_score: Optional[IntegrityScore] = None
-    risk_level: Optional[RiskLevel] = None
-    conversation: Optional[dict[str, Any]] = None
-    report_summary: Optional[str] = None
-    risk_indicators: Optional[list[dict[str, Any]]] = None
-    key_concerns: Optional[list[dict[str, Any]]] = None
-    analysis_notes: Optional[str] = None
+    avg_score: Optional[int] = None
+    total_candidates: int = 0
+    completed_candidates: int = 0
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
@@ -104,8 +109,6 @@ class InterviewReport(BaseModel):
     interview_id: int
     candidate_name: str
     candidate_email: str
-    job_title: str
-    job_department: Optional[str]
     interview_date: Optional[datetime]
     status: InterviewStatus
     score: Optional[float]
@@ -121,26 +124,20 @@ class InterviewReport(BaseModel):
 
 
 class InterviewWithDetails(InterviewResponse):
-    """Enhanced interview response with candidate and job details."""
-    candidate_name: Optional[str] = None
-    candidate_email: Optional[str] = None
-    job_title: Optional[str] = None
-    job_department: Optional[str] = None
+    """Enhanced interview response with assigned candidates."""
+    assigned_candidates: Optional[list[dict[str, Any]]] = None
+    candidates_count: int = 0
 
     @classmethod
     def from_model_with_details(cls, interview: "Interview") -> "InterviewWithDetails":
-        """Convert SQLAlchemy model to Pydantic schema with related details."""
+        """Convert SQLAlchemy model to Pydantic schema with assigned candidates."""
         instance = cls.model_validate(interview)
 
-        # Add candidate details if available
-        if hasattr(interview, 'candidate') and interview.candidate:
-            instance.candidate_name = f"{interview.candidate.first_name} {interview.candidate.last_name}"
-            instance.candidate_email = interview.candidate.email
-
-        # Add job details if available
-        if hasattr(interview, 'job') and interview.job:
-            instance.job_title = interview.job.title
-            instance.job_department = interview.job.department
+        # Note: In the new model, candidates have interview_id FK pointing to interviews
+        # We'll populate assigned_candidates and candidates_count from the interview model's
+        # aggregated fields (total_candidates, completed_candidates)
+        instance.assigned_candidates = []  # This would need to be populated by the service layer if needed
+        instance.candidates_count = getattr(interview, 'total_candidates', 0) or 0
 
         return instance
 

@@ -9,8 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { InterviewResponse } from '@/lib/api';
 
 interface InterviewDetailsModalProps {
@@ -24,30 +22,26 @@ export const InterviewDetailsModal: React.FC<InterviewDetailsModalProps> = ({
   onOpenChange,
   interview,
 }) => {
-  const { toast } = useToast();
+  if (!interview) return null;
 
-  const handleCopyPassKey = () => {
-    if (interview?.pass_key) {
-      navigator.clipboard.writeText(interview.pass_key);
-      toast({
-        title: 'Success',
-        description: 'Pass key copied to clipboard',
-      });
+  const getCompletionBadge = (completed: number, total: number) => {
+    if (total === 0) {
+      return <Badge variant="secondary">No Candidates</Badge>;
+    }
+
+    const percentage = (completed / total) * 100;
+    if (percentage === 100) {
+      return <Badge variant="default">Completed</Badge>;
+    } else if (percentage > 0) {
+      return <Badge variant="outline">In Progress</Badge>;
+    } else {
+      return <Badge variant="secondary">Pending</Badge>;
     }
   };
 
-  if (!interview) return null;
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: 'Pending', variant: 'secondary' as const },
-      in_progress: { label: 'In Progress', variant: 'default' as const },
-      completed: { label: 'Completed', variant: 'success' as const },
-      cancelled: { label: 'Cancelled', variant: 'destructive' as const },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'secondary' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -58,87 +52,76 @@ export const InterviewDetailsModal: React.FC<InterviewDetailsModalProps> = ({
             Interview Details
           </DialogTitle>
           <DialogDescription>
-            View detailed information about this interview session
+            View detailed information about this interview
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
+          {/* Job Information */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Candidate</h3>
-              <p className="text-sm font-medium" data-testid="details-candidate">
-                {interview.candidate_name || 
-                 interview.candidate?.full_name || 
-                 (interview.candidate?.first_name && interview.candidate?.last_name 
-                   ? `${interview.candidate.first_name} ${interview.candidate.last_name}` 
-                   : 'Unknown')}
+              <h3 className="text-sm font-medium text-muted-foreground">Job Title</h3>
+              <p className="text-sm font-medium" data-testid="details-job-title">
+                {interview.job_title || 'Not specified'}
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Job Position</h3>
-              <p className="text-sm font-medium" data-testid="details-job">
-                {interview.job_title || interview.job?.title || 'Unknown'}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-              <div data-testid="details-status">
-                {getStatusBadge(interview.status)}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Interview Date</h3>
-              <p className="text-sm" data-testid="details-date">
-                {interview.interview_date 
-                  ? new Date(interview.interview_date).toLocaleString() 
-                  : 'Not scheduled'}
+              <h3 className="text-sm font-medium text-muted-foreground">Department</h3>
+              <p className="text-sm font-medium" data-testid="details-job-department">
+                {interview.job_department || 'Not specified'}
               </p>
             </div>
           </div>
 
-          {/* Pass Key */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Pass Key</h3>
-            <div className="flex items-center gap-2">
-              <code 
-                className="bg-muted px-3 py-2 rounded text-sm font-mono flex-1"
-                data-testid="details-pass-key"
-              >
-                {interview.pass_key}
-              </code>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyPassKey}
-                data-testid="copy-pass-key-btn"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+          {/* Job Description */}
+          {interview.job_description && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Job Description</h3>
+              <p className="text-sm bg-muted p-3 rounded" data-testid="details-job-description">
+                {interview.job_description}
+              </p>
+            </div>
+          )}
+
+          {/* Candidate Statistics */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Total Candidates</h3>
+              <p className="text-lg font-bold" data-testid="details-total-candidates">
+                {interview.total_candidates || 0}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Completed</h3>
+              <p className="text-lg font-bold" data-testid="details-completed-candidates">
+                {interview.completed_candidates || 0}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Progress</h3>
+              <div data-testid="details-progress">
+                {getCompletionBadge(interview.completed_candidates || 0, interview.total_candidates || 0)}
+              </div>
             </div>
           </div>
 
-          {/* Results (if completed) */}
-          {interview.status === 'completed' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Score</h3>
-                <p className="text-sm font-medium" data-testid="details-score">
-                  {interview.score ? `${interview.score}%` : 'Not available'}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Risk Level</h3>
-                <div data-testid="details-risk-level">
-                  {interview.risk_level ? (
-                    <Badge variant={interview.risk_level === 'high' ? 'destructive' : interview.risk_level === 'medium' ? 'secondary' : 'success'}>
-                      {interview.risk_level}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Not available</span>
-                  )}
-                </div>
-              </div>
+          {/* Average Score */}
+          {interview.avg_score && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Average Score</h3>
+              <p className="text-lg font-bold" data-testid="details-avg-score">
+                {interview.avg_score}%
+              </p>
+            </div>
+          )}
+
+          {/* Instructions */}
+          {interview.instructions && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Instructions</h3>
+              <p className="text-sm bg-muted p-3 rounded" data-testid="details-instructions">
+                {interview.instructions}
+              </p>
             </div>
           )}
 
@@ -147,20 +130,20 @@ export const InterviewDetailsModal: React.FC<InterviewDetailsModalProps> = ({
             <div>
               <h4 className="font-medium">Created</h4>
               <p data-testid="details-created">
-                {new Date(interview.created_at).toLocaleString()}
+                {formatDate(interview.created_at)}
               </p>
             </div>
             <div>
               <h4 className="font-medium">Last Updated</h4>
               <p data-testid="details-updated">
-                {new Date(interview.updated_at).toLocaleString()}
+                {formatDate(interview.updated_at)}
               </p>
             </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button 
+          <Button
             onClick={() => onOpenChange(false)}
             data-testid="close-details-btn"
           >

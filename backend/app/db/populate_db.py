@@ -6,8 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.models.user import User, UserRole
 from app.models.candidate import Candidate
 from app.models.interview import (
-    Interview, Question, Job, JobQuestion, InterviewQuestion,
-    InterviewStatus, IntegrityScore, RiskLevel, QuestionImportance,
+    Interview, Question, InterviewQuestion,
+    QuestionImportance,
     QuestionCategory, InterviewQuestionStatus
 )
 from app.schemas.interview import generate_pass_key
@@ -289,7 +289,8 @@ def populate_db():
         # Check if data already exists
         existing_users = db.query(User).count()
         if existing_users > 0:
-            logger.info(f"Database already contains {existing_users} users. Skipping population.")
+            logger.info(
+                f"Database already contains {existing_users} users. Skipping population.")
             return True
 
         logger.info("Starting database population with sample data...")
@@ -305,17 +306,38 @@ def populate_db():
         db.flush()  # Flush to get IDs without committing
         db.refresh(created_users[0])  # Refresh to get the ID
         admin_user = created_users[0]  # First user is admin
-        logger.info(f"Created {len(created_users)} users, admin_user.id = {admin_user.id}")
+        logger.info(
+            f"Created {len(created_users)} users, admin_user.id = {admin_user.id}")
 
-        # 2. Create Candidates
+        # 2. Create Interviews with Job Information
+        logger.info("Creating sample interviews...")
+        created_interviews = []
+        for job_data in SAMPLE_JOBS:
+            interview = Interview(
+                job_title=job_data["title"],
+                job_description=job_data["description"],
+                job_department=job_data["department"],
+                created_by_user_id=admin_user.id
+            )
+            db.add(interview)
+            created_interviews.append(interview)
+
+        db.flush()
+        logger.info(f"Created {len(created_interviews)} interviews")
+
+        # 3. Create Candidates and assign them to interviews
         logger.info("Creating sample candidates...")
         created_candidates = []
-        for candidate_data in SAMPLE_CANDIDATES:
+        for i, candidate_data in enumerate(SAMPLE_CANDIDATES):
+            # Assign candidates to interviews in round-robin fashion
+            interview = created_interviews[i % len(created_interviews)]
             candidate = Candidate(
                 first_name=candidate_data["first_name"],
                 last_name=candidate_data["last_name"],
                 email=candidate_data["email"],
                 phone=candidate_data["phone"],
+                interview_id=interview.id,
+                pass_key=generate_pass_key(),
                 created_by_user_id=admin_user.id
             )
             db.add(candidate)
@@ -323,22 +345,6 @@ def populate_db():
 
         db.flush()
         logger.info(f"Created {len(created_candidates)} candidates")
-
-        # 3. Create Jobs
-        logger.info("Creating sample jobs...")
-        created_jobs = []
-        for job_data in SAMPLE_JOBS:
-            job = Job(
-                title=job_data["title"],
-                description=job_data["description"],
-                department=job_data["department"],
-                created_by_user_id=admin_user.id
-            )
-            db.add(job)
-            created_jobs.append(job)
-
-        db.flush()
-        logger.info(f"Created {len(created_jobs)} jobs")
 
         # 4. Create Questions
         logger.info("Creating sample questions...")
@@ -358,20 +364,18 @@ def populate_db():
         db.flush()
         logger.info(f"Created {len(created_questions)} questions")
 
-        # 5. Create Job Question Templates
-        create_job_question_templates(db, created_jobs, created_questions)
-
-        # 6. Create Sample Interviews
-        created_interviews = create_sample_interviews(db, created_candidates, created_jobs, admin_user)
+        # 5. Update candidates with sample interview data
+        create_sample_interview_data(
+            db, created_candidates, created_questions, admin_user)
 
         # 7. Create Sample Interview Questions with Answers for completed interview
-        create_sample_interview_questions(db, created_interviews, created_questions)
+        create_sample_interview_questions(
+            db, created_interviews, created_questions)
 
         db.commit()
         logger.info("Successfully populated database with all sample data!")
-        logger.info(f"Summary: {len(created_users)} users, {len(created_candidates)} candidates, "
-                   f"{len(created_jobs)} jobs, {len(created_questions)} questions, "
-                   f"{len(created_interviews)} interviews")
+        logger.info(f"Summary: {len(created_users)} users, {len(created_candidates)} candidates, {len(created_questions)} questions, "
+                    f"{len(created_interviews)} interviews")
 
     except SQLAlchemyError as e:
         db.rollback()
@@ -383,145 +387,65 @@ def populate_db():
     return True
 
 
-def create_job_question_templates(db: Session, jobs: list, questions: list):
+def create_sample_interview_data(db: Session, candidates: list, questions: list, admin_user: User):
     """
-    Create question templates for each job position.
-    This defines which questions should be asked for each job type.
+    Update sample candidates with interview-specific data.
     """
-    logger.info("Creating job question templates...")
+    logger.info("Creating sample interview data for candidates...")
 
-    # Define question sets for different job types
-    security_questions = [q for q in questions if q.category in [
-        QuestionCategory.CRIMINAL_BACKGROUND,
-        QuestionCategory.ETHICS,
-        QuestionCategory.TRUSTWORTHINESS
-    ]]
+    # Update some candidates with sample interview data
+    if len(candidates) > 0:
+        # Update first candidate with completed interview data
+        candidates[0].interview_status = "completed"
+        candidates[0].score = 85
+        candidates[0].integrity_score = "high"
+        candidates[0].risk_level = "low"
+        candidates[0].interview_date = datetime.now() - timedelta(days=5)
+        candidates[0].completed_at = datetime.now() - timedelta(days=5)
+        candidates[0].report_summary = "Candidate demonstrated high integrity throughout the interview."
+        candidates[0].analysis_notes = "Recommended for hire. Strong integrity profile."
 
-    finance_questions = [q for q in questions if q.category in [
-        QuestionCategory.CRIMINAL_BACKGROUND,
-        QuestionCategory.ETHICS,
-        QuestionCategory.TRUSTWORTHINESS,
-        QuestionCategory.DISMISSALS
-    ]]
+    if len(candidates) > 1:
+        # Update second candidate with in-progress interview
+        candidates[1].interview_status = "in_progress"
+        candidates[1].interview_date = datetime.now()
 
-    customer_service_questions = [q for q in questions if q.category in [
-        QuestionCategory.ETHICS,
-        QuestionCategory.TRUSTWORTHINESS,
-        QuestionCategory.DISMISSALS,
-        QuestionCategory.DRUG_USE
-    ]]
-
-    warehouse_questions = [q for q in questions if q.category in [
-        QuestionCategory.CRIMINAL_BACKGROUND,
-        QuestionCategory.ETHICS,
-        QuestionCategory.DRUG_USE,
-        QuestionCategory.TRUSTWORTHINESS
-    ]]
-
-    # Map jobs to their question sets
-    job_question_mapping = {
-        "Security Guard": security_questions,
-        "Financial Analyst": finance_questions,
-        "Customer Service Representative": customer_service_questions,
-        "Warehouse Supervisor": warehouse_questions
-    }
-
-    # Create job question relationships
-    for job in jobs:
-        if job.title in job_question_mapping:
-            questions_for_job = job_question_mapping[job.title]
-            for index, question in enumerate(questions_for_job):
-                job_question = JobQuestion(
-                    job_id=job.id,
-                    question_id=question.id,
-                    order_index=index + 1
-                )
-                db.add(job_question)
+    if len(candidates) > 2:
+        # Update third candidate with pending interview
+        candidates[2].interview_status = "pending"
+        candidates[2].interview_date = datetime.now() + timedelta(days=2)
 
     db.flush()
-    logger.info("Created job question templates for all positions")
+    logger.info("Updated candidates with sample interview data")
 
-
-def create_sample_interviews(db: Session, candidates: list, jobs: list, admin_user: User):
-    """
-    Create some sample interviews in different states to demonstrate the system.
-    """
-    logger.info("Creating sample interviews...")
-
-    # Create interviews in different states
-    sample_interviews = [
-        {
-            "candidate": candidates[0],  # John Smith
-            "job": jobs[0],  # Security Guard
-            "status": InterviewStatus.COMPLETED,
-            "score": 85,
-            "integrity_score": IntegrityScore.HIGH,
-            "risk_level": RiskLevel.LOW,
-            "interview_date": datetime.now() - timedelta(days=5),
-            "completed_at": datetime.now() - timedelta(days=5),
-            "report_summary": "Candidate demonstrated high integrity throughout the interview. No criminal history, honest about minor workplace issues, and showed strong ethical reasoning.",
-            "risk_indicators": [],
-            "key_concerns": [],
-            "analysis_notes": "Recommended for hire. Strong integrity profile with no significant concerns."
-        },
-        {
-            "candidate": candidates[1],  # Emily Johnson
-            "job": jobs[1],  # Financial Analyst
-            "status": InterviewStatus.IN_PROGRESS,
-            "interview_date": datetime.now(),
-            "report_summary": None,
-            "risk_indicators": None,
-            "key_concerns": None,
-            "analysis_notes": None
-        },
-        {
-            "candidate": candidates[2],  # Michael Brown
-            "job": jobs[2],  # Customer Service Representative
-            "status": InterviewStatus.PENDING,
-            "interview_date": datetime.now() + timedelta(days=2),
-            "report_summary": None,
-            "risk_indicators": None,
-            "key_concerns": None,
-            "analysis_notes": None
-        }
-    ]
-
-    created_interviews = []
-    for interview_data in sample_interviews:
-        interview = Interview(
-            candidate_id=interview_data["candidate"].id,
-            job_id=interview_data["job"].id,
-            status=interview_data["status"],
-            interview_date=interview_data["interview_date"],
-            pass_key=generate_pass_key(),
-            score=interview_data.get("score"),
-            integrity_score=interview_data.get("integrity_score"),
-            risk_level=interview_data.get("risk_level"),
-            completed_at=interview_data.get("completed_at"),
-            report_summary=interview_data.get("report_summary"),
-            risk_indicators=interview_data.get("risk_indicators"),
-            key_concerns=interview_data.get("key_concerns"),
-            analysis_notes=interview_data.get("analysis_notes"),
-            created_by_user_id=admin_user.id
-        )
-        db.add(interview)
-        created_interviews.append(interview)
-
-    db.flush()
-    logger.info(f"Created {len(created_interviews)} sample interviews")
-    return created_interviews
 
 
 def create_sample_interview_questions(db: Session, interviews: list, questions: list):
     """
-    Create sample interview questions with answers for the completed interview.
+    Create sample interview questions with answers for completed candidates.
     This demonstrates how the system stores question responses and AI analysis.
     """
     logger.info("Creating sample interview questions with answers...")
 
-    # Find the completed interview (John Smith - Security Guard)
-    completed_interview = next((i for i in interviews if i.status == InterviewStatus.COMPLETED), None)
-    if not completed_interview:
+    # Find a candidate with completed status
+    completed_candidates = db.query(Candidate).filter(
+        Candidate.interview_status == "completed"
+    ).all()
+
+    if not completed_candidates:
+        logger.info("No completed candidates found, skipping interview questions creation")
+        return
+
+    # Use the first completed candidate
+    completed_candidate = completed_candidates[0]
+    if completed_candidate.interview_id is None:
+        logger.info("Completed candidate has no interview assigned")
+        return
+
+    # Get the interview for this candidate
+    interview = next((i for i in interviews if i.id == completed_candidate.interview_id), None)
+    if not interview:
+        logger.info("Could not find interview for completed candidate")
         return
 
     # Get relevant questions for security guard position
@@ -575,7 +499,7 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
     # Create interview questions with answers
     for index, qa_data in enumerate(sample_qa_data):
         interview_question = InterviewQuestion(
-            interview_id=completed_interview.id,
+            interview_id=interview.id,
             question_id=qa_data["question"].id,
             status=InterviewQuestionStatus.ANSWERED,
             order_index=index + 1,
@@ -588,7 +512,8 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
         db.add(interview_question)
 
     db.flush()
-    logger.info(f"Created {len(sample_qa_data)} interview questions with answers")
+    logger.info(
+        f"Created {len(sample_qa_data)} interview questions with answers")
 
 
 if __name__ == "__main__":

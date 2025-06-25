@@ -11,42 +11,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check } from 'lucide-react';
-import api, { CandidateResponse, JobResponse, InterviewResponse } from '@/lib/api';
+import { Checkbox } from '@/components/ui/checkbox';
+import api, { InterviewResponse, QuestionResponse } from '@/lib/api';
 
 interface CreateInterviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInterviewCreated: () => void;
-  candidates?: any[];
-  jobs?: any[];
-  loading?: boolean;
 }
 
 export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
   open,
   onOpenChange,
   onInterviewCreated,
-  candidates: preloadedCandidates = [],
-  jobs: preloadedJobs = [],
-  loading: dataLoading = false,
 }) => {
-  const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
-  const [jobs, setJobs] = useState<JobResponse[]>([]);
+  const [questions, setQuestions] = useState<QuestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [candidateSearch, setCandidateSearch] = useState('');
-  const [selectedCandidate, setSelectedCandidate] = useState<string>('');
-  const [selectedJob, setSelectedJob] = useState<string>('');
-  const [notes, setNotes] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+
+  // Job information fields (now part of interview)
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [jobDepartment, setJobDepartment] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [createdInterview, setCreatedInterview] = useState<InterviewResponse | null>(null);
   const [step, setStep] = useState<'form' | 'success'>('form');
 
@@ -54,68 +42,74 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
 
   useEffect(() => {
     if (open) {
-      // Use preloaded data if available, otherwise load from API
-      if (preloadedCandidates.length > 0) {
-        setCandidates(preloadedCandidates);
-      } else {
-        loadCandidates();
-      }
-
-      if (preloadedJobs.length > 0) {
-        setJobs(preloadedJobs);
-      } else {
-        loadJobs();
-      }
-
+      loadQuestions();
       resetForm();
     }
-  }, [open, preloadedCandidates, preloadedJobs]);
+  }, [open]);
 
-  const loadCandidates = async () => {
+  const loadQuestions = async () => {
     try {
-      const response = await api.candidates.getAll({ page_size: 100 });
-      setCandidates(response.items || []);
+      const response = await api.questions.getAll({ page_size: 100 });
+      setQuestions(response.questions || []);
     } catch (error) {
-      console.error('Failed to load candidates:', error);
+      console.error('Failed to load questions:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load candidates',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const loadJobs = async () => {
-    try {
-      const response = await api.jobs.getAll({ page_size: 100 });
-      setJobs(response.jobs || []);
-    } catch (error) {
-      console.error('Failed to load jobs:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load jobs',
+        description: 'Failed to load questions',
         variant: 'destructive',
       });
     }
   };
 
   const resetForm = () => {
-    setSelectedCandidate('');
-    setSelectedJob('');
-    setNotes('');
-    setScheduledDate('');
-    setCandidateSearch('');
+    setSelectedQuestions([]);
+    setJobTitle('');
+    setJobDescription('');
+    setJobDepartment('');
+    setInstructions('');
     setCreatedInterview(null);
     setStep('form');
   };
 
+  const handleQuestionToggle = (questionId: number) => {
+    setSelectedQuestions(prev =>
+      prev.includes(questionId)
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    );
+  };
+
+  const handleSelectAllQuestions = () => {
+    if (selectedQuestions.length === questions.length) {
+      setSelectedQuestions([]);
+    } else {
+      setSelectedQuestions(questions.map(q => q.id));
+    }
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    if (step === 'success') {
+      onInterviewCreated();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedCandidate || !selectedJob) {
+
+    if (!jobTitle.trim()) {
       toast({
         title: 'Error',
-        description: 'Please select both a candidate and a job',
+        description: 'Please enter a job title',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedQuestions.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please select at least one question for the interview',
         variant: 'destructive',
       });
       return;
@@ -124,16 +118,17 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
     try {
       setLoading(true);
       const interviewData = {
-        candidate_id: parseInt(selectedCandidate),
-        job_id: parseInt(selectedJob),
-        notes: notes || undefined,
-        interview_date: scheduledDate || undefined,
+        job_title: jobTitle,
+        job_description: jobDescription || undefined,
+        job_department: jobDepartment || undefined,
+        instructions: instructions || undefined,
+        question_ids: selectedQuestions,
       };
 
       const interview = await api.interviews.create(interviewData);
       setCreatedInterview(interview);
       setStep('success');
-      
+
       toast({
         title: 'Success',
         description: 'Interview created successfully',
@@ -150,28 +145,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
     }
   };
 
-  const handleCopyPassKey = () => {
-    if (createdInterview?.pass_key) {
-      navigator.clipboard.writeText(createdInterview.pass_key);
-      toast({
-        title: 'Success',
-        description: 'Pass key copied to clipboard',
-      });
-    }
-  };
 
-  const handleClose = () => {
-    if (step === 'success') {
-      onInterviewCreated();
-    }
-    onOpenChange(false);
-  };
-
-  const filteredCandidates = candidates.filter(candidate =>
-    candidateSearch === '' ||
-    `${candidate.first_name} ${candidate.last_name}`.toLowerCase().includes(candidateSearch.toLowerCase()) ||
-    candidate.email.toLowerCase().includes(candidateSearch.toLowerCase())
-  );
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -189,132 +163,142 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
         </DialogHeader>
 
         {step === 'form' ? (
-          <div className="space-y-4">
-            {(dataLoading || (candidates.length === 0 && jobs.length === 0)) ? (
-              <div className="flex items-center justify-center py-8" data-testid="loading-state">
-                <div className="text-center space-y-2">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-sm text-muted-foreground">Loading candidates and jobs...</p>
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Job Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Job Information</h3>
+
+              <div className="space-y-2">
+                <Label htmlFor="job-title">Job Title *</Label>
+                <Input
+                  id="job-title"
+                  placeholder="e.g. Software Engineer"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  data-testid="job-title-input"
+                  required
+                />
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="candidate">Candidate *</Label>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Search candidates..."
-                      value={candidateSearch}
-                      onChange={(e) => setCandidateSearch(e.target.value)}
-                      data-testid="candidate-search-input"
-                    />
-                    <Select value={selectedCandidate} onValueChange={setSelectedCandidate}>
-                      <SelectTrigger data-testid="candidate-select">
-                        <SelectValue placeholder="Select a candidate" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredCandidates.map((candidate) => (
-                          <SelectItem
-                            key={candidate.id}
-                            value={candidate.id.toString()}
-                            data-testid="candidate-option"
-                          >
-                            {candidate.first_name} {candidate.last_name} ({candidate.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="job">Job Position *</Label>
-              <Select value={selectedJob} onValueChange={setSelectedJob}>
-                <SelectTrigger data-testid="job-select">
-                  <SelectValue placeholder="Select a job position" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.map((job) => (
-                    <SelectItem 
-                      key={job.id} 
-                      value={job.id.toString()}
-                      data-testid="job-option"
-                    >
-                      {job.title} {job.department && `(${job.department})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="job-department">Department</Label>
+                <Input
+                  id="job-department"
+                  placeholder="e.g. Engineering"
+                  value={jobDepartment}
+                  onChange={(e) => setJobDepartment(e.target.value)}
+                  data-testid="job-department-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="job-description">Job Description</Label>
+                <Textarea
+                  id="job-description"
+                  placeholder="Describe the role and responsibilities..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  data-testid="job-description-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="instructions">Interview Instructions</Label>
+                <Textarea
+                  id="instructions"
+                  placeholder="Special instructions for this interview..."
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  data-testid="instructions-input"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="scheduled-date">Scheduled Date (Optional)</Label>
-              <Input
-                id="scheduled-date"
-                type="datetime-local"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                data-testid="scheduled-date-input"
-              />
+            {/* Questions Selection */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Questions *</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllQuestions}
+                  data-testid="select-all-questions-btn"
+                >
+                  {selectedQuestions.length === questions.length ? 'Deselect All' : 'Select All'}
+                </Button>
+              </div>
+
+              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
+                {questions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No questions available. Please create some questions first.
+                  </p>
+                ) : (
+                  questions.map((question) => (
+                    <div key={question.id} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`question-${question.id}`}
+                        checked={selectedQuestions.includes(question.id)}
+                        onCheckedChange={() => handleQuestionToggle(question.id)}
+                        data-testid={`question-checkbox-${question.id}`}
+                      />
+                      <Label
+                        htmlFor={`question-${question.id}`}
+                        className="text-sm leading-relaxed cursor-pointer"
+                      >
+                        {question.question_text}
+                      </Label>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any notes about this interview..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                data-testid="notes-input"
-              />
-            </div>
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    data-testid="cancel-btn"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading || !selectedCandidate || !selectedJob}
-                    data-testid="save-interview-btn"
-                  >
-                    {loading ? 'Creating...' : 'Create Interview'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            )}
-          </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                data-testid="cancel-btn"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !jobTitle.trim() || selectedQuestions.length === 0}
+                data-testid="save-interview-btn"
+              >
+                {loading ? 'Creating...' : 'Create Interview'}
+              </Button>
+            </DialogFooter>
+          </form>
         ) : (
           <div className="space-y-6">
-            <div className="text-center space-y-4" data-testid="pass-key-display">
+            <div className="text-center space-y-4" data-testid="interview-created-display">
               <div className="p-6 bg-muted rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Interview Pass Key</h3>
-                <div className="flex items-center justify-center gap-2">
-                  <code 
-                    className="text-2xl font-mono bg-background px-4 py-2 rounded border"
-                    data-testid="pass-key-value"
-                  >
-                    {createdInterview?.pass_key}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyPassKey}
-                    data-testid="copy-pass-key-btn"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                <h3 className="text-lg font-semibold mb-2">Interview Created Successfully</h3>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Job Title: <span className="font-medium">{createdInterview?.job_title}</span>
+                  </p>
+                  {createdInterview?.job_department && (
+                    <p className="text-sm text-muted-foreground">
+                      Department: <span className="font-medium">{createdInterview.job_department}</span>
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Questions: <span className="font-medium">{selectedQuestions.length} selected</span>
+                  </p>
                 </div>
               </div>
-              
-              <div className="text-sm text-muted-foreground" data-testid="pass-key-instructions">
-                <p>Share this pass key with the candidate to start their interview.</p>
-                <p>The candidate will use this key to access the interview session.</p>
+
+              <div className="text-sm text-muted-foreground" data-testid="next-steps">
+                <p>Your interview is ready! You can now:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Assign candidates to this interview</li>
+                  <li>View and manage the interview from the interviews page</li>
+                </ul>
               </div>
             </div>
 

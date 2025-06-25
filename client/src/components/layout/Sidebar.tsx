@@ -48,11 +48,6 @@ const navItems: NavItem[] = [
     icon: HelpCircle,
   },
   {
-    title: 'Jobs',
-    href: '/job-positions',
-    icon: Briefcase,
-  },
-  {
     title: 'Reports',
     href: '/reports',
     icon: BarChart3,
