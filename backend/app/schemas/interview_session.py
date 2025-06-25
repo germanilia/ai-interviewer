@@ -2,9 +2,12 @@
 Interview session schemas for API requests and responses.
 """
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 from app.models.interview_session import InterviewSessionStatus
+
+if TYPE_CHECKING:
+    from app.schemas.question import QuestionResponse
 
 
 class ChatMessage(BaseModel):
@@ -121,5 +124,18 @@ class InterviewContext(BaseModel):
     candidate_name: str
     interview_title: str
     job_description: Optional[str] = None
-    questions: list[str]
+    questions: list["QuestionResponse"]
     conversation_history: list[ChatMessage]
+
+
+# Rebuild the model after all classes are defined to resolve forward references
+def _rebuild_models():
+    """Rebuild models to resolve forward references"""
+    try:
+        from app.schemas.question import QuestionResponse
+        InterviewContext.model_rebuild()
+    except ImportError:
+        # QuestionResponse not available yet, will be rebuilt later
+        pass
+
+_rebuild_models()

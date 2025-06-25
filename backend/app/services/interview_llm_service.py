@@ -2,8 +2,11 @@
 LLM service for interview conversations with hard-coded responses.
 """
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, TYPE_CHECKING
 from app.schemas.interview_session import InterviewContext, ChatMessage
+
+if TYPE_CHECKING:
+    from app.schemas.question import QuestionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +118,13 @@ class InterviewLLMService:
             else:
                 return "Thank you for all your responses. Is there anything else you'd like to share, or shall we conclude the interview?"
 
+        # TODO: In the future, we can use the question objects from context.questions
+        # to provide more intelligent responses based on question importance, category, etc.
+        # For example:
+        # - High importance questions could get more detailed follow-ups
+        # - Technical questions could trigger more technical responses
+        # - Behavioral questions could ask for specific examples
+
         return response
 
     def _generate_completion_response(self, context: InterviewContext, language: str = "en") -> str:
@@ -127,14 +137,21 @@ class InterviewLLMService:
             return f"Thank you {context.candidate_name} for taking the time to complete this interview. Your responses have been recorded and will be reviewed by our team. We appreciate your interest in the {context.interview_title} position and will be in touch soon."
 
     def prepare_interview_context(
-        self, 
+        self,
         candidate_name: str,
         interview_title: str,
         job_description: Optional[str],
-        questions: list[str],
+        questions: list["QuestionResponse"],
         conversation_history: list[dict]
     ) -> InterviewContext:
         """Prepare interview context for LLM processing"""
+        # Ensure the model is rebuilt to resolve forward references
+        try:
+            from app.schemas.question import QuestionResponse
+            InterviewContext.model_rebuild()
+        except Exception:
+            pass  # Model might already be rebuilt
+
         # Convert conversation history to ChatMessage objects
         from datetime import datetime
         chat_messages = []
@@ -147,7 +164,7 @@ class InterviewLLMService:
                 timestamp=timestamp,
                 question_id=msg.get("question_id")
             ))
-        
+
         return InterviewContext(
             candidate_name=candidate_name,
             interview_title=interview_title,

@@ -130,7 +130,22 @@ class InterviewSessionService:
 
         # Get interview questions - need to get the model to access questions
         interview_model = interview_dao.get_model(db=db, id=session.interview_id)
-        questions = [iq.question_text_snapshot for iq in interview_model.interview_questions] if interview_model else []
+        questions = []
+        if interview_model:
+            logger.info(f"Found interview model with {len(interview_model.interview_questions)} interview questions")
+            from app.crud.question import QuestionDAO
+            question_dao = QuestionDAO()
+            for iq in interview_model.interview_questions:
+                logger.info(f"Processing interview question {iq.id} with question_id {iq.question_id}")
+                # Get the full question object from the database
+                question = question_dao.get(db=db, id=iq.question_id)
+                if question:
+                    logger.info(f"Retrieved question: {question.title}")
+                    questions.append(question)
+                else:
+                    logger.warning(f"Could not retrieve question with ID {iq.question_id}")
+        else:
+            logger.warning(f"No interview model found for interview_id {session.interview_id}")
 
         # Convert conversation history to dict format for LLM
         conversation_dict = []
@@ -143,20 +158,26 @@ class InterviewSessionService:
                     "question_id": msg.question_id
                 })
 
-        context = self.llm_service.prepare_interview_context(
-            candidate_name=candidate_name,
-            interview_title=interview.job_title,
-            job_description=interview.job_description,
-            questions=questions,
-            conversation_history=conversation_dict
-        )
-        
-        # Get LLM response
-        assistant_response, is_complete = self.llm_service.process_interview_message(
-            context=context,
-            user_message=user_message,
-            language=language
-        )
+        try:
+            logger.info(f"Preparing interview context with {len(questions)} questions")
+            context = self.llm_service.prepare_interview_context(
+                candidate_name=candidate_name,
+                interview_title=interview.job_title,
+                job_description=interview.job_description,
+                questions=questions,
+                conversation_history=conversation_dict
+            )
+
+            # Get LLM response
+            logger.info("Processing interview message with LLM service")
+            assistant_response, is_complete = self.llm_service.process_interview_message(
+                context=context,
+                user_message=user_message,
+                language=language
+            )
+        except Exception as e:
+            logger.exception(f"Error in LLM processing: {e}")
+            raise
         
         # Add assistant response to conversation
         session = self.session_dao.add_message_to_conversation(
