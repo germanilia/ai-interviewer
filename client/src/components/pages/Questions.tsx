@@ -56,6 +56,7 @@ const QuestionsContent: React.FC = () => {
     total,
     selectedQuestions,
     fetchQuestions,
+    initialLoad,
     createQuestion,
     updateQuestion,
     deleteQuestion,
@@ -67,6 +68,7 @@ const QuestionsContent: React.FC = () => {
     selectAllQuestions,
     clearSelection,
     setPage,
+    setPageSize,
     clearError
   } = useQuestions();
 
@@ -88,8 +90,8 @@ const QuestionsContent: React.FC = () => {
 
   // Load questions on component mount
   useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
+    initialLoad();
+  }, [initialLoad]);
 
   // Display errors as toasts
   useEffect(() => {
@@ -499,8 +501,32 @@ const QuestionsContent: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Page Size Selector */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Total: {total} questions | Pages: {totalPages} | Current: {currentPage}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Items per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  const newPageSize = parseInt(e.target.value);
+                  setPageSize(newPageSize);
+                }}
+                className="border rounded px-2 py-1 text-sm"
+                data-testid="page-size-selector"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+
           {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {total > 0 && (
             <div className="flex items-center justify-between" data-testid="pagination-controls">
               <div className="text-sm text-muted-foreground">
                 Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, total)} of {total} questions
@@ -510,31 +536,37 @@ const QuestionsContent: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(currentPage - 1)}
-                  disabled={currentPage <= 1}
+                  disabled={currentPage <= 1 || totalPages <= 1}
                   data-testid="prev-page-btn"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={page === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPage(page)}
-                      data-testid={`page-${page}-btn`}
-                      className="min-w-[40px]"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {totalPages > 1 ? (
+                    Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(page)}
+                        data-testid={`page-${page}-btn`}
+                        className="min-w-[40px]"
+                      >
+                        {page}
+                      </Button>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground px-2">
+                      Page 1 of 1
+                    </span>
+                  )}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
+                  disabled={currentPage >= totalPages || totalPages <= 1}
                   data-testid="next-page-btn"
                 >
                   Next

@@ -15,6 +15,7 @@ interface QuestionsContextType {
 
   // Actions
   fetchQuestions: (page?: number, pageSize?: number, filters?: QuestionFilter) => Promise<void>;
+  initialLoad: () => Promise<void>;
   createQuestion: (data: QuestionCreate) => Promise<QuestionResponse>;
   updateQuestion: (id: number, data: QuestionUpdate) => Promise<QuestionResponse>;
   deleteQuestion: (id: number) => Promise<void>;
@@ -75,6 +76,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
       setLoading(true);
       clearError();
 
+      // Use current state values if parameters not provided
       const actualPage = page ?? currentPage;
       const actualSize = size ?? pageSize;
       const actualFilters = newFilters ?? filters;
@@ -100,7 +102,35 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
     } finally {
       setLoading(false);
     }
-  }, []); // Remove dependencies to prevent recreation
+  }, [currentPage, pageSize, filters]); // Add back dependencies but use them carefully
+
+  // Separate function for initial load to avoid dependency issues
+  const initialLoad = useCallback(async () => {
+    try {
+      setLoading(true);
+      clearError();
+
+      const response: QuestionListResponse = await api.questions.getAll({
+        page: 1,
+        page_size: 10,
+      });
+
+
+
+      setQuestions(response.questions);
+      setTotal(response.total);
+      setCurrentPage(response.page);
+      setPageSizeState(response.page_size);
+      setTotalPages(response.total_pages);
+      setFiltersState({});
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch questions';
+      setError(errorMessage);
+      console.error('Failed to fetch questions:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // No dependencies for initial load
 
   const createQuestion = useCallback(async (data: QuestionCreate): Promise<QuestionResponse> => {
     try {
@@ -317,6 +347,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
 
     // Actions
     fetchQuestions,
+    initialLoad,
     createQuestion,
     updateQuestion,
     deleteQuestion,
