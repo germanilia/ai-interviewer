@@ -13,6 +13,8 @@ import { Interviews } from '@/components/pages/Interviews';
 import { Questions } from '@/components/pages/Questions';
 import { Reports } from '@/components/pages/Reports';
 import UserList from '@/components/UserList';
+import { InterviewLanding } from '@/components/interview/InterviewLanding';
+import { CandidateChat } from '@/components/interview/CandidateChat';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -22,6 +24,10 @@ function App() {
         <Router>
           <div className="min-h-screen bg-background text-foreground">
           <Routes>
+            {/* Interview routes (public, no authentication required) */}
+            <Route path="/interview" element={<InterviewLanding />} />
+            <Route path="/interview/chat" element={<CandidateChat />} />
+
             {/* Public routes (redirect to dashboard if authenticated) */}
             <Route
               path="/login"
@@ -121,7 +127,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             {/* Default redirects */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

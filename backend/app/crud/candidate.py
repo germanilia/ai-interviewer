@@ -147,3 +147,7 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
             (self.model.last_name.ilike(f"%{name}%"))
         ).offset(skip).limit(limit).all()
         return [CandidateResponse.from_model(candidate) for candidate in candidates]
+
+
+# Create instance for dependency injection
+candidate_dao = CandidateDAO()

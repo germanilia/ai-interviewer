@@ -224,3 +224,7 @@ class InterviewDAO(BaseDAO[Interview, InterviewResponse, InterviewCreate, Interv
             "in_progress": in_progress_count,
             "pending": pending_count,
         }
+
+
+# Create instance for dependency injection
+interview_dao = InterviewDAO()

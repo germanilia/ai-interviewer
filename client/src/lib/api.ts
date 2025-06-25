@@ -669,6 +669,75 @@ export const api = {
       return fetchFromApi(endpoint);
     },
   },
+
+  // Interview Session endpoints
+  interviewSession: {
+    candidateLogin: async (data: { pass_key: string }): Promise<{
+      candidate_id: number;
+      candidate_name: string;
+      interview_id: number;
+      interview_title: string;
+      session_id?: number;
+      message: string;
+    }> => {
+      return fetchFromApi('/api/v1/interview-session/candidate-login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    endSession: async (data: { session_id: number }): Promise<{
+      id: number;
+      candidate_id: number;
+      interview_id: number;
+      status: string;
+      started_at: string;
+      completed_at?: string;
+      last_activity_at: string;
+      total_messages: number;
+      questions_asked: number;
+      session_duration_minutes?: number;
+    }> => {
+      return fetchFromApi('/api/v1/interview-session/end-session', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    startSession: async (candidateId: number, interviewId: number): Promise<{
+      id: number;
+      candidate_id: number;
+      interview_id: number;
+      status: string;
+      conversation_history: any[];
+      started_at: string;
+      completed_at?: string;
+      last_activity_at: string;
+      total_messages: number;
+      questions_asked: number;
+      session_duration_minutes?: number;
+    }> => {
+      return fetchFromApi('/api/v1/interview-session/start-session', {
+        method: 'POST',
+        body: JSON.stringify({
+          candidate_id: candidateId,
+          interview_id: interviewId
+        }),
+      });
+    },
+
+    chat: async (data: { session_id: number; message: string; language?: string }): Promise<{
+      session_id: number;
+      assistant_message: string;
+      session_status: string;
+      is_interview_complete: boolean;
+    }> => {
+      return fetchFromApi('/api/v1/interview-session/chat', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+  },
 };
 
 export default api;
