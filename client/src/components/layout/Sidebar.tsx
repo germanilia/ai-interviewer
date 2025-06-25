@@ -9,8 +9,7 @@ import {
   UserCheck,
   MessageSquare,
   HelpCircle,
-  Briefcase,
-  BarChart3
+  Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,11 +45,6 @@ const navItems: NavItem[] = [
     title: 'Questions',
     href: '/questions',
     icon: HelpCircle,
-  },
-  {
-    title: 'Reports',
-    href: '/reports',
-    icon: BarChart3,
   },
   {
     title: 'Users',

@@ -8,6 +8,7 @@ from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateU
 from app.services.candidate_service import CandidateService
 from app.dependencies import get_db, get_candidate_service, get_current_active_user
 from app.schemas.user import UserResponse
+from app.schemas.candidate_report import CandidateReportResponse
 
 candidate_router = APIRouter()
 
@@ -185,4 +186,59 @@ async def get_candidate_by_pass_key(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve candidate: {str(e)}"
+        )
+
+
+@candidate_router.patch("/candidates/{candidate_id}/reset", response_model=CandidateResponse)
+async def reset_candidate_interview(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Reset candidate interview status and date.
+    This removes the interview status and interview date, allowing the candidate to retake the interview.
+    """
+    try:
+        candidate = candidate_service.reset_candidate_interview(db=db, candidate_id=candidate_id)
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        return candidate
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reset candidate interview: {str(e)}"
+        )
+
+
+@candidate_router.get("/candidates/{candidate_id}/report", response_model=CandidateReportResponse)
+async def get_candidate_report(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Get the report for a specific candidate.
+    """
+    try:
+        from app.crud.candidate_report import CandidateReportDAO
+        report_dao = CandidateReportDAO()
+
+        report = report_dao.get_by_candidate_id(db=db, candidate_id=candidate_id)
+        if not report:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Report not found for this candidate"
+            )
+        return report
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate report: {str(e)}"
         )

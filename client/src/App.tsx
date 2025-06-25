@@ -11,7 +11,6 @@ import { Settings } from '@/components/pages/Settings';
 import { Candidates } from '@/components/pages/Candidates';
 import { Interviews } from '@/components/pages/Interviews';
 import { Questions } from '@/components/pages/Questions';
-import { Reports } from '@/components/pages/Reports';
 import UserList from '@/components/UserList';
 import { InterviewLanding } from '@/components/interview/InterviewLanding';
 import { CandidateChat } from '@/components/interview/CandidateChat';
@@ -97,16 +96,7 @@ function App() {
               }
             />
 
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Reports />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/users"
               element={

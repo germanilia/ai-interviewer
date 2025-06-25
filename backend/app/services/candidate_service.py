@@ -227,13 +227,49 @@ class CandidateService:
     def get_candidate_interview_history(self, db: Session, candidate_id: int) -> List:
         """
         Get interview history for a candidate.
-        
+
         Args:
             db: Database session
             candidate_id: Candidate ID
-            
+
         Returns:
             List of interview records
         """
         logger.info(f"Getting interview history for candidate: {candidate_id}")
         return self.candidate_dao.get_interview_history(db, candidate_id)
+
+    def reset_candidate_interview(self, db: Session, candidate_id: int) -> Optional[CandidateResponse]:
+        """
+        Reset candidate interview status and date.
+        This removes the interview status and interview date, allowing the candidate to retake the interview.
+
+        Args:
+            db: Database session
+            candidate_id: Candidate ID
+
+        Returns:
+            Updated CandidateResponse if found, None otherwise
+        """
+        logger.info(f"Resetting interview for candidate: {candidate_id}")
+
+        # Check if candidate exists
+        existing_candidate = self.candidate_dao.get(db, candidate_id)
+        if not existing_candidate:
+            return None
+
+        # Create update object to reset interview fields
+        reset_update = CandidateUpdate(
+            interview_status=None,
+            interview_date=None,
+            completed_at=None,
+            score=None,
+            integrity_score=None,
+            risk_level=None,
+            conversation=None,
+            report_summary=None,
+            risk_indicators=None,
+            key_concerns=None,
+            analysis_notes=None
+        )
+
+        return self.candidate_dao.update_by_id(db, candidate_id, reset_update)

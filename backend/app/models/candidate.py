@@ -44,3 +44,4 @@ class Candidate(Base):
     created_by = relationship("User", back_populates="created_candidates")
     interview = relationship("Interview", back_populates="candidates")
     interview_sessions = relationship("InterviewSession", back_populates="candidate")
+    report = relationship("CandidateReport", back_populates="candidate", uselist=False)

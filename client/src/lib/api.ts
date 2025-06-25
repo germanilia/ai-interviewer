@@ -198,6 +198,30 @@ export interface QuestionCreate {
   created_by_user_id: number;
 }
 
+// Candidate Report types
+export interface RiskFactor {
+  category: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  evidence?: string;
+}
+
+export interface CandidateReportResponse {
+  id: number;
+  candidate_id: number;
+  header: string;
+  risk_factors: RiskFactor[];
+  overall_risk_level: 'low' | 'medium' | 'high' | 'critical';
+  general_observation: string;
+  final_grade: 'excellent' | 'good' | 'satisfactory' | 'poor' | 'fail';
+  general_impression: string;
+  confidence_score?: number;
+  key_strengths: string[];
+  areas_of_concern: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface QuestionUpdate {
   title?: string;
   question_text?: string;
@@ -476,8 +500,25 @@ export const api = {
       });
     },
 
+    reset: async (id: number): Promise<CandidateResponse> => {
+      return fetchFromApi(`/api/v1/candidates/${id}/reset`, {
+        method: 'PATCH',
+      });
+    },
+
     getInterviews: async (id: number): Promise<any> => {
       return fetchFromApi(`/api/v1/candidates/${id}/interviews`);
+    },
+
+    getReport: async (id: number): Promise<CandidateReportResponse | null> => {
+      try {
+        return await fetchFromApi(`/api/v1/candidates/${id}/report`);
+      } catch (error: any) {
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          return null; // No report exists yet
+        }
+        throw error;
+      }
     },
   },
 

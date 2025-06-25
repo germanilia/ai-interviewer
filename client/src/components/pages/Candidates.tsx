@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
-
+  RotateCcw,
   X
 } from 'lucide-react';
 import {
@@ -51,7 +51,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useDataLoaders } from '@/hooks/useDataLoaders';
-import { api, CandidateResponse } from '@/lib/api';
+import { api, CandidateResponse, CandidateReportResponse } from '@/lib/api';
 
 
 interface CandidateFormData {
@@ -124,10 +124,12 @@ export const Candidates: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const [editingCandidate, setEditingCandidate] = useState<CandidateResponse | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateResponse | null>(null);
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
+  const [candidateReport, setCandidateReport] = useState<CandidateReportResponse | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   // Form state
@@ -292,6 +294,58 @@ export const Candidates: React.FC = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle reset candidate interview
+  const handleReset = async (candidate: CandidateResponse) => {
+    if (!confirm(`Are you sure you want to reset the interview for ${candidate.first_name} ${candidate.last_name}? This will remove their interview status and date, allowing them to retake the interview.`)) {
+      return;
+    }
+
+    try {
+      await api.candidates.reset(candidate.id);
+      toast({
+        title: 'Success',
+        description: 'Candidate interview reset successfully',
+      });
+      fetchCandidates();
+      // If viewing this candidate, refresh the modal data
+      if (viewingCandidate && viewingCandidate.id === candidate.id) {
+        const updatedCandidate = await api.candidates.getById(candidate.id);
+        setViewingCandidate(updatedCandidate);
+      }
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle view candidate report
+  const handleViewReport = async (candidate: CandidateResponse) => {
+    try {
+      const report = await api.candidates.getReport(candidate.id);
+      if (report) {
+        setCandidateReport(report);
+        setShowReportModal(true);
+      } else {
+        toast({
+          title: 'No Report Available',
+          description: 'No report has been generated for this candidate yet.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -727,6 +781,18 @@ export const Candidates: React.FC = () => {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
+
+                            {(candidate.interview_status || candidate.interview_date) && (
+                              <DropdownMenuItem
+                                onClick={() => handleReset(candidate)}
+                                data-testid="reset-candidate-btn"
+                                className="text-orange-600"
+                              >
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Reset Interview
+                              </DropdownMenuItem>
+                            )}
+
                             <DropdownMenuItem
                               onClick={() => openDeleteModal(candidate)}
                               className="text-destructive"
@@ -1088,9 +1154,25 @@ export const Candidates: React.FC = () => {
                   Edit Candidate
                 </Button>
 
-                <Button variant="outline" data-testid="view-reports-button">
+                {(viewingCandidate?.interview_status || viewingCandidate?.interview_date) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => viewingCandidate && handleReset(viewingCandidate)}
+                    data-testid="reset-candidate-button"
+                    className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Interview
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => viewingCandidate && handleViewReport(viewingCandidate)}
+                  data-testid="view-candidate-report-button"
+                >
                   <Eye className="h-4 w-4 mr-2" />
-                  View Reports
+                  View Report
                 </Button>
                 <Button
                   variant="destructive"
@@ -1106,6 +1188,157 @@ export const Candidates: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Candidate Report Modal */}
+      <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Candidate Report</DialogTitle>
+            <DialogDescription>
+              AI-generated assessment report for the candidate
+            </DialogDescription>
+          </DialogHeader>
+
+          {candidateReport && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900">{candidateReport.header}</h3>
+              </div>
+
+              {/* Overall Assessment */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Final Grade</h4>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                    candidateReport.final_grade === 'excellent' ? 'bg-green-100 text-green-800' :
+                    candidateReport.final_grade === 'good' ? 'bg-blue-100 text-blue-800' :
+                    candidateReport.final_grade === 'satisfactory' ? 'bg-yellow-100 text-yellow-800' :
+                    candidateReport.final_grade === 'poor' ? 'bg-orange-100 text-orange-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {candidateReport.final_grade.charAt(0).toUpperCase() + candidateReport.final_grade.slice(1)}
+                  </span>
+                </div>
+
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-red-900 mb-2">Risk Level</h4>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                    candidateReport.overall_risk_level === 'low' ? 'bg-green-100 text-green-800' :
+                    candidateReport.overall_risk_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    candidateReport.overall_risk_level === 'high' ? 'bg-orange-100 text-orange-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {candidateReport.overall_risk_level.charAt(0).toUpperCase() + candidateReport.overall_risk_level.slice(1)} Risk
+                  </span>
+                </div>
+              </div>
+
+              {/* Risk Factors */}
+              {candidateReport.risk_factors.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Risk Factors</h4>
+                  <div className="space-y-3">
+                    {candidateReport.risk_factors.map((factor, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-gray-900">{factor.category}</h5>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            factor.severity === 'low' ? 'bg-green-100 text-green-800' :
+                            factor.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            factor.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {factor.severity.charAt(0).toUpperCase() + factor.severity.slice(1)}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 mb-2">{factor.description}</p>
+                        {factor.evidence && (
+                          <div className="bg-gray-50 p-2 rounded text-sm text-gray-600">
+                            <strong>Evidence:</strong> {factor.evidence}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* General Observation */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">General Observation</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-700">{candidateReport.general_observation}</p>
+                </div>
+              </div>
+
+              {/* General Impression */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">General Impression</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-700">{candidateReport.general_impression}</p>
+                </div>
+              </div>
+
+              {/* Key Strengths and Areas of Concern */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {candidateReport.key_strengths.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-green-900 mb-3">Key Strengths</h4>
+                    <ul className="space-y-2">
+                      {candidateReport.key_strengths.map((strength, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-green-500 mr-2">•</span>
+                          <span className="text-gray-700">{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {candidateReport.areas_of_concern.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-red-900 mb-3">Areas of Concern</h4>
+                    <ul className="space-y-2">
+                      {candidateReport.areas_of_concern.map((concern, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-red-500 mr-2">•</span>
+                          <span className="text-gray-700">{concern}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Confidence Score */}
+              {candidateReport.confidence_score && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">AI Confidence Score</h4>
+                  <div className="flex items-center">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${candidateReport.confidence_score * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium text-blue-900">
+                      {Math.round(candidateReport.confidence_score * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Report Metadata */}
+              <div className="text-sm text-gray-500 border-t pt-4">
+                <p>Report generated on: {new Date(candidateReport.created_at).toLocaleDateString()}</p>
+                {candidateReport.updated_at !== candidateReport.created_at && (
+                  <p>Last updated: {new Date(candidateReport.updated_at).toLocaleDateString()}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

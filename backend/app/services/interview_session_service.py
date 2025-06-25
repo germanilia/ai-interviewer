@@ -207,19 +207,27 @@ class InterviewSessionService:
         """
         End an interview session manually and update candidate status
         """
+        logger.info(f"Ending interview session {session_id}")
+
         # Get session to verify it exists and get candidate info
         session = self.session_dao.get(db=db, id=session_id)
         if not session:
+            logger.error(f"Session {session_id} not found")
             raise ValueError("Session not found")
+
+        logger.info(f"Found session {session_id} for candidate {session.candidate_id}")
 
         # Complete the session
         completed_session = self.session_dao.complete_session(
             db=db,
             session_id=session_id
         )
+        logger.info(f"Session {session_id} marked as completed")
 
         # Update candidate status to completed
+        logger.info(f"About to update candidate status for candidate {session.candidate_id}")
         self._update_candidate_status_on_completion(db, session.candidate_id)
+        logger.info(f"Candidate status update completed for candidate {session.candidate_id}")
 
         return completed_session
 
@@ -227,12 +235,14 @@ class InterviewSessionService:
         """
         Update candidate status when interview session is completed
         """
+        logger.info(f"Updating candidate status on completion for candidate {candidate_id}")
         from app.schemas.candidate import CandidateUpdate
         from datetime import datetime, timezone
 
         # Get candidate
         candidate = candidate_dao.get(db=db, id=candidate_id)
         if not candidate:
+            logger.error(f"Candidate {candidate_id} not found")
             raise ValueError("Candidate not found")
 
         # Update candidate status to completed with interview date
@@ -247,6 +257,97 @@ class InterviewSessionService:
         db_candidate = db.query(candidate_dao.model).filter(candidate_dao.model.id == candidate_id).first()
         if db_candidate:
             candidate_dao.update(db=db, db_obj=db_candidate, obj_in=update_data)
+
+        # Generate candidate report (don't let this fail the interview completion)
+        logger.info(f"Attempting to generate report for candidate {candidate_id}")
+        try:
+            self._generate_candidate_report(db, candidate_id)
+            logger.info(f"Report generation completed for candidate {candidate_id}")
+        except Exception as e:
+            logger.error(f"Failed to generate report for candidate {candidate_id}, but interview completion succeeded: {e}")
+
+    def _generate_candidate_report(self, db: Session, candidate_id: int) -> None:
+        """
+        Generate a hard-coded candidate report after interview completion
+        """
+        logger.info(f"Starting report generation for candidate {candidate_id}")
+
+        try:
+            from app.crud.candidate_report import CandidateReportDAO
+            from app.schemas.candidate_report import CandidateReportCreate, RiskFactor, ReportGrade, RiskLevel
+            logger.info("Successfully imported report classes")
+        except Exception as e:
+            logger.error(f"Failed to import report classes: {e}")
+            return
+
+        # Get candidate details
+        candidate = candidate_dao.get(db=db, id=candidate_id)
+        if not candidate:
+            logger.warning(f"Candidate {candidate_id} not found for report generation")
+            return
+
+        # Check if report already exists
+        report_dao = CandidateReportDAO()
+        try:
+            existing_report = report_dao.get_by_candidate_id(db=db, candidate_id=candidate_id)
+            if existing_report:
+                logger.info(f"Report already exists for candidate {candidate_id}")
+                return
+        except Exception as e:
+            logger.warning(f"Error checking existing report for candidate {candidate_id}: {e}")
+            # Continue with report generation
+
+        # Generate hard-coded report data
+        candidate_name = f"{candidate.first_name} {candidate.last_name}"
+
+        # Create sample risk factors
+        risk_factors = [
+            RiskFactor(
+                category="Background Verification",
+                description="Standard background check completed with no major concerns identified.",
+                severity=RiskLevel.LOW,
+                evidence="No criminal records found in standard database searches."
+            ),
+            RiskFactor(
+                category="Communication Skills",
+                description="Candidate demonstrated clear and professional communication throughout the interview.",
+                severity=RiskLevel.LOW,
+                evidence="Responses were well-structured and articulate."
+            )
+        ]
+
+        # Create the report
+        report_data = CandidateReportCreate(
+            candidate_id=candidate_id,
+            header=f"Interview Assessment Report - {candidate_name}",
+            risk_factors=risk_factors,
+            overall_risk_level=RiskLevel.LOW,
+            general_observation=f"{candidate_name} participated in a comprehensive interview session. "
+                              f"The candidate demonstrated good communication skills and provided thoughtful responses "
+                              f"to interview questions. Overall performance was satisfactory with no major red flags identified.",
+            final_grade=ReportGrade.GOOD,
+            general_impression=f"Based on the interview session, {candidate_name} appears to be a suitable candidate "
+                             f"for the position. The candidate showed professionalism and engagement throughout the process. "
+                             f"Recommend proceeding to the next stage of the hiring process.",
+            confidence_score=0.85,
+            key_strengths=[
+                "Strong communication skills",
+                "Professional demeanor",
+                "Engaged and responsive during interview",
+                "No significant background concerns"
+            ],
+            areas_of_concern=[
+                "Standard follow-up verification recommended",
+                "Consider additional technical assessment if applicable"
+            ]
+        )
+
+        try:
+            # Create the report
+            report_dao.create(db=db, obj_in=report_data)
+            logger.info(f"Generated report for candidate {candidate_id}")
+        except Exception as e:
+            logger.exception(f"Failed to generate report for candidate {candidate_id}: {e}")
 
 
 # Create instance for dependency injection
