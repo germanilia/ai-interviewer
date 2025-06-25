@@ -109,6 +109,11 @@ class CandidateDAO(BaseDAO[Candidate, CandidateResponse, CandidateCreate, Candid
         candidate = db.query(self.model).filter(self.model.email == email).first()
         return CandidateResponse.from_model(candidate) if candidate else None
 
+    def get_by_pass_key(self, db: Session, pass_key: str) -> Optional[CandidateResponse]:
+        """Get a candidate by pass key."""
+        candidate = db.query(self.model).filter(self.model.pass_key == pass_key).first()
+        return CandidateResponse.from_model(candidate) if candidate else None
+
     def get_interview_history(self, db: Session, candidate_id: int) -> List:
         """Get interview assignment for a candidate."""
         from app.models.interview import Interview

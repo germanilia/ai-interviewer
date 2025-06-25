@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Search } from 'lucide-react';
 import api, { InterviewResponse, QuestionResponse } from '@/lib/api';
 
 interface CreateInterviewModalProps {
@@ -27,8 +28,10 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
   onInterviewCreated,
 }) => {
   const [questions, setQuestions] = useState<QuestionResponse[]>([]);
+  const [filteredQuestions, setFilteredQuestions] = useState<QuestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Job information fields (now part of interview)
   const [jobTitle, setJobTitle] = useState('');
@@ -46,6 +49,20 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
       resetForm();
     }
   }, [open]);
+
+  useEffect(() => {
+    // Filter questions based on search term
+    if (searchTerm.trim()) {
+      const filtered = questions.filter(question =>
+        question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredQuestions(filtered);
+    } else {
+      setFilteredQuestions(questions);
+    }
+  }, [searchTerm, questions]);
 
   const loadQuestions = async () => {
     try {
@@ -69,6 +86,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
     setInstructions('');
     setCreatedInterview(null);
     setStep('form');
+    setSearchTerm('');
   };
 
   const handleQuestionToggle = (questionId: number) => {
@@ -80,10 +98,15 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
   };
 
   const handleSelectAllQuestions = () => {
-    if (selectedQuestions.length === questions.length) {
-      setSelectedQuestions([]);
+    const filteredIds = filteredQuestions.map(q => q.id);
+    const allFilteredSelected = filteredIds.every(id => selectedQuestions.includes(id));
+
+    if (allFilteredSelected) {
+      // Deselect all filtered questions
+      setSelectedQuestions(prev => prev.filter(id => !filteredIds.includes(id)));
     } else {
-      setSelectedQuestions(questions.map(q => q.id));
+      // Select all filtered questions
+      setSelectedQuestions(prev => [...new Set([...prev, ...filteredIds])]);
     }
   };
 
@@ -225,17 +248,29 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
                   onClick={handleSelectAllQuestions}
                   data-testid="select-all-questions-btn"
                 >
-                  {selectedQuestions.length === questions.length ? 'Deselect All' : 'Select All'}
+                  {filteredQuestions.length > 0 && filteredQuestions.every(q => selectedQuestions.includes(q.id)) ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
 
-              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
-                {questions.length === 0 ? (
+              {/* Search Questions */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search questions by title, content, or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid="questions-search-input"
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto border rounded-md p-3 space-y-2">
+                {filteredQuestions.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No questions available. Please create some questions first.
+                    {searchTerm ? 'No questions found matching your search.' : 'No questions available. Please create some questions first.'}
                   </p>
                 ) : (
-                  questions.map((question) => (
+                  filteredQuestions.map((question) => (
                     <div key={question.id} className="flex items-start space-x-2">
                       <Checkbox
                         id={`question-${question.id}`}
@@ -245,14 +280,25 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
                       />
                       <Label
                         htmlFor={`question-${question.id}`}
-                        className="text-sm leading-relaxed cursor-pointer"
+                        className="text-sm leading-relaxed cursor-pointer flex-1"
                       >
-                        {question.question_text}
+                        <div className="font-medium">{question.title}</div>
+                        <div className="text-muted-foreground text-xs mt-1">
+                          {question.question_text}
+                        </div>
+                        <div className="flex gap-1 mt-1">
+                          <span className="text-xs bg-muted px-1 rounded">{question.category}</span>
+                          <span className="text-xs bg-muted px-1 rounded">{question.importance}</span>
+                        </div>
                       </Label>
                     </div>
                   ))
                 )}
               </div>
+
+              <p className="text-sm text-muted-foreground">
+                {selectedQuestions.length} question{selectedQuestions.length !== 1 ? 's' : ''} selected
+              </p>
             </div>
 
             <DialogFooter>

@@ -115,6 +115,41 @@ export const InterviewDetailsModal: React.FC<InterviewDetailsModalProps> = ({
             </div>
           )}
 
+          {/* Questions */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
+              Questions ({interview.questions_count || 0})
+            </h3>
+            {interview.questions && interview.questions.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-3">
+                {interview.questions.map((question: any) => (
+                  <div key={question.id} className="border-b last:border-b-0 pb-2 last:pb-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{question.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {question.question_text}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Badge variant="outline" className="text-xs">
+                          {question.importance}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {question.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                No questions assigned to this interview.
+              </p>
+            )}
+          </div>
+
           {/* Instructions */}
           {interview.instructions && (
             <div>

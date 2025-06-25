@@ -1037,6 +1037,40 @@ export const Candidates: React.FC = () => {
                 </Card>
               </div>
 
+              {/* Pass Key Section */}
+              {viewingCandidate.pass_key && (
+                <div data-testid="pass-key-section">
+                  <h4 className="text-lg font-semibold mb-4">Interview Access</h4>
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Pass Key</p>
+                        <code className="text-lg font-mono bg-muted px-2 py-1 rounded">
+                          {viewingCandidate.pass_key}
+                        </code>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(viewingCandidate.pass_key || '');
+                          toast({
+                            title: 'Success',
+                            description: 'Pass key copied to clipboard',
+                          });
+                        }}
+                        data-testid="copy-pass-key-btn"
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Share this pass key with the candidate to access their interview.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Interview History */}
               <div data-testid="interview-history-section">
                 <h4 className="text-lg font-semibold mb-4">Interview History</h4>

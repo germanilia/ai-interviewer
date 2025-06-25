@@ -5,6 +5,7 @@ export interface CandidateData {
   lastName: string;
   email: string;
   phone?: string;
+  interviewId?: string;
 }
 
 export interface CandidateFilter {
@@ -35,8 +36,8 @@ export class CandidatesPage {
   readonly nameHeader: Locator;
   readonly emailHeader: Locator;
   readonly phoneHeader: Locator;
-  readonly interviewsHeader: Locator;
-  readonly lastInterviewHeader: Locator;
+  readonly interviewAssignmentHeader: Locator;
+  readonly interviewDateHeader: Locator;
   readonly statusHeader: Locator;
   readonly actionsHeader: Locator;
   
@@ -80,6 +81,7 @@ export class CandidatesPage {
   readonly lastNameInput: Locator;
   readonly emailInput: Locator;
   readonly phoneInput: Locator;
+  readonly interviewSelect: Locator;
   readonly saveCandidateButton: Locator;
   readonly cancelButton: Locator;
   readonly modalCloseButton: Locator;
@@ -145,8 +147,8 @@ export class CandidatesPage {
     this.nameHeader = page.getByTestId('name-header');
     this.emailHeader = page.getByTestId('email-header');
     this.phoneHeader = page.getByTestId('phone-header');
-    this.interviewsHeader = page.getByTestId('interviews-header');
-    this.lastInterviewHeader = page.getByTestId('last-interview-header');
+    this.interviewAssignmentHeader = page.getByTestId('interview-assignment-header');
+    this.interviewDateHeader = page.getByTestId('interview-date-header');
     this.statusHeader = page.getByTestId('status-header');
     this.actionsHeader = page.getByTestId('actions-header');
     
@@ -190,6 +192,7 @@ export class CandidatesPage {
     this.lastNameInput = page.getByTestId('last-name-input');
     this.emailInput = page.getByTestId('email-input');
     this.phoneInput = page.getByTestId('phone-input');
+    this.interviewSelect = page.getByTestId('interview-select');
     this.saveCandidateButton = page.getByTestId('save-candidate-btn');
     this.cancelButton = page.getByTestId('cancel-btn');
     this.modalCloseButton = page.getByTestId('modal-close-btn');
@@ -266,6 +269,9 @@ export class CandidatesPage {
     if (data.phone) {
       await this.phoneInput.fill(data.phone);
     }
+    if (data.interviewId) {
+      await this.interviewSelect.selectOption(data.interviewId);
+    }
   }
 
   /**
@@ -276,6 +282,7 @@ export class CandidatesPage {
     await this.lastNameInput.clear();
     await this.emailInput.clear();
     await this.phoneInput.clear();
+    // Note: Interview select will be cleared when modal reopens
   }
 
   /**
@@ -367,7 +374,8 @@ export class CandidatesPage {
       name: await row.locator('[data-testid="candidate-name"]').textContent(),
       email: await row.locator('[data-testid="candidate-email"]').textContent(),
       phone: await row.locator('[data-testid="candidate-phone"]').textContent(),
-      interviews: await row.locator('[data-testid="candidate-interviews"]').textContent(),
+      interviewAssignment: await row.locator('[data-testid="candidate-interview"]').textContent(),
+      interviewDate: await row.locator('[data-testid="candidate-interview-date"]').textContent(),
       status: await row.locator('[data-testid="candidate-status"]').textContent()
     };
   }

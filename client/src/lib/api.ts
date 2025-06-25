@@ -118,6 +118,8 @@ export interface InterviewResponse {
   // For backward compatibility with existing components
   assigned_candidates?: any[];
   candidates_count?: number;
+  questions?: any[];
+  questions_count?: number;
 }
 
 export interface InterviewListResponse {
@@ -450,6 +452,10 @@ export const api = {
       return fetchFromApi(`/api/v1/candidates/${id}`);
     },
 
+    getByPassKey: async (passKey: string): Promise<CandidateResponse> => {
+      return fetchFromApi(`/api/v1/candidates/by-pass-key/${passKey}`);
+    },
+
     create: async (data: CandidateCreateRequest): Promise<CandidateResponse> => {
       return fetchFromApi('/api/v1/candidates', {
         method: 'POST',
@@ -549,6 +555,12 @@ export const api = {
       });
     },
 
+    updateQuestions: async (id: number, questionIds: number[]): Promise<InterviewResponse> => {
+      return fetchFromApi(`/api/v1/interviews/${id}/questions`, {
+        method: 'PUT',
+        body: JSON.stringify(questionIds),
+      });
+    },
 
   },
 

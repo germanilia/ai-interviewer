@@ -93,16 +93,30 @@ class CandidateService:
     def get_candidate_by_email(self, db: Session, email: str) -> Optional[CandidateResponse]:
         """
         Get a candidate by email address.
-        
+
         Args:
             db: Database session
             email: Candidate email address
-            
+
         Returns:
             CandidateResponse if found, None otherwise
         """
         logger.info(f"Getting candidate by email: {email}")
         return self.candidate_dao.get_by_email(db, email)
+
+    def get_candidate_by_pass_key(self, db: Session, pass_key: str) -> Optional[CandidateResponse]:
+        """
+        Get a candidate by pass key.
+
+        Args:
+            db: Database session
+            pass_key: Candidate pass key
+
+        Returns:
+            CandidateResponse if found, None otherwise
+        """
+        logger.info(f"Getting candidate by pass key: {pass_key}")
+        return self.candidate_dao.get_by_pass_key(db, pass_key)
 
     def create_candidate(self, db: Session, candidate_create: CandidateCreate, created_by_user_id: int) -> CandidateResponse:
         """
@@ -117,7 +131,7 @@ class CandidateService:
             Created CandidateResponse
 
         Raises:
-            ValueError: If candidate with email already exists
+            ValueError: If candidate with email already exists or interview not found
         """
         logger.info(f"Creating candidate: {candidate_create.email}")
 
@@ -126,7 +140,45 @@ class CandidateService:
         if existing_candidate:
             raise ValueError("Email already exists")
 
-        return self.candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=created_by_user_id)
+        # Generate pass key for interview access
+        import secrets
+        import string
+        pass_key = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+        # Ensure pass key is unique
+        while self.candidate_dao.get_by_pass_key(db, pass_key):
+            pass_key = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+        # Create the candidate first
+        candidate = self.candidate_dao.create(db, obj_in=candidate_create, created_by_user_id=created_by_user_id)
+
+        # Update the candidate with the pass key using DAO
+        from app.schemas.candidate import CandidateUpdate
+        from app.models.candidate import Candidate
+
+        db_candidate = db.query(Candidate).filter(Candidate.id == candidate.id).first()
+        if db_candidate:
+            candidate_update = CandidateUpdate(pass_key=pass_key)
+            candidate = self.candidate_dao.update(db, db_obj=db_candidate, obj_in=candidate_update)
+
+        # Update interview counter if candidate is assigned to an interview
+        if candidate_create.interview_id:
+            from app.models.interview import Interview
+            from sqlalchemy import update, func
+
+            # Use SQLAlchemy update statement to increment counter (handle NULL case)
+            stmt = update(Interview).where(Interview.id == candidate_create.interview_id).values(
+                total_candidates=func.coalesce(Interview.total_candidates, 0) + 1
+            )
+            result = db.execute(stmt)
+            db.commit()
+
+            if result.rowcount > 0:
+                logger.info(f"Updated interview {candidate_create.interview_id} total_candidates")
+            else:
+                logger.warning(f"Interview {candidate_create.interview_id} not found when creating candidate")
+
+        return candidate
 
     def update_candidate(self, db: Session, candidate_id: int, candidate_update: CandidateUpdate) -> Optional[CandidateResponse]:
         """

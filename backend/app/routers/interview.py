@@ -204,3 +204,39 @@ async def bulk_delete_interviews(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete interviews: {str(e)}"
         )
+
+
+@interview_router.put("/interviews/{interview_id}/questions")
+async def update_interview_questions(
+    interview_id: int,
+    question_ids: List[int] = Body(..., description="List of question IDs to assign to the interview"),
+    db: Session = Depends(get_db),
+    interview_service: InterviewService = Depends(get_interview_service),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """
+    Update the questions assigned to an interview.
+    This will replace all existing questions with the new list.
+    """
+    try:
+        updated_interview = interview_service.update_interview_questions(
+            db=db,
+            interview_id=interview_id,
+            question_ids=question_ids
+        )
+        if not updated_interview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Interview not found"
+            )
+        return updated_interview
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update interview questions: {str(e)}"
+        )

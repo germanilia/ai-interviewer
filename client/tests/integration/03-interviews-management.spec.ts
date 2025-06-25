@@ -123,11 +123,11 @@ test.describe('Interview Management', () => {
       // Open create interview modal
       await interviewsPage.createInterviewButton.click();
       
-      // Fill interview form with candidate, job, and questions
+      // Fill interview form (must include questions)
       await interviewsPage.fillInterviewForm({
         candidateId: 1,
         jobId: 1,
-        questions: [1, 2] // Use valid question IDs
+        questions: [1] // Use a valid question ID (mock or real)
       });
       
       // Submit form
@@ -151,7 +151,8 @@ test.describe('Interview Management', () => {
       await interviewsPage.createInterviewButton.click();
       await interviewsPage.fillInterviewForm({
         candidateId: 1,
-        jobId: 1
+        jobId: 1,
+        questions: [1]
       });
       await interviewsPage.submitInterviewForm();
       
@@ -203,7 +204,8 @@ test.describe('Interview Management', () => {
         await interviewsPage.createInterviewButton.click();
         await interviewsPage.fillInterviewForm({
           candidateId: i + 1,
-          jobId: 1
+          jobId: 1,
+          questions: [1]
         });
         await interviewsPage.submitInterviewForm();
         
@@ -241,7 +243,8 @@ test.describe('Interview Management', () => {
       await interviewsPage.createInterviewButton.click();
       await interviewsPage.fillInterviewForm({
         candidateId: 1,
-        jobId: 1
+        jobId: 1,
+        questions: [1]
       });
       await interviewsPage.submitInterviewForm();
       

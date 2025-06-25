@@ -35,6 +35,7 @@ import {
 import api, { InterviewResponse, InterviewListResponse } from '@/lib/api';
 import { InterviewDetailsModal } from '@/components/interviews/InterviewDetailsModal';
 import { CreateInterviewModal } from '../interviews/CreateInterviewModal';
+import { EditInterviewModal } from '../interviews/EditInterviewModal';
 
 export const Interviews: React.FC = () => {
   const [interviews, setInterviews] = useState<InterviewResponse[]>([]);
@@ -44,6 +45,7 @@ export const Interviews: React.FC = () => {
   const [selectedInterviews, setSelectedInterviews] = useState<number[]>([]);
   const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<InterviewResponse | null>(null);
@@ -121,6 +123,11 @@ export const Interviews: React.FC = () => {
   const handleViewDetails = (interview: InterviewResponse) => {
     setSelectedInterview(interview);
     setShowDetailsModal(true);
+  };
+
+  const handleEditInterview = (interview: InterviewResponse) => {
+    setSelectedInterview(interview);
+    setShowEditModal(true);
   };
 
 
@@ -394,7 +401,7 @@ export const Interviews: React.FC = () => {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleViewDetails(interview)}
+                                  onClick={() => handleEditInterview(interview)}
                                   data-testid="edit-interview-btn"
                                 >
                                   <Edit className="h-4 w-4 mr-2" />
@@ -470,6 +477,13 @@ export const Interviews: React.FC = () => {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onInterviewCreated={loadInterviews}
+      />
+
+      <EditInterviewModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        interview={selectedInterview}
+        onInterviewUpdated={loadInterviews}
       />
 
       <InterviewDetailsModal

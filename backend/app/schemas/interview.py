@@ -124,20 +124,52 @@ class InterviewReport(BaseModel):
 
 
 class InterviewWithDetails(InterviewResponse):
-    """Enhanced interview response with assigned candidates."""
+    """Enhanced interview response with assigned candidates and questions."""
     assigned_candidates: Optional[list[dict[str, Any]]] = None
     candidates_count: int = 0
+    questions: Optional[list[dict[str, Any]]] = None
+    questions_count: int = 0
 
     @classmethod
-    def from_model_with_details(cls, interview: "Interview") -> "InterviewWithDetails":
-        """Convert SQLAlchemy model to Pydantic schema with assigned candidates."""
+    def from_model_with_details(cls, interview: "Interview", candidates: Optional[list] = None, questions: Optional[list] = None) -> "InterviewWithDetails":
+        """Convert SQLAlchemy model to Pydantic schema with assigned candidates and questions."""
         instance = cls.model_validate(interview)
 
-        # Note: In the new model, candidates have interview_id FK pointing to interviews
-        # We'll populate assigned_candidates and candidates_count from the interview model's
-        # aggregated fields (total_candidates, completed_candidates)
-        instance.assigned_candidates = []  # This would need to be populated by the service layer if needed
-        instance.candidates_count = getattr(interview, 'total_candidates', 0) or 0
+        # Populate assigned candidates
+        if candidates:
+            instance.assigned_candidates = [
+                {
+                    "id": candidate.id,
+                    "name": f"{candidate.first_name} {candidate.last_name}",
+                    "email": candidate.email,
+                    "status": candidate.interview_status,
+                    "pass_key": candidate.pass_key,
+                    "score": candidate.score,
+                }
+                for candidate in candidates
+            ]
+            instance.candidates_count = len(candidates)
+        else:
+            instance.assigned_candidates = []
+            instance.candidates_count = getattr(interview, 'total_candidates', 0) or 0
+
+        # Populate questions
+        if questions:
+            instance.questions = [
+                {
+                    "id": question.id,
+                    "title": question.title,
+                    "question_text": question.question_text,
+                    "importance": question.importance,
+                    "category": question.category,
+                    "order_index": getattr(question, 'order_index', 0),
+                }
+                for question in questions
+            ]
+            instance.questions_count = len(questions)
+        else:
+            instance.questions = []
+            instance.questions_count = 0
 
         return instance
 

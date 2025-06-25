@@ -67,18 +67,22 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
   }, []);
 
   const fetchQuestions = useCallback(async (
-    page: number = currentPage,
-    size: number = pageSize,
-    newFilters: QuestionFilter = filters
+    page?: number,
+    size?: number,
+    newFilters?: QuestionFilter
   ) => {
     try {
       setLoading(true);
       clearError();
 
+      const actualPage = page ?? currentPage;
+      const actualSize = size ?? pageSize;
+      const actualFilters = newFilters ?? filters;
+
       const response: QuestionListResponse = await api.questions.getAll({
-        page,
-        page_size: size,
-        ...newFilters
+        page: actualPage,
+        page_size: actualSize,
+        ...actualFilters
       });
 
       setQuestions(response.questions);
@@ -86,7 +90,9 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
       setCurrentPage(response.page);
       setPageSizeState(response.page_size);
       setTotalPages(response.total_pages);
-      setFiltersState(newFilters);
+      if (newFilters) {
+        setFiltersState(newFilters);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch questions';
       setError(errorMessage);
@@ -94,7 +100,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, filters]);
+  }, []); // Remove dependencies to prevent recreation
 
   const createQuestion = useCallback(async (data: QuestionCreate): Promise<QuestionResponse> => {
     try {
@@ -239,23 +245,22 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
   }, []);
 
   const searchQuestions = useCallback(async (
-    searchTerm: string, 
-    page: number = 1, 
-    size: number = pageSize
+    searchTerm: string,
+    page: number = 1,
+    size?: number
   ): Promise<void> => {
-    const searchFilters: QuestionFilter = { ...filters, search: searchTerm };
+    const searchFilters: QuestionFilter = { search: searchTerm };
     await fetchQuestions(page, size, searchFilters);
-  }, [filters, pageSize, fetchQuestions]);
+  }, [fetchQuestions]);
 
   const filterByCategory = useCallback(async (
     category: QuestionFilter['category'] | 'all'
   ): Promise<void> => {
-    const categoryFilters: QuestionFilter = { 
-      ...filters, 
-      category: category === 'all' ? undefined : category 
+    const categoryFilters: QuestionFilter = {
+      category: category === 'all' ? undefined : category
     };
-    await fetchQuestions(1, pageSize, categoryFilters);
-  }, [filters, pageSize, fetchQuestions]);
+    await fetchQuestions(1, undefined, categoryFilters);
+  }, [fetchQuestions]);
 
   // Selection management
   const selectQuestion = useCallback((id: number) => {
@@ -284,12 +289,14 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
 
   const setPage = useCallback((page: number) => {
     setCurrentPage(page);
-    fetchQuestions(page, pageSize, filters);
-  }, [fetchQuestions, pageSize, filters]);
+    fetchQuestions(page);
+  }, [fetchQuestions]);
 
   const setPageSize = useCallback((size: number) => {
     setPageSizeState(size);
-  }, []);
+    setCurrentPage(1); // Reset to first page when changing page size
+    fetchQuestions(1, size);
+  }, [fetchQuestions]);
 
   // Fetch questions on mount
   useEffect(() => {

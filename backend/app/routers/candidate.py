@@ -161,3 +161,28 @@ async def get_candidate_interviews(
         "candidate_id": candidate_id,
         "interviews": []
     }
+
+
+@candidate_router.get("/candidates/by-pass-key/{pass_key}", response_model=CandidateResponse)
+async def get_candidate_by_pass_key(
+    pass_key: str,
+    db: Session = Depends(get_db),
+    candidate_service: CandidateService = Depends(get_candidate_service)
+):
+    """
+    Get candidate by pass key (for interview access).
+    This endpoint doesn't require authentication as it's used by candidates to access their interview.
+    """
+    try:
+        candidate = candidate_service.get_candidate_by_pass_key(db=db, pass_key=pass_key)
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid pass key"
+            )
+        return candidate
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate: {str(e)}"
+        )

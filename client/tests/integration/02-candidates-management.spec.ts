@@ -33,8 +33,8 @@ test.describe('Candidates Management', () => {
         await expect(candidatesPage.nameHeader).toBeVisible();
         await expect(candidatesPage.emailHeader).toBeVisible();
         await expect(candidatesPage.phoneHeader).toBeVisible();
-        await expect(candidatesPage.interviewsHeader).toBeVisible();
-        await expect(candidatesPage.lastInterviewHeader).toBeVisible();
+        await expect(candidatesPage.interviewAssignmentHeader).toBeVisible();
+        await expect(candidatesPage.interviewDateHeader).toBeVisible();
         await expect(candidatesPage.statusHeader).toBeVisible();
         await expect(candidatesPage.actionsHeader).toBeVisible();
       } else {
@@ -51,8 +51,8 @@ test.describe('Candidates Management', () => {
         const firstCandidate = await candidatesPage.getCandidateByIndex(0);
         expect(firstCandidate.name).toBeTruthy();
         expect(firstCandidate.email).toContain('@');
-        // Interview info should be present
-        expect(firstCandidate.interviews).not.toBeUndefined();
+        // Interview assignment should be present
+        expect(firstCandidate.interviewAssignment).not.toBeUndefined();
       }
     });
 

@@ -91,10 +91,22 @@ class InterviewService:
         )
 
         # Convert to response objects with details
-        interview_items = [
-            InterviewWithDetails.from_model_with_details(interview) 
-            for interview in interviews
-        ]
+        interview_items = []
+        for interview in interviews:
+            # Get assigned candidates for this interview
+            from app.models.candidate import Candidate
+            candidates = db.query(Candidate).filter(Candidate.interview_id == interview.id).all()
+
+            # Get questions for this interview
+            from app.models.interview import InterviewQuestion, Question
+            questions = db.query(Question).join(InterviewQuestion).filter(
+                InterviewQuestion.interview_id == interview.id
+            ).order_by(InterviewQuestion.order_index).all()
+
+            interview_detail = InterviewWithDetails.from_model_with_details(
+                interview, candidates=candidates, questions=questions
+            )
+            interview_items.append(interview_detail)
         
         # Get status counts for tabs
         status_counts = self.interview_dao.get_status_counts(
@@ -169,6 +181,56 @@ class InterviewService:
             return None
 
         return self.interview_dao.update(db, db_obj=db_interview, obj_in=interview_update)
+
+    def update_interview_questions(self, db: Session, interview_id: int, question_ids: list[int]) -> Optional[InterviewResponse]:
+        """
+        Update the questions assigned to an interview.
+        This will replace all existing questions with the new list.
+
+        Args:
+            db: Database session
+            interview_id: Interview ID
+            question_ids: List of question IDs to assign
+
+        Returns:
+            Updated InterviewResponse if found, None otherwise
+
+        Raises:
+            ValueError: If any question not found
+        """
+        logger.info(f"Updating questions for interview {interview_id}: {question_ids}")
+
+        # Check if interview exists
+        interview = self.interview_dao.get_model(db, interview_id)
+        if not interview:
+            return None
+
+        # Validate all questions exist
+        valid_questions = []
+        for question_id in question_ids:
+            question = self.question_dao.get(db, question_id)
+            if not question:
+                raise ValueError(f"Question with ID {question_id} not found")
+            valid_questions.append(question)
+
+        # Delete existing interview questions
+        from app.models.interview import InterviewQuestion
+        db.query(InterviewQuestion).filter(InterviewQuestion.interview_id == interview_id).delete()
+
+        # Create new interview questions
+        for index, (question_id, question) in enumerate(zip(question_ids, valid_questions)):
+            interview_question_create = InterviewQuestionCreate(
+                interview_id=interview_id,
+                question_id=question_id,
+                order_index=index + 1,
+                question_text_snapshot=question.question_text
+            )
+            self.interview_question_dao.create(db, obj_in=interview_question_create)
+
+        db.commit()
+
+        # Return updated interview
+        return self.interview_dao.get(db, interview_id)
 
 
     def delete_interview(self, db: Session, interview_id: int) -> bool:
