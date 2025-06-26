@@ -7,9 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.schemas.prompt_response import QuestionEvaluationResponse
 from app.schemas.interview_session import InterviewContext, ChatMessage
-from app.llm.llm_factory import LLMFactory
-from app.llm.models import ModelName
-from app.llm.config import LLMConfig
+from app.core.llm_service import LLMFactory, ModelName
 
 if TYPE_CHECKING:
     from app.schemas.question import QuestionResponse

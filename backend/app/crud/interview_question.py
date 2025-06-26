@@ -29,7 +29,7 @@ class InterviewQuestionDAO(BaseDAO[InterviewQuestion, InterviewQuestionResponse,
         interview_questions = db.query(self.model).offset(skip).limit(limit).all()
         return [InterviewQuestionResponse.from_model(iq) for iq in interview_questions]
 
-    def create(self, db: Session, *, obj_in: InterviewQuestionCreate) -> InterviewQuestionResponse:
+    def create(self, db: Session, *, obj_in: InterviewQuestionCreate, created_by_user_id: int | None = None) -> InterviewQuestionResponse:
         """Create a new interview question."""
         interview_question = obj_in.to_model()
         db.add(interview_question)

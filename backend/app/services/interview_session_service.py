@@ -498,86 +498,40 @@ class InterviewSessionService:
 
     def _generate_candidate_report(self, db: Session, candidate_id: int) -> None:
         """
-        Generate a hard-coded candidate report after interview completion
+        Generate an AI-powered candidate report after interview completion
         """
-        logger.info(f"Starting report generation for candidate {candidate_id}")
+        logger.info(f"Starting AI report generation for candidate {candidate_id}")
 
         try:
-            from app.crud.candidate_report import CandidateReportDAO
-            from app.schemas.candidate_report import CandidateReportCreate, RiskFactor, ReportGrade, RiskLevel
-            logger.info("Successfully imported report classes")
+            from app.services.candidate_report_service import CandidateReportService
+            logger.info("Successfully imported AI report service")
         except Exception as e:
-            logger.error(f"Failed to import report classes: {e}")
+            logger.error(f"Failed to import AI report service: {e}")
             return
 
-        # Get candidate details
-        candidate = candidate_dao.get(db=db, id=candidate_id)
+        # Get candidate details using DAO instance
+        from app.crud.candidate import CandidateDAO
+        candidate_dao_instance = CandidateDAO()
+        candidate = candidate_dao_instance.get(db=db, id=candidate_id)
         if not candidate:
             logger.warning(f"Candidate {candidate_id} not found for report generation")
             return
 
-        # Check if report already exists
-        report_dao = CandidateReportDAO()
-        try:
-            existing_report = report_dao.get_by_candidate_id(db=db, candidate_id=candidate_id)
-            if existing_report:
-                logger.info(f"Report already exists for candidate {candidate_id}")
-                return
-        except Exception as e:
-            logger.warning(f"Error checking existing report for candidate {candidate_id}: {e}")
-            # Continue with report generation
-
-        # Generate hard-coded report data
         candidate_name = f"{candidate.first_name} {candidate.last_name}"
-
-        # Create sample risk factors
-        risk_factors = [
-            RiskFactor(
-                category="Background Verification",
-                description="Standard background check completed with no major concerns identified.",
-                severity=RiskLevel.LOW,
-                evidence="No criminal records found in standard database searches."
-            ),
-            RiskFactor(
-                category="Communication Skills",
-                description="Candidate demonstrated clear and professional communication throughout the interview.",
-                severity=RiskLevel.LOW,
-                evidence="Responses were well-structured and articulate."
-            )
-        ]
-
-        # Create the report
-        report_data = CandidateReportCreate(
-            candidate_id=candidate_id,
-            header=f"Interview Assessment Report - {candidate_name}",
-            risk_factors=risk_factors,
-            overall_risk_level=RiskLevel.LOW,
-            general_observation=f"{candidate_name} participated in a comprehensive interview session. "
-                              f"The candidate demonstrated good communication skills and provided thoughtful responses "
-                              f"to interview questions. Overall performance was satisfactory with no major red flags identified.",
-            final_grade=ReportGrade.GOOD,
-            general_impression=f"Based on the interview session, {candidate_name} appears to be a suitable candidate "
-                             f"for the position. The candidate showed professionalism and engagement throughout the process. "
-                             f"Recommend proceeding to the next stage of the hiring process.",
-            confidence_score=0.85,
-            key_strengths=[
-                "Strong communication skills",
-                "Professional demeanor",
-                "Engaged and responsive during interview",
-                "No significant background concerns"
-            ],
-            areas_of_concern=[
-                "Standard follow-up verification recommended",
-                "Consider additional technical assessment if applicable"
-            ]
-        )
+        logger.info(f"Generating AI report for candidate: {candidate_name}")
 
         try:
-            # Create the report
-            report_dao.create(db=db, obj_in=report_data)
-            logger.info(f"Generated report for candidate {candidate_id}")
+            # Use the AI-powered report service
+            report_service = CandidateReportService()
+            report_data = report_service.generate_ai_report(db=db, candidate_id=candidate_id)
+
+            if report_data:
+                logger.info(f"Successfully generated AI report for candidate {candidate_id}")
+            else:
+                logger.warning(f"AI report generation returned None for candidate {candidate_id}")
+
         except Exception as e:
-            logger.exception(f"Failed to generate report for candidate {candidate_id}: {e}")
+            logger.exception(f"Failed to generate AI report for candidate {candidate_id}: {e}")
 
 
 # Service will be created via dependency injection
