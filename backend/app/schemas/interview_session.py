@@ -23,6 +23,7 @@ class InterviewSessionBase(BaseModel):
     candidate_id: int
     interview_id: int
     status: InterviewSessionStatus = InterviewSessionStatus.ACTIVE
+    current_question_index: int = 0
 
 
 class InterviewSessionCreate(InterviewSessionBase):
@@ -33,6 +34,7 @@ class InterviewSessionCreate(InterviewSessionBase):
 class InterviewSessionUpdate(BaseModel):
     """Schema for updating an interview session"""
     status: Optional[InterviewSessionStatus] = None
+    current_question_index: Optional[int] = None
     conversation_history: Optional[list[dict]] = None  # Store as dict for JSON compatibility
     completed_at: Optional[datetime] = None
     total_messages: Optional[int] = None

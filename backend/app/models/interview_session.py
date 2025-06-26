@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON, Enum, Boolean
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, JSON, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db import Base
@@ -26,7 +26,8 @@ class InterviewSession(Base):
     
     # Session state
     status = Column(Enum(InterviewSessionStatus), default=InterviewSessionStatus.ACTIVE, nullable=False)
-    
+    current_question_index = Column(Integer, default=0, nullable=False)  # 0-based index of current question
+
     # Conversation data - stored as JSON array of messages
     # Format: [{"role": "assistant|user", "content": "message", "timestamp": "ISO datetime", "question_id": int|null}]
     conversation_history = Column(JSON, default=list, nullable=False)

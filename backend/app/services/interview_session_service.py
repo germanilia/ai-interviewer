@@ -9,12 +9,17 @@ from datetime import datetime, timezone
 from app.crud.interview_session import interview_session_dao
 from app.crud.candidate import candidate_dao
 from app.crud.interview import interview_dao
+from app.crud.interview_question import InterviewQuestionDAO
+from app.models.interview import QuestionImportance, InterviewQuestionStatus
 from app.schemas.interview_session import (
     CandidateLoginResponse,
     InterviewSessionResponse,
-    ChatResponse
+    ChatResponse,
+    InterviewContext
 )
 from app.services.interview_llm_service import InterviewLLMService
+from app.services.question_evaluation_service import QuestionEvaluationService
+from app.schemas.question import QuestionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +30,8 @@ class InterviewSessionService:
     def __init__(self, llm_service: InterviewLLMService):
         self.session_dao = interview_session_dao
         self.llm_service = llm_service
+        self.interview_question_dao = InterviewQuestionDAO()
+        self.question_evaluation_service = QuestionEvaluationService()
 
     def _generate_initial_message(self, candidate_name: str, language: str) -> str:
         """Generate initial welcome message based on interview language"""
@@ -142,14 +149,14 @@ class InterviewSessionService:
         user_message: str
     ) -> ChatResponse:
         """
-        Process chat message and return LLM response.
+        Process chat message with question-by-question flow.
         Language is retrieved from the interview model.
         """
         # Get session
         session = self.session_dao.get(db=db, id=session_id)
         if not session:
             raise ValueError("Session not found")
-        
+
         # Get candidate and interview details
         candidate = candidate_dao.get(db=db, id=session.candidate_id)
         interview = interview_dao.get(db=db, id=session.interview_id)
@@ -168,24 +175,41 @@ class InterviewSessionService:
         # Prepare context for LLM
         candidate_name = f"{candidate.first_name} {candidate.last_name}"
 
-        # Get interview questions - need to get the model to access questions
-        interview_model = interview_dao.get_model(db=db, id=session.interview_id)
-        questions = []
-        if interview_model:
-            logger.info(f"Found interview model with {len(interview_model.interview_questions)} interview questions")
-            from app.crud.question import QuestionDAO
-            question_dao = QuestionDAO()
-            for iq in interview_model.interview_questions:
-                logger.info(f"Processing interview question {iq.id} with question_id {iq.question_id}")
-                # Get the full question object from the database
-                question = question_dao.get(db=db, id=iq.question_id)
-                if question:
-                    logger.info(f"Retrieved question: {question.title}")
-                    questions.append(question)
-                else:
-                    logger.warning(f"Could not retrieve question with ID {iq.question_id}")
-        else:
-            logger.warning(f"No interview model found for interview_id {session.interview_id}")
+        # Get session to access current_question_index
+        # The session object already has current_question_index from the schema
+        current_index = session.current_question_index
+
+        # Get current question based on session's current_question_index
+        interview_questions = self.interview_question_dao.get_by_interview(db=db, interview_id=session.interview_id, limit=1000)
+        if not interview_questions:
+            raise ValueError("No questions found for this interview")
+
+        # Sort by order_index to ensure correct sequence
+        # interview_questions.sort(key=lambda x: x.order_index)
+
+        # Check if all questions are completed
+        if current_index >= len(interview_questions):
+            # All questions completed, end interview
+            session = self.session_dao.complete_session(db=db, session_id=session_id)
+            self._update_candidate_status_on_completion(db, session.candidate_id)
+            return ChatResponse(
+                session_id=session_id,
+                assistant_message="Thank you for completing the interview!",
+                session_status=session.status,
+                is_interview_complete=True
+            )
+
+        # Get current interview question
+        current_interview_question = interview_questions[current_index]
+
+        # Get the full question object
+        from app.crud.question import QuestionDAO
+        question_dao = QuestionDAO()
+        current_question = question_dao.get(db=db, id=current_interview_question.question_id)
+        if not current_question:
+            raise ValueError(f"Question not found: {current_interview_question.question_id}")
+
+        logger.info(f"Processing question {current_index + 1}/{len(interview_questions)}: {current_question.title}")
 
         # Convert conversation history to dict format for LLM
         conversation_dict = []
@@ -199,18 +223,40 @@ class InterviewSessionService:
                 })
 
         try:
-            logger.info(f"Preparing interview context with {len(questions)} questions")
+            # Step 1: Prepare initial context for evaluation
+            logger.info(f"Preparing interview context for evaluation")
             context = self.llm_service.prepare_interview_context(
                 candidate_name=candidate_name,
                 interview_title=interview.job_title,
                 job_description=interview.job_description,
-                questions=questions,
+                current_question=current_question,
                 conversation_history=conversation_dict
             )
 
-            # Get LLM response using interview language (not client-provided language)
+            # Step 2: Determine which question to use based on evaluation
+            question_to_use, new_index = self._determine_question_to_use(
+                db=db,
+                context=context,
+                current_question=current_question,
+                current_index=current_index,
+                interview_questions=interview_questions,
+                user_message=user_message
+            )
+
+            # Step 3: Update context with the selected question if it changed
+            if question_to_use.id != current_question.id:
+                logger.info(f"Question changed from '{current_question.title}' to '{question_to_use.title}'")
+                context = self.llm_service.prepare_interview_context(
+                    candidate_name=candidate_name,
+                    interview_title=interview.job_title,
+                    job_description=interview.job_description,
+                    current_question=question_to_use,
+                    conversation_history=conversation_dict
+                )
+
+            # Step 4: Get LLM response using the selected question
             logger.info(f"Processing interview message with LLM service using {interview.language} language")
-            assistant_response, is_complete = self.llm_service.process_interview_message(
+            llm_response = self.llm_service.process_interview_message(
                 db=db,
                 context=context,
                 user_message=user_message,
@@ -221,32 +267,133 @@ class InterviewSessionService:
             raise
         
         # Add assistant response to conversation
-            session = self.session_dao.add_message_to_conversation(
+        session = self.session_dao.add_message_to_conversation(
             db=db,
             session_id=session_id,
             role="assistant",
-            content=assistant_response
+            content=llm_response.assistant_response
         )
-        
-        # Complete session if interview is done
-        if is_complete:
-            session = self.session_dao.complete_session(
-                db=db,
-                session_id=session_id
-            )
-            # Update candidate status to completed
+
+        # Handle question progression based on evaluation results
+        if new_index != current_index:
+            # Question index changed, update session
+            from app.schemas.interview_session import InterviewSessionUpdate
+            session_update = InterviewSessionUpdate(current_question_index=new_index)
+            # Update session using DAO - the DAO handles response object conversion internally
+            self.session_dao.update(db=db, db_obj=session, obj_in=session_update)  # type: ignore
+
+            # Update current question status to ANSWERED
+            db_interview_question = self.interview_question_dao.get_model(db=db, id=current_interview_question.id)
+            if db_interview_question:
+                from app.schemas.interview_question import InterviewQuestionUpdate
+                question_update = InterviewQuestionUpdate(status=InterviewQuestionStatus.ANSWERED)
+                self.interview_question_dao.update(
+                    db=db,
+                    db_obj=db_interview_question,
+                    obj_in=question_update
+                )
+
+            logger.info(f"Advanced to question {new_index + 1}/{len(interview_questions)}")
+            current_index = new_index
+
+        # Check if interview is complete (all questions processed)
+        is_interview_complete = current_index >= len(interview_questions)
+
+        if is_interview_complete:
+            session = self.session_dao.complete_session(db=db, session_id=session_id)
             self._update_candidate_status_on_completion(db, session.candidate_id)
+            logger.info("Interview completed - all questions processed")
 
         return ChatResponse(
             session_id=session_id,
-            assistant_message=assistant_response,
+            assistant_message=llm_response.assistant_response,
             session_status=session.status,
-            is_interview_complete=is_complete
+            is_interview_complete=is_interview_complete
         )
+
+    def _determine_question_to_use(
+        self,
+        db: Session,
+        context: InterviewContext,
+        current_question: "QuestionResponse",
+        current_index: int,
+        interview_questions: list,
+        user_message: str
+    ) -> tuple["QuestionResponse", int]:
+        """
+        Determine which question to inject into the LLM based on evaluation results and question importance.
+
+        Args:
+            db: Database session
+            context: Interview context
+            current_question: The current question being evaluated
+            current_index: Current question index
+            interview_questions: List of all interview questions
+            user_message: User's latest message
+
+        Returns:
+            Tuple of (question_to_use, new_index)
+        """
+        # Evaluate if the current question was answered using Claude 4
+        evaluation_result = self.question_evaluation_service.evaluate_question_answered(
+            db=db,
+            context=context,
+            current_question=current_question,
+            user_message=user_message
+        )
+
+        logger.info(f"Question evaluation result: {evaluation_result.question_fully_answered}")
+        logger.info(f"Evaluation reasoning: {evaluation_result.reasoning}")
+
+        # Determine if we should proceed based on question importance and evaluation
+        should_proceed = self._should_proceed_based_on_importance(
+            current_question, evaluation_result.question_fully_answered
+        )
+
+        if should_proceed and current_index + 1 < len(interview_questions):
+            # Move to next question
+            new_index = current_index + 1
+            next_question_response = interview_questions[new_index]
+
+            # Get the full question object
+            from app.crud.question import QuestionDAO
+            question_dao = QuestionDAO()
+            next_question = question_dao.get(db=db, id=next_question_response.question_id)
+            if not next_question:
+                raise ValueError(f"Next question not found: {next_question_response.question_id}")
+
+            logger.info(f"Proceeding to next question {new_index + 1}/{len(interview_questions)}: {next_question.title}")
+            return next_question, new_index
+        else:
+            # Stay on current question or we've reached the end
+            logger.info(f"Staying on current question: {current_question.title}")
+            return current_question, current_index
+
+    def _should_proceed_based_on_importance(self, question: "QuestionResponse", fully_answered: bool) -> bool:
+        """
+        Determine if we should proceed to the next question based on question importance and answer status.
+
+        Args:
+            question: The current question object
+            fully_answered: Whether the question was fully answered
+
+        Returns:
+            bool: True if we should move to the next question
+        """
+        if question.importance == QuestionImportance.MANDATORY:
+            # For mandatory questions, only proceed if fully answered
+            return fully_answered
+        elif question.importance == QuestionImportance.ASK_ONCE:
+            # For ask_once questions, proceed regardless (they require an answer, any answer)
+            return True
+        else:  # OPTIONAL
+            # For optional questions, always proceed regardless of answer quality
+            return True
 
     def end_session(self, db: Session, session_id: int) -> InterviewSessionResponse:
         """
-        End an interview session manually and update candidate status
+        End an interview session manually and update candidate status.
+        Marks all remaining questions as SKIPPED.
         """
         logger.info(f"Ending interview session {session_id}")
 
@@ -257,6 +404,9 @@ class InterviewSessionService:
             raise ValueError("Session not found")
 
         logger.info(f"Found session {session_id} for candidate {session.candidate_id}")
+
+        # Mark all remaining questions as SKIPPED
+        self._mark_remaining_questions_as_skipped(db, session)
 
         # Complete the session
         completed_session = self.session_dao.complete_session(
@@ -271,6 +421,45 @@ class InterviewSessionService:
         logger.info(f"Candidate status update completed for candidate {session.candidate_id}")
 
         return completed_session
+
+    def _mark_remaining_questions_as_skipped(self, db: Session, session: InterviewSessionResponse) -> None:
+        """
+        Mark all remaining questions (from current_question_index onwards) as SKIPPED.
+
+        Args:
+            db: Database session
+            session: Interview session response object
+        """
+        logger.info(f"Marking remaining questions as SKIPPED for session {session.id}")
+
+        # Get all interview questions for this interview
+        interview_questions = self.interview_question_dao.get_by_interview(db=db, interview_id=session.interview_id, limit=1000)
+        if not interview_questions:
+            logger.warning(f"No questions found for interview {session.interview_id}")
+            return
+
+        # Sort by order_index to ensure correct sequence
+        interview_questions.sort(key=lambda x: x.order_index)
+
+        # Mark questions from current_question_index onwards as SKIPPED
+        current_index = session.current_question_index
+        questions_to_skip = interview_questions[current_index:]
+
+        logger.info(f"Marking {len(questions_to_skip)} questions as SKIPPED (from index {current_index})")
+
+        for interview_question in questions_to_skip:
+            # Only skip questions that are still PENDING
+            if interview_question.status == InterviewQuestionStatus.PENDING:
+                db_interview_question = self.interview_question_dao.get_model(db=db, id=interview_question.id)
+                if db_interview_question:
+                    from app.schemas.interview_question import InterviewQuestionUpdate
+                    question_update = InterviewQuestionUpdate(status=InterviewQuestionStatus.SKIPPED)
+                    self.interview_question_dao.update(
+                        db=db,
+                        db_obj=db_interview_question,
+                        obj_in=question_update
+                    )
+                    logger.info(f"Marked question {interview_question.id} as SKIPPED")
 
     def _update_candidate_status_on_completion(self, db: Session, candidate_id: int) -> None:
         """

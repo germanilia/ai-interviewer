@@ -206,8 +206,7 @@ class TestJudgeEvaluator:
             reasoning="Evaluation reasoning",
             response="Evaluation response",
             was_question_answered=True,
-            answered_question_index=1,
-            interview_complete=False
+            answered_question_index=1
         )
         
         prompt = JudgeEvaluator()
@@ -239,8 +238,7 @@ class TestJudgeEvaluator:
             reasoning="Evaluation reasoning",
             response="Evaluation response",
             was_question_answered=True,
-            answered_question_index=1,
-            interview_complete=False
+            answered_question_index=1
         )
         
         prompt = JudgeEvaluator()

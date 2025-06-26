@@ -20,6 +20,10 @@ class InterviewQuestionDAO(BaseDAO[InterviewQuestion, InterviewQuestionResponse,
         interview_question = db.query(self.model).filter(self.model.id == id).first()
         return InterviewQuestionResponse.from_model(interview_question) if interview_question else None
 
+    def get_model(self, db: Session, id: int) -> Optional[InterviewQuestion]:
+        """Get an interview question model by ID."""
+        return db.query(self.model).filter(self.model.id == id).first()
+
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[InterviewQuestionResponse]:
         """Get multiple interview questions with pagination."""
         interview_questions = db.query(self.model).offset(skip).limit(limit).all()

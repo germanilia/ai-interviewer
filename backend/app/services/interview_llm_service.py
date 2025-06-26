@@ -5,6 +5,7 @@ import logging
 from typing import Optional, Tuple, TYPE_CHECKING
 from sqlalchemy.orm import Session
 from app.schemas.interview_session import InterviewContext, ChatMessage
+from app.schemas.prompt_response import InterviewMessageResponse
 from app.evaluators.initial_evaluator import InitialEvaluator
 from app.evaluators.judge_evaluator import JudgeEvaluator
 from app.evaluators.guardrails_evaluator import GuardrailsEvaluator
@@ -75,9 +76,9 @@ class InterviewLLMService:
         context: InterviewContext,
         user_message: str,
         language: str = "English"
-    ) -> Tuple[str, bool]:
+    ) -> InterviewMessageResponse:
         """
-        Process user message using evaluator pipeline and return LLM response and completion status
+        Process user message using evaluator pipeline and return LLM response
 
         Args:
             db: Database session
@@ -86,23 +87,22 @@ class InterviewLLMService:
             language: Language preference for response (Hebrew, English, Arabic)
 
         Returns:
-            Tuple of (assistant_response, is_interview_complete)
+            InterviewMessageResponse with assistant response
         """
         logger.info(f"Processing message for candidate: {context.candidate_name} in {language}")
 
         # Map language enum to internal codes
         language_code = self._map_language_to_code(language)
 
-        # Check if user wants to end the interview
-        if self._is_completion_message(user_message):
-            return self._generate_completion_response(context, language_code), True
-
+        
         try:
             # Step 1: Check guardrails first
             can_continue = self.guardrails_evaluator.execute(db, context, user_message)
             if not can_continue:
                 logger.warning(f"Guardrails blocked message from {context.candidate_name}")
-                return self._generate_blocked_response(language_code), False
+                return InterviewMessageResponse(
+                    assistant_response=self._generate_blocked_response(language_code),
+                )
 
             context.language = language_code
             
@@ -115,13 +115,17 @@ class InterviewLLMService:
             )
 
             # Use the judge's final response
-            return judge_response.response, judge_response.interview_complete
+            return InterviewMessageResponse(
+                assistant_response=judge_response.response,
+            )
 
         except Exception as e:
             logger.exception(f"Error in evaluator pipeline: {e}")
             # Fallback to hard-coded response
             response = self._generate_fallback_response(context, user_message, language_code)
-            return response, False
+            return InterviewMessageResponse(
+                assistant_response=response,
+            )
 
     def _map_language_to_code(self, language: str) -> str:
         """Map language enum values to internal language codes"""
@@ -132,15 +136,7 @@ class InterviewLLMService:
         }
         return language_map.get(language, "en")  # Default to English
 
-    def _is_completion_message(self, message: str) -> bool:
-        """Check if the message indicates the user wants to end the interview"""
-        completion_keywords = [
-            "done", "finished", "complete", "end", "that's all",
-            "no more", "i'm done", "finish", "conclude"
-        ]
-        message_lower = message.lower().strip()
-        return any(keyword in message_lower for keyword in completion_keywords)
-
+    
     def _generate_blocked_response(self, language: str = "en") -> str:
         """Generate a response when content is blocked by guardrails"""
         if language == "he":
@@ -208,7 +204,7 @@ class InterviewLLMService:
         candidate_name: str,
         interview_title: str,
         job_description: Optional[str],
-        questions: list["QuestionResponse"],
+        current_question: "QuestionResponse",
         conversation_history: list[dict]
     ) -> InterviewContext:
         """Prepare interview context for LLM processing"""
@@ -236,7 +232,7 @@ class InterviewLLMService:
             candidate_name=candidate_name,
             interview_title=interview_title,
             job_description=job_description,
-            questions=questions,
+            questions=[current_question],  # Pass only the current question
             conversation_history=chat_messages
         )
 
