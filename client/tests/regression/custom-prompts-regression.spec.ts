@@ -28,7 +28,7 @@ test.describe('Custom Prompts - Regression Tests', () => {
       // 3. Create a new prompt
       const uniqueId = Date.now();
       const promptData = {
-        promptType: 'small_llm' as const,
+        promptType: 'evaluation' as const,
         name: `Regression Test Prompt ${uniqueId}`,
         content: 'This is a regression test prompt for {candidate_name} interviewing for {interview_title}.',
         description: 'Created during regression testing'
@@ -88,7 +88,7 @@ test.describe('Custom Prompts - Regression Tests', () => {
     test('should create prompts of all types', async () => {
       await customPromptsPage.navigateTo();
 
-      const promptTypes = ['small_llm', 'judge', 'guardrails'] as const;
+      const promptTypes = ['evaluation', 'judge', 'guardrails'] as const;
       const uniqueId = Date.now();
 
       for (const promptType of promptTypes) {
@@ -113,47 +113,40 @@ test.describe('Custom Prompts - Regression Tests', () => {
       }
     });
 
-    test('should handle prompt activation correctly', async () => {
+    test('should handle prompt replacement correctly', async () => {
       await customPromptsPage.navigateTo();
 
       const uniqueId = Date.now();
-      
-      // Create two prompts of the same type
+
+      // Create first prompt
       const prompt1Data = {
         promptType: 'judge' as const,
         name: `Judge Prompt 1 ${uniqueId}`,
         content: 'First judge prompt content',
-        isActive: true
+        description: 'First judge prompt'
       };
 
+      await customPromptsPage.createPrompt(prompt1Data);
+      await customPromptsPage.waitForSuccessToast();
+      expect(await customPromptsPage.promptExists(prompt1Data.name)).toBeTruthy();
+
+      // Create second prompt of same type (should replace the first)
       const prompt2Data = {
         promptType: 'judge' as const,
         name: `Judge Prompt 2 ${uniqueId}`,
         content: 'Second judge prompt content',
-        isActive: false
+        description: 'Second judge prompt'
       };
-
-      // Create both prompts
-      await customPromptsPage.createPrompt(prompt1Data);
-      await customPromptsPage.waitForSuccessToast();
 
       await customPromptsPage.createPrompt(prompt2Data);
       await customPromptsPage.waitForSuccessToast();
 
-      // Verify initial states
-      let prompt1 = await customPromptsPage.getPromptByName(prompt1Data.name);
-      let prompt2 = await customPromptsPage.getPromptByName(prompt2Data.name);
-      expect(prompt1.status).toContain('Active');
-      expect(prompt2.status).toContain('Inactive');
+      // Verify only the second prompt exists
+      expect(await customPromptsPage.promptExists(prompt2Data.name)).toBeTruthy();
+      expect(await customPromptsPage.promptExists(prompt1Data.name)).toBeFalsy();
 
-      // Activate the second prompt (should deactivate the first)
-      await customPromptsPage.togglePromptStatus(prompt2Data.name);
-      await customPromptsPage.waitForSuccessToast();
-
-      // Verify status changes
-      prompt1 = await customPromptsPage.getPromptByName(prompt1Data.name);
-      prompt2 = await customPromptsPage.getPromptByName(prompt2Data.name);
-      expect(prompt1.status).toContain('Inactive');
+      // Verify the prompt is active
+      const prompt2 = await customPromptsPage.getPromptByName(prompt2Data.name);
       expect(prompt2.status).toContain('Active');
     });
 
@@ -200,7 +193,7 @@ test.describe('Custom Prompts - Regression Tests', () => {
       // Verify we can still create prompts after cancellation
       const uniqueId = Date.now();
       const promptData = {
-        promptType: 'small_llm' as const,
+        promptType: 'evaluation' as const,
         name: `After Cancel Prompt ${uniqueId}`,
         content: 'This prompt is created after cancelling another',
       };
@@ -246,7 +239,7 @@ test.describe('Custom Prompts - Regression Tests', () => {
         () => customPromptsPage.openCreateDialog(),
         () => customPromptsPage.cancelPromptForm(),
         () => customPromptsPage.createPrompt({
-          promptType: 'small_llm' as const,
+          promptType: 'evaluation' as const,
           name: `Auth Test Prompt ${Date.now()}`,
           content: 'Testing authentication persistence'
         }),

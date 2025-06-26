@@ -1,7 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 
 export interface CustomPromptData {
-  promptType: 'small_llm' | 'judge' | 'guardrails';
+  promptType: 'evaluation' | 'judge' | 'guardrails';
   name: string;
   content: string;
   description?: string;
@@ -28,7 +28,7 @@ export class CustomPromptsPage {
   readonly loadingState: Locator;
   
   // Prompt Type Sections
-  readonly smallLlmSection: Locator;
+  readonly evaluationSection: Locator;
   readonly judgeSection: Locator;
   readonly guardrailsSection: Locator;
   
@@ -79,7 +79,7 @@ export class CustomPromptsPage {
     this.loadingState = page.getByText('Loading custom prompts...');
     
     // Prompt Type Sections
-    this.smallLlmSection = page.getByText('Small LLM').locator('..');
+    this.evaluationSection = page.getByText('Evaluation').locator('..');
     this.judgeSection = page.getByText('Judge').locator('..');
     this.guardrailsSection = page.getByText('Guardrails').locator('..');
     
@@ -315,7 +315,7 @@ export class CustomPromptsPage {
    */
   private getPromptTypeLabel(promptType: string): string {
     const labels = {
-      'small_llm': 'Small LLM',
+      'evaluation': 'Evaluation',
       'judge': 'Judge',
       'guardrails': 'Guardrails'
     };
@@ -325,18 +325,25 @@ export class CustomPromptsPage {
   /**
    * Check if empty state is shown for a prompt type
    */
-  async isEmptyStateShown(promptType: 'small_llm' | 'judge' | 'guardrails'): Promise<boolean> {
+  async isEmptyStateShown(promptType: 'evaluation' | 'judge' | 'guardrails'): Promise<boolean> {
     const typeLabel = this.getPromptTypeLabel(promptType);
-    const emptyText = `No ${typeLabel.toLowerCase()} prompts created yet.`;
+    const emptyText = `No ${typeLabel.toLowerCase()} prompt configured yet.`;
     return await this.page.getByText(emptyText).isVisible();
   }
 
   /**
    * Click create first prompt button for a specific type
    */
-  async clickCreateFirstPrompt(promptType: 'small_llm' | 'judge' | 'guardrails') {
+  async clickCreateFirstPrompt(promptType: 'evaluation' | 'judge' | 'guardrails') {
     await this.page.getByTestId(`create-${promptType}-prompt`).click();
     await this.promptDialog.waitFor({ state: 'visible' });
+  }
+
+  /**
+   * Check if create button is visible (only when not all types are configured)
+   */
+  async isCreateButtonVisible(): Promise<boolean> {
+    return await this.createPromptButton.isVisible();
   }
 
   /**

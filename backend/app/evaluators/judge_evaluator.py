@@ -4,16 +4,16 @@ Judge prompt class for final interview response evaluation and refinement.
 import logging
 import json
 from sqlalchemy.orm import Session
-from app.prompts.base_prompt import BasePrompt
+from app.evaluators.base_evaluator import BaseEvaluator, PromptExecutionError
 from app.models.custom_prompt import PromptType
 from app.schemas.interview_session import InterviewContext
-from app.schemas.prompt_response import JudgeResponse, SmallLLMResponse
+from app.schemas.prompt_response import JudgeResponse, EvaluationResponse
 from app.core.llm_service import LLMFactory, ModelName, LLMResponse, LLMConfig, ReasoningConfig
 
 logger = logging.getLogger(__name__)
 
 
-class JudgePrompt(BasePrompt):
+class JudgeEvaluator(BaseEvaluator):
     """
     Judge prompt class for evaluating and refining interview responses.
     Uses a larger, more sophisticated model for final response generation.
@@ -35,10 +35,10 @@ Conversation History:
 Current candidate message: "{current_message}"
 
 Initial AI Response Analysis:
-- Reasoning: {small_llm_reasoning}
-- Proposed Response: {small_llm_response}
-- Question Answered: {small_llm_was_question_answered}
-- Question Index: {small_llm_answered_question_index}
+- Reasoning: {evaluation_reasoning}
+- Proposed Response: {evaluation_response}
+- Question Answered: {evaluation_was_question_answered}
+- Question Index: {evaluation_answered_question_index}
 
 Your task is to:
 1. Review the initial AI response analysis
@@ -76,16 +76,16 @@ Guidelines:
             db: Database session
             context: Interview context
             message: Candidate's message
-            **kwargs: Additional arguments including small_llm_response
+            **kwargs: Additional arguments including evaluation_response
 
         Returns:
             JudgeResponse with refined reasoning, response, and question analysis
         """
         try:
-            # Get the small LLM response from kwargs
-            small_llm_response = kwargs.get('small_llm_response')
-            if not isinstance(small_llm_response, SmallLLMResponse):
-                raise ValueError("small_llm_response is required and must be a SmallLLMResponse object")
+            # Get the evaluation response from kwargs
+            evaluation_response = kwargs.get('evaluation_response')
+            if not isinstance(evaluation_response, EvaluationResponse):
+                raise ValueError("evaluation_response is required and must be a EvaluationResponse object")
 
             # Get the prompt content (custom or default)
             prompt_content = self.get_prompt_content(db)
@@ -93,12 +93,12 @@ Guidelines:
             # Prepare context variables
             context_vars = self.prepare_context_variables(context, message)
 
-            # Add small LLM response data to context variables
+            # Add evaluation response data to context variables
             context_vars.update({
-                "small_llm_reasoning": small_llm_response.reasoning,
-                "small_llm_response": small_llm_response.response,
-                "small_llm_was_question_answered": small_llm_response.was_question_answered,
-                "small_llm_answered_question_index": small_llm_response.answered_question_index or "null"
+                "evaluation_reasoning": evaluation_response.reasoning,
+                "evaluation_response": evaluation_response.response,
+                "evaluation_was_question_answered": evaluation_response.was_question_answered,
+                "evaluation_answered_question_index": evaluation_response.answered_question_index or "null"
             })
 
             # Format the prompt
@@ -131,12 +131,12 @@ Guidelines:
 
             except (json.JSONDecodeError, ValueError) as e:
                 logger.warning(f"Failed to parse Judge LLM response as JSON: {e}")
-                # Fallback: use the small LLM response with judge reasoning
+                # Fallback: use the evaluation response with judge reasoning
                 return JudgeResponse(
-                    reasoning=f"Judge failed to parse response, using small LLM output: {str(e)}",
-                    response=small_llm_response.response,
-                    was_question_answered=small_llm_response.was_question_answered,
-                    answered_question_index=small_llm_response.answered_question_index
+                    reasoning=f"Judge failed to parse response, using evaluation output: {str(e)}",
+                    response=evaluation_response.response,
+                    was_question_answered=evaluation_response.was_question_answered,
+                    answered_question_index=evaluation_response.answered_question_index
                 )
 
         except Exception as e:
@@ -144,19 +144,19 @@ Guidelines:
             logger.exception(error_msg)
             self.log_execution("Judge", False, error_msg)
 
-            # Fallback to small LLM response if available
-            small_llm_response = kwargs.get('small_llm_response')
-            if isinstance(small_llm_response, SmallLLMResponse):
+            # Fallback to evaluation response if available
+            evaluation_response = kwargs.get('evaluation_response')
+            if isinstance(evaluation_response, EvaluationResponse):
                 return JudgeResponse(
-                    reasoning=f"Judge execution failed, using small LLM response: {error_msg}",
-                    response=small_llm_response.response,
-                    was_question_answered=small_llm_response.was_question_answered,
-                    answered_question_index=small_llm_response.answered_question_index
+                    reasoning=f"Judge execution failed, using evaluation response: {error_msg}",
+                    response=evaluation_response.response,
+                    was_question_answered=evaluation_response.was_question_answered,
+                    answered_question_index=evaluation_response.answered_question_index
                 )
             else:
                 # Ultimate fallback
                 return JudgeResponse(
-                    reasoning="Both Judge and Small LLM failed",
+                    reasoning="Both Judge and Evaluation failed",
                     response="Thank you for your response. Could you tell me more about your experience?",
                     was_question_answered=False,
                     answered_question_index=None
@@ -164,4 +164,4 @@ Guidelines:
 
 
 # Create instance for dependency injection
-judge_prompt = JudgePrompt()
+judge_prompt = JudgeEvaluator()

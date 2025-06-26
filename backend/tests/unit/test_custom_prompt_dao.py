@@ -31,8 +31,8 @@ def custom_prompt_dao():
 def test_custom_prompt_dao_create_returns_pydantic_object(db, custom_prompt_dao, test_user_id):
     """Test that CustomPromptDAO.create returns a CustomPromptResponse (Pydantic object)."""
     prompt_create = CustomPromptCreate(
-        prompt_type=PromptType.SMALL_LLM,
-        name="Test Small LLM Prompt",
+        prompt_type=PromptType.EVALUATION,
+        name="Test Evaluation Prompt",
         content="You are a test prompt for {candidate_name}",
         description="A test prompt for unit testing",
         is_active=True,
@@ -43,8 +43,8 @@ def test_custom_prompt_dao_create_returns_pydantic_object(db, custom_prompt_dao,
     
     # Verify it returns a CustomPromptResponse (Pydantic object)
     assert isinstance(result, CustomPromptResponse)
-    assert result.prompt_type == PromptType.SMALL_LLM
-    assert result.name == "Test Small LLM Prompt"
+    assert result.prompt_type == PromptType.EVALUATION
+    assert result.name == "Test Evaluation Prompt"
     assert result.content == "You are a test prompt for {candidate_name}"
     assert result.description == "A test prompt for unit testing"
     assert result.is_active is True
@@ -84,7 +84,7 @@ def test_custom_prompt_dao_get_nonexistent_returns_none(db, custom_prompt_dao):
 def test_custom_prompt_dao_get_multi_returns_pydantic_objects(db, custom_prompt_dao, test_user_id):
     """Test that CustomPromptDAO.get_multi returns a list of CustomPromptResponse objects."""
     # Create multiple prompts
-    prompt_types = [PromptType.SMALL_LLM, PromptType.JUDGE, PromptType.GUARDRAILS]
+    prompt_types = [PromptType.EVALUATION, PromptType.JUDGE, PromptType.GUARDRAILS]
     for i, prompt_type in enumerate(prompt_types):
         prompt_create = CustomPromptCreate(
             prompt_type=prompt_type,
@@ -142,7 +142,7 @@ def test_custom_prompt_dao_delete_returns_boolean(db, custom_prompt_dao, test_us
     """Test that CustomPromptDAO.delete returns a boolean."""
     # Create a prompt first
     prompt_create = CustomPromptCreate(
-        prompt_type=PromptType.SMALL_LLM,
+        prompt_type=PromptType.EVALUATION,
         name="Prompt to Delete",
         content="This prompt will be deleted",
         created_by_user_id=test_user_id
@@ -169,10 +169,10 @@ def test_custom_prompt_dao_delete_nonexistent_returns_false(db, custom_prompt_da
 def test_custom_prompt_dao_get_by_type(db, custom_prompt_dao, test_user_id):
     """Test CustomPromptDAO.get_by_type method."""
     # Create prompts of different types
-    small_llm_prompt = CustomPromptCreate(
-        prompt_type=PromptType.SMALL_LLM,
-        name="Small LLM Prompt",
-        content="Small LLM content",
+    evaluation_prompt = CustomPromptCreate(
+        prompt_type=PromptType.EVALUATION,
+        name="evaluation Prompt",
+        content="evaluation content",
         is_active=True,
         created_by_user_id=test_user_id
     )
@@ -184,14 +184,14 @@ def test_custom_prompt_dao_get_by_type(db, custom_prompt_dao, test_user_id):
         created_by_user_id=test_user_id
     )
     
-    custom_prompt_dao.create(db, obj_in=small_llm_prompt, created_by_user_id=test_user_id)
+    custom_prompt_dao.create(db, obj_in=evaluation_prompt, created_by_user_id=test_user_id)
     custom_prompt_dao.create(db, obj_in=judge_prompt, created_by_user_id=test_user_id)
     
-    # Get only small_llm prompts (active only)
-    small_llm_results = custom_prompt_dao.get_by_type(db, PromptType.SMALL_LLM, active_only=True)
-    assert len(small_llm_results) == 1
-    assert small_llm_results[0].prompt_type == PromptType.SMALL_LLM
-    assert small_llm_results[0].is_active is True
+    # Get only evaluation prompts (active only)
+    evaluation_results = custom_prompt_dao.get_by_type(db, PromptType.EVALUATION, active_only=True)
+    assert len(evaluation_results) == 1
+    assert evaluation_results[0].prompt_type == PromptType.EVALUATION
+    assert evaluation_results[0].is_active is True
     
     # Get judge prompts (including inactive)
     judge_results = custom_prompt_dao.get_by_type(db, PromptType.JUDGE, active_only=False)
@@ -205,8 +205,8 @@ def test_custom_prompt_dao_get_active_by_type(db, custom_prompt_dao, test_user_i
     # Create multiple prompts of the same type, only one active
     for i in range(3):
         prompt_create = CustomPromptCreate(
-            prompt_type=PromptType.SMALL_LLM,
-            name=f"Small LLM Prompt {i}",
+            prompt_type=PromptType.EVALUATION,
+            name=f"Evaluation Prompt {i}",
             content=f"Content {i}",
             is_active=(i == 1),  # Only the second one is active
             created_by_user_id=test_user_id
@@ -214,11 +214,11 @@ def test_custom_prompt_dao_get_active_by_type(db, custom_prompt_dao, test_user_i
         custom_prompt_dao.create(db, obj_in=prompt_create, created_by_user_id=test_user_id)
     
     # Get the active prompt
-    result = custom_prompt_dao.get_active_by_type(db, PromptType.SMALL_LLM)
+    result = custom_prompt_dao.get_active_by_type(db, PromptType.EVALUATION)
     
     assert result is not None
     assert isinstance(result, CustomPromptResponse)
-    assert result.name == "Small LLM Prompt 1"
+    assert result.name == "Evaluation Prompt 1"
     assert result.is_active is True
 
 
@@ -274,7 +274,7 @@ def test_custom_prompt_dao_get_count_by_type(db, custom_prompt_dao, test_user_id
     """Test CustomPromptDAO.get_count_by_type method."""
     # Create prompts of different types
     prompt_data = [
-        (PromptType.SMALL_LLM, 2),
+        (PromptType.EVALUATION, 2),
         (PromptType.JUDGE, 1),
         (PromptType.GUARDRAILS, 3)
     ]
@@ -292,6 +292,6 @@ def test_custom_prompt_dao_get_count_by_type(db, custom_prompt_dao, test_user_id
     # Get counts
     counts = custom_prompt_dao.get_count_by_type(db)
     
-    assert counts[PromptType.SMALL_LLM] == 2
+    assert counts[PromptType.EVALUATION] == 2
     assert counts[PromptType.JUDGE] == 1
     assert counts[PromptType.GUARDRAILS] == 3

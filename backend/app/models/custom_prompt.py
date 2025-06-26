@@ -7,7 +7,7 @@ from app.db import Base
 
 class PromptType(StrEnum):
     """Enum for different types of prompts"""
-    SMALL_LLM = "small_llm"
+    EVALUATION = "evaluation"
     JUDGE = "judge"
     GUARDRAILS = "guardrails"
 

@@ -16,7 +16,7 @@ def test_get_custom_prompts_requires_auth(client):
 def test_create_custom_prompt_requires_auth(client):
     """Test that POST /api/v1/custom-prompts requires authentication."""
     prompt_data = {
-        "prompt_type": "small_llm",
+        "prompt_type": "evaluation",
         "name": "Test Prompt",
         "content": "Test content",
         "created_by_user_id": 1
@@ -42,8 +42,8 @@ def test_get_custom_prompts_empty_list(authenticated_client):
 def test_create_custom_prompt_success(authenticated_client, test_user):
     """Test successful creation of a custom prompt."""
     prompt_data = {
-        "prompt_type": "small_llm",
-        "name": "Test Small LLM Prompt",
+        "prompt_type": "evaluation",
+        "name": "Test Evaluation Prompt",
         "content": "You are a test prompt for {candidate_name}",
         "description": "A test prompt for integration testing",
         "is_active": True,
@@ -54,8 +54,8 @@ def test_create_custom_prompt_success(authenticated_client, test_user):
     assert response.status_code == status.HTTP_201_CREATED
     
     data = response.json()
-    assert data["prompt_type"] == "small_llm"
-    assert data["name"] == "Test Small LLM Prompt"
+    assert data["prompt_type"] == "evaluation"
+    assert data["name"] == "Test Evaluation Prompt"
     assert data["content"] == "You are a test prompt for {candidate_name}"
     assert data["description"] == "A test prompt for integration testing"
     assert data["is_active"] is True
@@ -69,7 +69,7 @@ def test_create_custom_prompt_validation_error(authenticated_client, test_user):
     """Test custom prompt creation with validation errors."""
     # Missing required fields
     prompt_data = {
-        "prompt_type": "small_llm",
+        "prompt_type": "evaluation",
         # Missing name and content
         "created_by_user_id": test_user["id"]
     }
@@ -153,7 +153,7 @@ def test_delete_custom_prompt(authenticated_client, test_user):
     """Test DELETE /api/v1/custom-prompts/{id}."""
     # Create a prompt first
     prompt_data = {
-        "prompt_type": "small_llm",
+        "prompt_type": "evaluation",
         "name": "Prompt to Delete",
         "content": "This will be deleted",
         "created_by_user_id": test_user["id"]
@@ -188,8 +188,8 @@ def test_activate_custom_prompt(authenticated_client, test_user):
     prompt_ids = []
     for i in range(3):
         prompt_data = {
-            "prompt_type": "small_llm",
-            "name": f"Small LLM Prompt {i}",
+            "prompt_type": "evaluation",
+            "name": f"Evaluation Prompt {i}",
             "content": f"Content {i}",
             "is_active": (i == 0),  # Only first one is initially active
             "created_by_user_id": test_user["id"]
@@ -268,7 +268,7 @@ def test_get_prompt_count_by_type(authenticated_client, test_user):
     """Test GET /api/v1/custom-prompts/stats/count-by-type."""
     # Create prompts of different types
     prompt_types_counts = [
-        ("small_llm", 2),
+        ("evaluation", 2),
         ("judge", 1),
         ("guardrails", 3)
     ]
@@ -292,7 +292,7 @@ def test_get_prompt_count_by_type(authenticated_client, test_user):
     data = response.json()
     assert "counts" in data
     counts = data["counts"]
-    assert counts["small_llm"] == 2
+    assert counts["evaluation"] == 2
     assert counts["judge"] == 1
     assert counts["guardrails"] == 3
 
@@ -301,8 +301,8 @@ def test_get_custom_prompts_with_filters(authenticated_client, test_user):
     """Test GET /api/v1/custom-prompts with query parameters."""
     # Create prompts of different types and states
     prompts_data = [
-        {"prompt_type": "small_llm", "name": "Active Small LLM", "is_active": True},
-        {"prompt_type": "small_llm", "name": "Inactive Small LLM", "is_active": False},
+        {"prompt_type": "evaluation", "name": "Active Evaluation", "is_active": True},
+        {"prompt_type": "evaluation", "name": "Inactive Evaluation", "is_active": False},
         {"prompt_type": "judge", "name": "Active Judge", "is_active": True},
     ]
     
@@ -317,12 +317,12 @@ def test_get_custom_prompts_with_filters(authenticated_client, test_user):
         assert create_response.status_code == status.HTTP_201_CREATED
     
     # Test filtering by type
-    response = authenticated_client.get("/api/v1/custom-prompts?prompt_type=small_llm")
+    response = authenticated_client.get("/api/v1/custom-prompts?prompt_type=evaluation")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert len(data["prompts"]) == 2
     for prompt in data["prompts"]:
-        assert prompt["prompt_type"] == "small_llm"
+        assert prompt["prompt_type"] == "evaluation"
     
     # Test filtering by active status
     response = authenticated_client.get("/api/v1/custom-prompts?active_only=true")

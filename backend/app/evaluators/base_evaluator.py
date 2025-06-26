@@ -1,5 +1,5 @@
 """
-Base prompt class for handling custom prompts from database or default prompts.
+Base evaluator class for handling custom prompts from database or default prompts.
 """
 import logging
 from abc import ABC, abstractmethod
@@ -12,7 +12,7 @@ from app.schemas.interview_session import InterviewContext
 logger = logging.getLogger(__name__)
 
 
-class BasePrompt(ABC):
+class BaseEvaluator(ABC):
     """
     Abstract base class for all prompt types.
     Handles loading custom prompts from database or using default prompts.
@@ -23,7 +23,7 @@ class BasePrompt(ABC):
         Initialize the base prompt.
         
         Args:
-            prompt_type: The type of prompt (SMALL_LLM, JUDGE, GUARDRAILS)
+            prompt_type: The type of prompt (EVALUATION, JUDGE, GUARDRAILS)
             default_prompt: The default prompt content to use if no custom prompt is found
         """
         self.prompt_type = prompt_type

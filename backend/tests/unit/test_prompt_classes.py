@@ -1,15 +1,16 @@
 """
-Unit tests for prompt classes (SmallLLMPrompt, JudgePrompt, GuardrailsPrompt).
+Unit tests for prompt classes (EvaluationEvaluationPrompt, JudgeEvaluator, GuardrailsEvaluator).
 """
 import pytest
 from unittest.mock import Mock, patch
-from app.prompts.evaluation_prompt import SmallLLMPrompt
-from app.prompts.judge_prompt import JudgePrompt
-from app.prompts.guardrails_prompt import GuardrailsPrompt
+from backend.app.evaluators.initial_evaluator import InitialEvaluator
+from backend.app.evaluators.judge_evaluator import JudgeEvaluator
+from backend.app.evaluators.guardrails_evaluator import GuardrailsEvaluator
 from app.schemas.interview_session import InterviewContext, ChatMessage
-from app.schemas.prompt_response import SmallLLMResponse, JudgeResponse
+from app.schemas.prompt_response import EvaluationResponse, JudgeResponse
 from app.schemas.question import QuestionResponse
 from app.models.custom_prompt import PromptType
+from app.models.interview import QuestionCategory, QuestionImportance
 from app.crud.user import UserDAO
 from app.crud.custom_prompt import CustomPromptDAO
 from app.schemas.user import UserCreate
@@ -36,18 +37,22 @@ def sample_interview_context():
     questions = [
         QuestionResponse(
             id=1,
+            title="Intro Question",
+            instructions=None,
             question_text="Tell me about yourself",
-            category="general",
-            importance="high",
+            category=QuestionCategory.GENERAL,
+            importance=QuestionImportance.MANDATORY,
             created_by_user_id=1,
             created_at=datetime.now(),
             updated_at=datetime.now()
         ),
         QuestionResponse(
             id=2,
+            title="Strengths Question",
             question_text="What are your strengths?",
-            category="behavioral",
-            importance="medium",
+            category=QuestionCategory.GENERAL,
+            instructions=None,
+            importance=QuestionImportance.ASK_ONCE,
             created_by_user_id=1,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -76,20 +81,20 @@ def sample_interview_context():
     )
 
 
-class TestSmallLLMPrompt:
-    """Test cases for SmallLLMPrompt class."""
+class TestEvaluationPrompt:
+    """Test cases for EvaluationPrompt class."""
 
-    def test_small_llm_prompt_initialization(self):
-        """Test SmallLLMPrompt initialization."""
-        prompt = SmallLLMPrompt()
-        assert prompt.prompt_type == PromptType.SMALL_LLM
+    def test_evaluation_prompt_initialization(self):
+        """Test EvaluationPrompt initialization."""
+        prompt = InitialEvaluator()
+        assert prompt.prompt_type == PromptType.EVALUATION
         assert prompt.default_prompt is not None
         assert "candidate_name" in prompt.default_prompt
         assert "interview_title" in prompt.default_prompt
 
     def test_get_prompt_content_uses_default_when_no_custom(self, db):
         """Test that get_prompt_content returns default when no custom prompt exists."""
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         content = prompt.get_prompt_content(db)
         assert content == prompt.default_prompt
 
@@ -98,21 +103,21 @@ class TestSmallLLMPrompt:
         # Create a custom prompt
         custom_prompt_dao = CustomPromptDAO()
         custom_prompt_create = CustomPromptCreate(
-            prompt_type=PromptType.SMALL_LLM,
-            name="Custom Small LLM Prompt",
+            prompt_type=PromptType.EVALUATION,
+            name="Custom Evaluation Prompt",
             content="Custom prompt content for {candidate_name}",
             is_active=True,
             created_by_user_id=test_user_id
         )
         custom_prompt_dao.create(db, obj_in=custom_prompt_create, created_by_user_id=test_user_id)
         
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         content = prompt.get_prompt_content(db)
         assert content == "Custom prompt content for {candidate_name}"
 
     def test_prepare_context_variables(self, sample_interview_context):
         """Test prepare_context_variables method."""
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         variables = prompt.prepare_context_variables(sample_interview_context, "Test message")
         
         assert variables["candidate_name"] == "John Doe"
@@ -133,10 +138,10 @@ class TestSmallLLMPrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         result = prompt.execute(db, sample_interview_context, "Test message")
         
-        assert isinstance(result, SmallLLMResponse)
+        assert isinstance(result, EvaluationResponse)
         assert result.reasoning == "Test reasoning"
         assert result.response == "Test response"
         assert result.was_question_answered is True
@@ -152,10 +157,10 @@ class TestSmallLLMPrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         result = prompt.execute(db, sample_interview_context, "Test message")
         
-        assert isinstance(result, SmallLLMResponse)
+        assert isinstance(result, EvaluationResponse)
         assert result.reasoning == "Failed to parse structured response from LLM"
         assert result.was_question_answered is False
         assert result.answered_question_index is None
@@ -168,23 +173,23 @@ class TestSmallLLMPrompt:
         mock_client.generate.side_effect = Exception("LLM error")
         mock_llm_factory.return_value = mock_client
         
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         result = prompt.execute(db, sample_interview_context, "Test message")
         
-        assert isinstance(result, SmallLLMResponse)
+        assert isinstance(result, EvaluationResponse)
         assert result.reasoning == "Error occurred during LLM processing"
         assert result.was_question_answered is False
 
 
-class TestJudgePrompt:
-    """Test cases for JudgePrompt class."""
+class TestJudgeEvaluator:
+    """Test cases for JudgeEvaluator class."""
 
     def test_judge_prompt_initialization(self):
-        """Test JudgePrompt initialization."""
-        prompt = JudgePrompt()
+        """Test JudgeEvaluator initialization."""
+        prompt = JudgeEvaluator()
         assert prompt.prompt_type == PromptType.JUDGE
         assert prompt.default_prompt is not None
-        assert "small_llm_reasoning" in prompt.default_prompt
+        assert "evaluation_reasoning" in prompt.default_prompt
 
     @patch('app.prompts.judge_prompt.LLMFactory.create_client')
     def test_execute_success(self, mock_llm_factory, db, sample_interview_context):
@@ -196,16 +201,16 @@ class TestJudgePrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        # Create small LLM response
-        small_llm_response = SmallLLMResponse(
-            reasoning="Small LLM reasoning",
-            response="Small LLM response",
+        # Create evaluation response
+        evaluation_response = EvaluationResponse(
+            reasoning="Evaluation reasoning",
+            response="Evaluation response",
             was_question_answered=True,
             answered_question_index=1
         )
         
-        prompt = JudgePrompt()
-        result = prompt.execute(db, sample_interview_context, "Test message", small_llm_response=small_llm_response)
+        prompt = JudgeEvaluator()
+        result = prompt.execute(db, sample_interview_context, "Test message", evaluation_response=evaluation_response)
         
         assert isinstance(result, JudgeResponse)
         assert result.reasoning == "Judge reasoning"
@@ -213,45 +218,45 @@ class TestJudgePrompt:
         assert result.was_question_answered is False
         assert result.answered_question_index is None
 
-    def test_execute_missing_small_llm_response(self, db, sample_interview_context):
-        """Test execution fails when small_llm_response is missing."""
-        prompt = JudgePrompt()
+    def test_execute_missing_evaluation_response(self, db, sample_interview_context):
+        """Test execution fails when evaluation_response is missing."""
+        prompt = JudgeEvaluator()
         
-        with pytest.raises(ValueError, match="small_llm_response is required"):
+        with pytest.raises(ValueError, match="evaluation_response is required"):
             prompt.execute(db, sample_interview_context, "Test message")
 
     @patch('app.prompts.judge_prompt.LLMFactory.create_client')
-    def test_execute_fallback_to_small_llm_on_error(self, mock_llm_factory, db, sample_interview_context):
-        """Test fallback to small LLM response when judge execution fails."""
+    def test_execute_fallback_to_evaluation_on_error(self, mock_llm_factory, db, sample_interview_context):
+        """Test fallback to evaluation response when judge execution fails."""
         # Mock LLM client to raise exception
         mock_client = Mock()
         mock_client.generate.side_effect = Exception("Judge error")
         mock_llm_factory.return_value = mock_client
         
-        # Create small LLM response
-        small_llm_response = SmallLLMResponse(
-            reasoning="Small LLM reasoning",
-            response="Small LLM response",
+        # Create evaluation LLM response
+        evaluation_response = EvaluationResponse(
+            reasoning="Evaluation reasoning",
+            response="Evaluation response",
             was_question_answered=True,
             answered_question_index=1
         )
         
-        prompt = JudgePrompt()
-        result = prompt.execute(db, sample_interview_context, "Test message", small_llm_response=small_llm_response)
+        prompt = JudgeEvaluator()
+        result = prompt.execute(db, sample_interview_context, "Test message", evaluation_response=evaluation_response)
         
         assert isinstance(result, JudgeResponse)
         assert "Judge execution failed" in result.reasoning
-        assert result.response == "Small LLM response"
+        assert result.response == "Evaluation response"
         assert result.was_question_answered is True
         assert result.answered_question_index == 1
 
 
-class TestGuardrailsPrompt:
-    """Test cases for GuardrailsPrompt class."""
+class TestGuardrailsEvaluator:
+    """Test cases for GuardrailsEvaluator class."""
 
     def test_guardrails_prompt_initialization(self):
-        """Test GuardrailsPrompt initialization."""
-        prompt = GuardrailsPrompt()
+        """Test GuardrailsEvaluator initialization."""
+        prompt = GuardrailsEvaluator()
         assert prompt.prompt_type == PromptType.GUARDRAILS
         assert prompt.default_prompt is not None
         assert "content safety" in prompt.default_prompt.lower()
@@ -266,7 +271,7 @@ class TestGuardrailsPrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        prompt = GuardrailsPrompt()
+        prompt = GuardrailsEvaluator()
         result = prompt.execute(db, sample_interview_context, "This is appropriate content")
         
         assert result is True
@@ -281,7 +286,7 @@ class TestGuardrailsPrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        prompt = GuardrailsPrompt()
+        prompt = GuardrailsEvaluator()
         result = prompt.execute(db, sample_interview_context, "Inappropriate content")
         
         assert result is False
@@ -294,7 +299,7 @@ class TestGuardrailsPrompt:
         mock_client.generate.side_effect = Exception("Guardrails error")
         mock_llm_factory.return_value = mock_client
         
-        prompt = GuardrailsPrompt()
+        prompt = GuardrailsEvaluator()
         result = prompt.execute(db, sample_interview_context, "Test message")
         
         # Should default to allowing continuation on error
@@ -310,7 +315,7 @@ class TestGuardrailsPrompt:
         mock_client.generate.return_value = mock_response
         mock_llm_factory.return_value = mock_client
         
-        prompt = GuardrailsPrompt()
+        prompt = GuardrailsEvaluator()
         result = prompt.get_detailed_response(db, sample_interview_context, "Flagged content")
         
         assert result.can_continue is False
@@ -322,14 +327,14 @@ class TestBasePromptFunctionality:
 
     def test_format_prompt_with_variables(self):
         """Test format_prompt method with valid variables."""
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         template = "Hello {name}, welcome to {company}"
         result = prompt.format_prompt(template, name="John", company="TechCorp")
         assert result == "Hello John, welcome to TechCorp"
 
     def test_format_prompt_missing_variables(self):
         """Test format_prompt method with missing variables."""
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         template = "Hello {name}, welcome to {company}"
         result = prompt.format_prompt(template, name="John")  # Missing company
         # Should return original template when variables are missing
@@ -337,7 +342,7 @@ class TestBasePromptFunctionality:
 
     def test_clear_cache(self, db):
         """Test clear_cache method."""
-        prompt = SmallLLMPrompt()
+        prompt = InitialEvaluator()
         
         # Get content to populate cache
         prompt.get_prompt_content(db)

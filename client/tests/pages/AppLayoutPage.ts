@@ -91,7 +91,7 @@ export class AppLayoutPage {
   /**
    * Navigate to specific admin section
    */
-  async navigateTo(section: 'dashboard' | 'candidates' | 'interviews' | 'questions' | 'job-positions' | 'reports' | 'users' | 'settings') {
+  async navigateTo(section: 'dashboard' | 'candidates' | 'interviews' | 'questions' | 'job-positions' | 'reports' | 'users' | 'settings' | 'custom-prompts') {
     // Use direct navigation for more reliable testing
     const expectedUrl = section === 'job-positions' ? '/job-positions' : `/${section}`;
     await this.page.goto(expectedUrl);
@@ -140,7 +140,8 @@ export class AppLayoutPage {
       '/job-positions': 'job-positions',
       '/reports': 'reports',
       '/users': 'users',
-      '/settings': 'settings'
+      '/settings': 'settings',
+      '/custom-prompts': 'custom-prompts'
     };
 
     return urlToSectionMap[pathname] || 'dashboard';

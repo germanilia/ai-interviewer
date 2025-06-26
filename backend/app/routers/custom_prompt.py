@@ -74,15 +74,35 @@ async def create_custom_prompt(
     current_user: UserResponse = Depends(get_current_active_user)
 ):
     """
-    Create a new custom prompt.
+    Create a new custom prompt. If a prompt of the same type already exists, it will be replaced.
     """
     try:
         # Set the created_by_user_id from the current user
         prompt_data.created_by_user_id = current_user.id
-        
+
+        # Check if a prompt of this type already exists
+        existing_prompt = custom_prompt_dao.get_active_by_type(db=db, prompt_type=prompt_data.prompt_type)
+
+        if existing_prompt:
+            # Replace the existing prompt by updating it
+            db_prompt = db.query(custom_prompt_dao.model).filter(
+                custom_prompt_dao.model.id == existing_prompt.id
+            ).first()
+
+            if db_prompt:
+                # Update the existing prompt with new data
+                update_data = CustomPromptUpdate(
+                    name=prompt_data.name,
+                    content=prompt_data.content,
+                    description=prompt_data.description,
+                    is_active=True
+                )
+                return custom_prompt_dao.update(db=db, db_obj=db_prompt, obj_in=update_data)
+
+        # Create new prompt if none exists
         return custom_prompt_dao.create(
-            db=db, 
-            obj_in=prompt_data, 
+            db=db,
+            obj_in=prompt_data,
             created_by_user_id=current_user.id
         )
     except ValueError as e:

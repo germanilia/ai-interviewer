@@ -40,7 +40,7 @@ export interface UserInfo {
 // Custom Prompt types
 export interface CustomPrompt {
   id: number;
-  prompt_type: 'small_llm' | 'judge' | 'guardrails';
+  prompt_type: 'evaluation' | 'judge' | 'guardrails';
   name: string;
   content: string;
   description?: string;
@@ -51,7 +51,7 @@ export interface CustomPrompt {
 }
 
 export interface CustomPromptCreate {
-  prompt_type: 'small_llm' | 'judge' | 'guardrails';
+  prompt_type: 'evaluation' | 'judge' | 'guardrails';
   name: string;
   content: string;
   description?: string;
@@ -821,7 +821,7 @@ export const api = {
     getAll: async (params?: {
       skip?: number;
       limit?: number;
-      prompt_type?: 'small_llm' | 'judge' | 'guardrails';
+      prompt_type?: 'evaluation' | 'judge' | 'guardrails';
       active_only?: boolean;
     }): Promise<CustomPromptListResponse> => {
       const searchParams = new URLSearchParams();
@@ -864,7 +864,7 @@ export const api = {
       });
     },
 
-    getActiveByType: async (promptType: 'small_llm' | 'judge' | 'guardrails'): Promise<CustomPrompt | null> => {
+    getActiveByType: async (promptType: 'evaluation' | 'judge' | 'guardrails'): Promise<CustomPrompt | null> => {
       return fetchFromApi(`/api/v1/custom-prompts/types/${promptType}/active`);
     },
 

@@ -4,7 +4,7 @@ Guardrails prompt class for content safety and appropriateness checking.
 import logging
 import json
 from sqlalchemy.orm import Session
-from app.prompts.base_prompt import BasePrompt
+from app.evaluators.base_evaluator import BaseEvaluator, PromptExecutionError
 from app.models.custom_prompt import PromptType
 from app.schemas.interview_session import InterviewContext
 from app.schemas.prompt_response import GuardrailsResponse
@@ -13,7 +13,7 @@ from app.core.llm_service import LLMFactory, ModelName, LLMResponse
 logger = logging.getLogger(__name__)
 
 
-class GuardrailsPrompt(BasePrompt):
+class GuardrailsEvaluator(BaseEvaluator):
     """
     Guardrails prompt class for checking content safety and appropriateness.
     Determines whether the conversation can continue safely.
@@ -185,4 +185,4 @@ Guidelines:
 
 
 # Create instance for dependency injection
-guardrails_prompt = GuardrailsPrompt()
+guardrails_prompt = GuardrailsEvaluator()

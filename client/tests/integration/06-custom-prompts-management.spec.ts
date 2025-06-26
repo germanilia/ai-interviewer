@@ -21,7 +21,7 @@ test.describe('Custom Prompts Management', () => {
       await expect(customPromptsPage.createPromptButton).toBeVisible();
       
       // Verify prompt type sections
-      await expect(customPromptsPage.page.getByText('Small LLM')).toBeVisible();
+      await expect(customPromptsPage.page.getByText('Evaluation')).toBeVisible();
       await expect(customPromptsPage.page.getByText('Judge')).toBeVisible();
       await expect(customPromptsPage.page.getByText('Guardrails')).toBeVisible();
     });
@@ -29,13 +29,13 @@ test.describe('Custom Prompts Management', () => {
     test('should show empty states when no prompts exist', async () => {
       await customPromptsPage.navigateTo();
       await customPromptsPage.waitForPromptsToLoad();
-      
+
       // Check if empty states are shown (depends on existing data)
       const promptCount = await customPromptsPage.getPromptCount();
       if (promptCount === 0) {
-        await expect(customPromptsPage.page.getByText('No small llm prompts created yet.')).toBeVisible();
-        await expect(customPromptsPage.page.getByText('No judge prompts created yet.')).toBeVisible();
-        await expect(customPromptsPage.page.getByText('No guardrails prompts created yet.')).toBeVisible();
+        await expect(customPromptsPage.page.getByText('No evaluation prompt configured yet.')).toBeVisible();
+        await expect(customPromptsPage.page.getByText('No judge prompt configured yet.')).toBeVisible();
+        await expect(customPromptsPage.page.getByText('No guardrails prompt configured yet.')).toBeVisible();
       }
     });
   });
@@ -60,15 +60,15 @@ test.describe('Custom Prompts Management', () => {
       await expect(customPromptsPage.cancelButton).toBeVisible();
     });
 
-    test('should create small LLM prompt successfully', async () => {
+    test('should create evaluation prompt successfully', async () => {
       await customPromptsPage.navigateTo();
       
       const uniqueId = Date.now();
       const promptData = {
-        promptType: 'small_llm' as const,
-        name: `Test Small LLM Prompt ${uniqueId}`,
-        content: 'You are a test small LLM prompt for {candidate_name} interviewing for {interview_title}.',
-        description: 'A test prompt for small LLM functionality',
+        promptType: 'evaluation' as const,
+        name: `Test Evaluation Prompt ${uniqueId}`,
+        content: 'You are a test evaluation prompt for {candidate_name} interviewing for {interview_title}.',
+        description: 'A test prompt for evaluation functionality',
         isActive: true
       };
       
@@ -83,8 +83,8 @@ test.describe('Custom Prompts Management', () => {
       
       // Verify prompt appears in the list
       expect(await customPromptsPage.promptExists(promptData.name)).toBeTruthy();
-      
-      // Verify prompt details
+
+      // Verify prompt details (all prompts are automatically active)
       const prompt = await customPromptsPage.getPromptByName(promptData.name);
       expect(prompt.status).toContain('Active');
     });
@@ -104,9 +104,9 @@ test.describe('Custom Prompts Management', () => {
       await customPromptsPage.createPrompt(promptData);
       await customPromptsPage.waitForSuccessToast();
       
-      // Verify prompt appears with correct status
+      // Verify prompt appears with correct status (all prompts are automatically active)
       const prompt = await customPromptsPage.getPromptByName(promptData.name);
-      expect(prompt.status).toContain('Inactive');
+      expect(prompt.status).toContain('Active');
     });
 
     test('should create guardrails prompt successfully', async () => {
@@ -124,6 +124,45 @@ test.describe('Custom Prompts Management', () => {
       await customPromptsPage.waitForSuccessToast();
       
       expect(await customPromptsPage.promptExists(promptData.name)).toBeTruthy();
+    });
+
+    test('should replace existing prompt when creating same type', async () => {
+      await customPromptsPage.navigateTo();
+
+      const uniqueId = Date.now();
+
+      // Create first prompt
+      const firstPromptData = {
+        promptType: 'evaluation' as const,
+        name: `First Evaluation Prompt ${uniqueId}`,
+        content: 'First prompt content for {candidate_name}',
+        description: 'First prompt description'
+      };
+
+      await customPromptsPage.createPrompt(firstPromptData);
+      await customPromptsPage.waitForSuccessToast();
+      expect(await customPromptsPage.promptExists(firstPromptData.name)).toBeTruthy();
+
+      // Create second prompt of same type (should replace the first)
+      const secondPromptData = {
+        promptType: 'evaluation' as const,
+        name: `Second Evaluation Prompt ${uniqueId}`,
+        content: 'Second prompt content for {candidate_name}',
+        description: 'Second prompt description'
+      };
+
+      await customPromptsPage.createPrompt(secondPromptData);
+      await customPromptsPage.waitForSuccessToast();
+
+      // Verify only the second prompt exists
+      expect(await customPromptsPage.promptExists(secondPromptData.name)).toBeTruthy();
+      expect(await customPromptsPage.promptExists(firstPromptData.name)).toBeFalsy();
+
+      // Verify only one evaluation prompt exists
+      const promptCount = await customPromptsPage.getPromptCount();
+      // Count should be 1 if this is the only prompt, or check specifically for evaluation section
+      const evaluationEmpty = await customPromptsPage.isEmptyStateShown('evaluation');
+      expect(evaluationEmpty).toBeFalsy(); // Should not be empty since we have one
     });
 
     test('should validate required fields', async () => {
@@ -175,7 +214,7 @@ test.describe('Custom Prompts Management', () => {
       // Create a prompt first
       const uniqueId = Date.now();
       const originalData = {
-        promptType: 'small_llm' as const,
+        promptType: 'evaluation' as const,
         name: `Original Prompt ${uniqueId}`,
         content: 'Original content for {candidate_name}',
         description: 'Original description'
@@ -250,41 +289,22 @@ test.describe('Custom Prompts Management', () => {
     });
   });
 
-  test.describe('Toggle Prompt Status', () => {
-    test('should toggle prompt active status', async () => {
+  test.describe('Prompt Management', () => {
+    test('should show create button only when types are missing', async () => {
       await customPromptsPage.navigateTo();
-      
-      // Create an active prompt
-      const uniqueId = Date.now();
-      const promptData = {
-        promptType: 'small_llm' as const,
-        name: `Toggle Test Prompt ${uniqueId}`,
-        content: 'Content for toggle testing',
-        isActive: true
-      };
-      
-      await customPromptsPage.createPrompt(promptData);
-      await customPromptsPage.waitForSuccessToast();
-      
-      // Verify initial status
-      let prompt = await customPromptsPage.getPromptByName(promptData.name);
-      expect(prompt.status).toContain('Active');
-      
-      // Toggle to inactive
-      await customPromptsPage.togglePromptStatus(promptData.name);
-      await customPromptsPage.waitForSuccessToast();
-      
-      // Verify status changed
-      prompt = await customPromptsPage.getPromptByName(promptData.name);
-      expect(prompt.status).toContain('Inactive');
-      
-      // Toggle back to active
-      await customPromptsPage.togglePromptStatus(promptData.name);
-      await customPromptsPage.waitForSuccessToast();
-      
-      // Verify status changed back
-      prompt = await customPromptsPage.getPromptByName(promptData.name);
-      expect(prompt.status).toContain('Active');
+      await customPromptsPage.waitForPromptsToLoad();
+
+      // Check if create button visibility matches missing types
+      const isCreateButtonVisible = await customPromptsPage.isCreateButtonVisible();
+      const promptCount = await customPromptsPage.getPromptCount();
+
+      // If we have fewer than 3 prompts (one for each type), create button should be visible
+      if (promptCount < 3) {
+        expect(isCreateButtonVisible).toBeTruthy();
+      } else {
+        // If all types are configured, create button should be hidden
+        expect(isCreateButtonVisible).toBeFalsy();
+      }
     });
   });
 
@@ -294,16 +314,16 @@ test.describe('Custom Prompts Management', () => {
       await customPromptsPage.waitForPromptsToLoad();
       
       // Check if any empty state exists and click create button
-      const isSmallLlmEmpty = await customPromptsPage.isEmptyStateShown('small_llm');
+      const isEvaluationEmpty = await customPromptsPage.isEmptyStateShown('evaluation');
       
-      if (isSmallLlmEmpty) {
-        await customPromptsPage.clickCreateFirstPrompt('small_llm');
+      if (isEvaluationEmpty) {
+        await customPromptsPage.clickCreateFirstPrompt('evaluation');
         
         // Verify dialog opens with correct type pre-selected
         await expect(customPromptsPage.promptDialog).toBeVisible();
         await expect(customPromptsPage.dialogTitle).toContainText('Create Custom Prompt');
         
-        // The prompt type should be pre-selected or default to small_llm
+        // The prompt type should be pre-selected or default to evaluation
         // We can verify this by checking if the form can be submitted with just name and content
         await customPromptsPage.promptNameInput.fill('Empty State Test Prompt');
         await customPromptsPage.promptContentInput.fill('Content created from empty state button');

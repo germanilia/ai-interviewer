@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class SmallLLMResponse(BaseModel):
-    """Response schema for Small LLM prompt execution"""
+class EvaluationResponse(BaseModel):
+    """Response schema for Evaluation prompt execution"""
     reasoning: str
     response: str
     was_question_answered: bool
