@@ -131,6 +131,8 @@ export const Candidates: React.FC = () => {
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
   const [candidateReport, setCandidateReport] = useState<CandidateReportResponse | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
+  const [loadingInterviewHistory, setLoadingInterviewHistory] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CandidateFormData>({
@@ -173,6 +175,26 @@ export const Candidates: React.FC = () => {
       setLoading(false);
     }
   }, [currentPage, pageSize, searchQuery, statusFilter, toast]);
+
+  // Fetch interview history for a candidate
+  const fetchInterviewHistory = useCallback(async (candidateId: number) => {
+    try {
+      setLoadingInterviewHistory(true);
+      const response = await api.candidates.getInterviews(candidateId);
+      setInterviewHistory(response.interviews || []);
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
+      console.error('Error fetching interview history:', errorMessage);
+      setInterviewHistory([]);
+      toast({
+        title: 'Error',
+        description: `Failed to load interview history: ${errorMessage}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingInterviewHistory(false);
+    }
+  }, [toast]);
 
   // Load candidates and interviews on component mount and when dependencies change
   useEffect(() => {
@@ -424,6 +446,8 @@ export const Candidates: React.FC = () => {
   const openDetailModal = (candidate: CandidateResponse) => {
     setViewingCandidate(candidate);
     setShowDetailModal(true);
+    // Fetch interview history for this candidate
+    fetchInterviewHistory(candidate.id);
   };
 
 
@@ -498,6 +522,8 @@ export const Candidates: React.FC = () => {
     setEditingCandidate(null);
     setDeletingCandidate(null);
     setViewingCandidate(null);
+    setInterviewHistory([]);
+    setLoadingInterviewHistory(false);
     resetForm();
   };
 
@@ -1141,9 +1167,53 @@ export const Candidates: React.FC = () => {
               <div data-testid="interview-history-section">
                 <h4 className="text-lg font-semibold mb-4">Interview History</h4>
                 <div className="border rounded-lg" data-testid="interview-history-table">
-                  <div className="p-4 text-center text-muted-foreground">
-                    No interviews found for this candidate.
-                  </div>
+                  {loadingInterviewHistory ? (
+                    <div className="p-4 text-center">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading interview history...</p>
+                    </div>
+                  ) : interviewHistory.length > 0 ? (
+                    <div className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Interview</TableHead>
+                            <TableHead>Department</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Score</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {interviewHistory.map((interview, index) => (
+                            <TableRow key={interview.id || index}>
+                              <TableCell className="font-medium">
+                                {interview.job_title || 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                {interview.job_department || 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusVariant(interview.interview_status)}>
+                                  {interview.interview_status || 'new'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {interview.interview_date ? formatDate(interview.interview_date) : 'Not started'}
+                              </TableCell>
+                              <TableCell>
+                                {interview.score ? `${interview.score}/100` : 'N/A'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No interviews found for this candidate.
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -22,28 +22,28 @@ SAMPLE_USERS = [
     {
         "username": "admin",
         "email": "admin@midot.com",
-        "full_name": "System Administrator",
+        "full_name": "מנהל מערכת",
         "is_active": True,
         "role": UserRole.ADMIN
     },
     {
         "username": "hr_manager",
         "email": "hr@midot.com",
-        "full_name": "HR Manager",
+        "full_name": "מנהל משאבי אנוש",
         "is_active": True,
         "role": UserRole.USER
     },
     {
         "username": "recruiter1",
         "email": "recruiter1@midot.com",
-        "full_name": "Sarah Johnson",
+        "full_name": "שרה כהן",
         "is_active": True,
         "role": UserRole.USER
     },
     {
         "username": "recruiter2",
         "email": "recruiter2@midot.com",
-        "full_name": "Mike Davis",
+        "full_name": "מיכה לוי",
         "is_active": True,
         "role": UserRole.USER
     }
@@ -52,228 +52,296 @@ SAMPLE_USERS = [
 # Sample candidates to populate the database
 SAMPLE_CANDIDATES = [
     {
-        "first_name": "John",
-        "last_name": "Smith",
-        "email": "john.smith@email.com",
-        "phone": "+1-555-0101"
+        "first_name": "יוסף",
+        "last_name": "כהן",
+        "email": "yosef.cohen@email.com",
+        "phone": "+972-54-1234567"
     },
     {
-        "first_name": "Emily",
-        "last_name": "Johnson",
-        "email": "emily.johnson@email.com",
-        "phone": "+1-555-0102"
+        "first_name": "רחל",
+        "last_name": "לוי",
+        "email": "rachel.levi@email.com",
+        "phone": "+972-52-1234568"
     },
     {
-        "first_name": "Michael",
-        "last_name": "Brown",
-        "email": "michael.brown@email.com",
-        "phone": "+1-555-0103"
+        "first_name": "דוד",
+        "last_name": "אברהם",
+        "email": "david.abraham@email.com",
+        "phone": "+972-53-1234569"
     },
     {
-        "first_name": "Sarah",
-        "last_name": "Davis",
-        "email": "sarah.davis@email.com",
-        "phone": "+1-555-0104"
+        "first_name": "מרים",
+        "last_name": "יוסף",
+        "email": "miriam.yosef@email.com",
+        "phone": "+972-54-1234570"
     },
     {
-        "first_name": "David",
-        "last_name": "Wilson",
-        "email": "david.wilson@email.com",
-        "phone": "+1-555-0105"
+        "first_name": "אליעזר",
+        "last_name": "גולדברג",
+        "email": "eliezer.goldberg@email.com",
+        "phone": "+972-52-1234571"
     },
     {
-        "first_name": "Lisa",
-        "last_name": "Anderson",
-        "email": "lisa.anderson@email.com",
-        "phone": "+1-555-0106"
+        "first_name": "שרה",
+        "last_name": "פרידמן",
+        "email": "sarah.friedman@email.com",
+        "phone": "+972-53-1234572"
     },
     {
-        "first_name": "Robert",
-        "last_name": "Taylor",
-        "email": "robert.taylor@email.com",
-        "phone": "+1-555-0107"
+        "first_name": "משה",
+        "last_name": "רוזנברג",
+        "email": "moshe.rosenberg@email.com",
+        "phone": "+972-54-1234573"
     },
     {
-        "first_name": "Jennifer",
-        "last_name": "Martinez",
-        "email": "jennifer.martinez@email.com",
-        "phone": "+1-555-0108"
+        "first_name": "עדה",
+        "last_name": "כהן",
+        "email": "ada.cohen@email.com",
+        "phone": "+972-52-1234574"
     },
     {
-        "first_name": "Christopher",
-        "last_name": "Garcia",
-        "email": "christopher.garcia@email.com",
-        "phone": "+1-555-0109"
+        "first_name": "אברהם",
+        "last_name": "שוורץ",
+        "email": "avraham.schwartz@email.com",
+        "phone": "+972-53-1234575"
     },
     {
-        "first_name": "Amanda",
-        "last_name": "Rodriguez",
-        "email": "amanda.rodriguez@email.com",
-        "phone": "+1-555-0110"
+        "first_name": "רבקה",
+        "last_name": "ברק",
+        "email": "rivka.barak@email.com",
+        "phone": "+972-54-1234576"
     },
     {
-        "first_name": "Matthew",
-        "last_name": "Lee",
-        "email": "matthew.lee@email.com",
-        "phone": "+1-555-0111"
+        "first_name": "יעקב",
+        "last_name": "שפירא",
+        "email": "yaakov.shapira@email.com",
+        "phone": "+972-52-1234577"
     },
     {
-        "first_name": "Ashley",
-        "last_name": "White",
-        "email": "ashley.white@email.com",
-        "phone": "+1-555-0112"
+        "first_name": "לאה",
+        "last_name": "גרין",
+        "email": "lea.green@email.com",
+        "phone": "+972-53-1234578"
     },
     {
-        "first_name": "Daniel",
-        "last_name": "Thompson",
-        "email": "daniel.thompson@email.com",
-        "phone": "+1-555-0113"
+        "first_name": "שמואל",
+        "last_name": "גולד",
+        "email": "shmuel.gold@email.com",
+        "phone": "+972-54-1234579"
     },
     {
-        "first_name": "Jessica",
-        "last_name": "Clark",
-        "email": "jessica.clark@email.com",
-        "phone": "+1-555-0114"
+        "first_name": "רות",
+        "last_name": "ברגמן",
+        "email": "ruth.bergman@email.com",
+        "phone": "+972-52-1234580"
     },
     {
-        "first_name": "James",
-        "last_name": "Lewis",
-        "email": "james.lewis@email.com",
-        "phone": "+1-555-0115"
+        "first_name": "אהרון",
+        "last_name": "רוזן",
+        "email": "aharon.rosen@email.com",
+        "phone": "+972-53-1234581"
     }
 ]
 
 # Sample jobs to populate the database
 SAMPLE_JOBS = [
     {
-        "title": "Security Guard",
-        "description": "Responsible for maintaining security and safety of premises, monitoring surveillance equipment, and ensuring compliance with security protocols.",
-        "department": "Security"
+        "title": "מאבטח",
+        "description": "אחראי על שמירת הביטחון והבטיחות במתחם, מעקב אחר ציוד מעקב והבטחת עמידה בפרוטוקולי אבטחה.",
+        "department": "אבטחה וביטחון"
     },
     {
-        "title": "Financial Analyst",
-        "description": "Analyze financial data, prepare reports, and provide recommendations for investment decisions. Requires high level of integrity and trustworthiness.",
-        "department": "Finance"
+        "title": "אנליסט פיננסי",
+        "description": "ניתוח נתונים פיננסיים, הכנת דוחות ומתן המלצות לקבלת החלטות השקעה. התפקיד דורש רמה גבוהה של יושרה ואמינות.",
+        "department": "כספים"
     },
     {
-        "title": "Customer Service Representative",
-        "description": "Handle customer inquiries, resolve complaints, and maintain positive customer relationships. Position requires ethical conduct and reliability.",
-        "department": "Customer Service"
+        "title": "נציג שירות לקוחות",
+        "description": "טיפול בפניות לקוחות, פתרון תלונות ושמירה על יחסי לקוחות חיוביים. התפקיד דורש התנהגות אתית ואמינות.",
+        "department": "שירות לקוחות"
     },
     {
-        "title": "Warehouse Supervisor",
-        "description": "Oversee warehouse operations, manage inventory, and supervise staff. Position involves handling valuable merchandise and requires trustworthiness.",
-        "department": "Operations"
+        "title": "מפקח מחסן",
+        "description": "פיקוח על פעילות המחסן, ניהול מלאי והדרכת צוות. התפקיד כולל טיפול בסחורה יקרת ערך ודורש אמינות.",
+        "department": "תפעול"
+    },
+    {
+        "title": "גזבר",
+        "description": "ניהול כספים, עיבוד תשלומים וטיפול בעסקאות כספיות. התפקיד דורש אמינות מלאה וניהול נכון של נכסים כספיים.",
+        "department": "כספים"
+    },
+    {
+        "title": "מנהל פרויקטים",
+        "description": "ניהול פרויקטים מורכבים, הנהגת צוותים ודיווח לדירקטוריון. התפקיד דורש יושרה גבוהה ואמינות בניהול משאבים.",
+        "department": "ניהול"
     }
 ]
 
 # Sample questions for integrity interviews based on Midot specifications
 SAMPLE_QUESTIONS = [
-    # Criminal Background Questions
+    # Criminal Background Questions - רקע פלילי
     {
-        "title": "Criminal History Disclosure",
-        "question_text": "Have you ever been convicted of a crime, including misdemeanors and felonies? Please provide complete and honest information about any criminal history.",
-        "instructions": "This question is mandatory and requires a complete answer. Follow up if the response seems evasive or incomplete.",
+        "title": "גילוי עבר פלילי",
+        "question_text": "האם נגדך הוגש אי פעם כתב אישום או הורשעת בעבירה כלשהי, כולל עבירות פליליות וגם עבירות משמעת? אנא ספק מידע מלא וכנה על כל רקע פלילי.",
+        "instructions": "שאלה חובה הדורשת תשובה מלאה. בדקו אם התשובה נמנעת או לא מלאה. חפשו סימנים של הימנעות מתשובה.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.CRIMINAL_BACKGROUND
     },
     {
-        "title": "Pending Legal Issues",
-        "question_text": "Are you currently facing any criminal charges, legal proceedings, or investigations? This includes any pending court cases or ongoing legal matters.",
-        "instructions": "Probe for details if any legal issues are mentioned. Look for consistency in responses.",
+        "title": "בעיות משפטיות תלויות ועומדות",
+        "question_text": "האם אתה נתון כרגע לחקירה משטרתית, הליכים משפטיים או חקירות? זה כולל כל תיק משפטי תלוי ועומד או עניינים משפטיים מתמשכים.",
+        "instructions": "בדקו פרטים אם מוזכרים נושאים משפטיים. חפשו עקביות בתשובות ותשומת לב למתחמקים.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.CRIMINAL_BACKGROUND
     },
     {
-        "title": "Legal Accusations",
-        "question_text": "Have you ever been accused of a crime, even if charges were not filed or you were not convicted? Please explain any situations where you were investigated or questioned by law enforcement.",
-        "instructions": "This helps identify potential issues not covered by conviction records. Follow up on any mentions of accusations.",
+        "title": "האשמות משפטיות",
+        "question_text": "האם הואשמת אי פעם בעבירה, גם אם לא הוגש נגדך כתב אישום או לא הורשעת? אנא הסבר כל מצב שבו נחקרת או נחקפת על ידי רשויות החוק.",
+        "instructions": "זה עוזר לזהות בעיות פוטנציאליות שלא מכוסות ברישומי הרשעות. המשיכו עם כל אזכור של האשמות.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.CRIMINAL_BACKGROUND
+    },
+    {
+        "title": "מעורבות עם רשויות החוק",
+        "question_text": "האם היית מעורב אי פעם במצב שהצריך התערבות משטרה או רשויות אכיפת החוק, גם אם לא הוגשו נגדך האשמות?",
+        "instructions": "בדקו את רמת הכנות ונכונות לשתף מידע. זה יכול לחשוף מצבים בעייתיים שלא הגיעו לכתבי אישום.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.CRIMINAL_BACKGROUND
     },
 
-    # Prior Dismissals Questions
+    # Prior Dismissals Questions - פיטורים קודמים
     {
-        "title": "Employment Termination History",
-        "question_text": "Have you ever been fired, terminated, or asked to resign from a job? If yes, please explain the circumstances and what you learned from the experience.",
-        "instructions": "Look for patterns of termination, responsibility acceptance, and lessons learned. Probe for details about the reasons.",
+        "title": "היסטוריית פיטורים מעבודה",
+        "question_text": "האם פוטרת אי פעם, הופסקה העסקתך או התבקשת להתפטר מעבודה? אם כן, אנא הסבר את הנסיבות ומה למדת מהחוויה.",
+        "instructions": "חפשו דפוסים של פיטורים, קבלת אחריות ולקחים שנלמדו. בדקו פרטים על הסיבות.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.DISMISSALS
     },
     {
-        "title": "Workplace Misconduct",
-        "question_text": "Have you ever been disciplined, suspended, or written up at work for misconduct, policy violations, or performance issues? Please describe any formal disciplinary actions.",
-        "instructions": "Assess honesty and willingness to take responsibility. Look for patterns of workplace issues.",
+        "title": "התנהגות בלתי הולמת במקום העבודה",
+        "question_text": "האם נוקטו נגדך אי פעם צעדים משמעתיים, הושעית או קיבלת אזהרה בכתב בעבודה על התנהגות בלתי הולמת, הפרת כללים או בעיות ביצועים?",
+        "instructions": "העריכו כנות ונכונות לקחת אחריות. חפשו דפוסים של בעיות במקום העבודה.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.DISMISSALS
+    },
+    {
+        "title": "יחסים עם הנהלה וצוות",
+        "question_text": "האם היו לך אי פעם קונפליקטים משמעותיים עם מנהלים או עמיתים לעבודה שהובילו לצעדים רשמיים או תלונות?",
+        "instructions": "בדקו יכולת עבודה בצוות וניהול קונפליקטים. חפשו דפוסים בקשיים בין-אישיים.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.DISMISSALS
     },
 
-    # Drug Use Questions
+    # Drug Use Questions - שימוש בסמים
     {
-        "title": "Substance Use History",
-        "question_text": "Do you currently use or have you used illegal drugs? Please be honest about your substance use history, including frequency and types of substances.",
-        "instructions": "Assess current risk and honesty. Follow up on any admissions with questions about frequency and impact on work.",
+        "title": "היסטוריית שימוש בחומרים",
+        "question_text": "האם אתה משתמש כרגע או השתמשת בסמים לא חוקיים? אנא היה כנה לגבי ההיסטוריה שלך בשימוש בחומרים, כולל תדירות וסוגי החומרים.",
+        "instructions": "העריכו סיכון נוכחי וכנות. המשיכו עם כל הודאה בשאלות על תדירות והשפעה על העבודה.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.DRUG_USE
     },
     {
-        "title": "Alcohol and Substance Impact",
-        "question_text": "Has alcohol or substance use ever affected your work performance, attendance, or professional relationships? Please describe any incidents.",
-        "instructions": "Look for impact on professional life and current risk assessment.",
+        "title": "השפעת אלכוהול וחומרים",
+        "question_text": "האם שימוש באלכוהול או חומרים השפיע אי פעם על ביצועי העבודה שלך, נוכחות או יחסים מקצועיים? אנא תאר כל אירועים.",
+        "instructions": "חפשו השפעה על החיים המקצועיים והערכת סיכון נוכחי.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.DRUG_USE
+    },
+    {
+        "title": "טיפול והתמודדות",
+        "question_text": "האם פנית אי פעם לטיפול או עזרה מקצועית בנושא שימוש באלכוהול או סמים? איך אתה מתמודד עם לחצים או מצבי קושי?",
+        "instructions": "העריכו נכונות לקבל עזרה ויכולת התמודדות בריאה. זה יכול להצביע על מודעות עצמית חיובית.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.DRUG_USE
     },
 
-    # Ethics and Trustworthiness Questions
+    # Ethics and Trustworthiness Questions - אתיקה ואמינות
     {
-        "title": "Theft and Dishonesty",
-        "question_text": "Have you ever taken something that didn't belong to you from an employer, coworker, or customer? This includes money, merchandise, supplies, or information.",
-        "instructions": "Critical for positions involving access to valuables or sensitive information. Probe for details and circumstances.",
+        "title": "גניבה ואי יושר",
+        "question_text": "האם לקחת אי פעם משהו שלא השייך לך ממעסיק, עמית לעבודה או לקוח? זה כולל כסף, סחורה, ציוד או מידע.",
+        "instructions": "קריטי לתפקידים עם גישה לחפצי ערך או מידע רגיש. בדקו פרטים ונסיבות.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.ETHICS
     },
     {
-        "title": "Fraud and Deception",
-        "question_text": "Have you ever falsified documents, lied on applications, or engaged in any form of fraud? This includes resume fraud, timesheet manipulation, or false expense claims.",
-        "instructions": "Essential for assessing integrity. Look for patterns of deception and current honesty.",
+        "title": "הונאה והטעיה",
+        "question_text": "האם זייפת אי פעם מסמכים, שיקרת בבקשות או התעסקת בכל צורה של הונאה? זה כולל הונאה בקורות חיים, מניפולציה של דפי נוכחות או תביעות הוצאות כוזבות.",
+        "instructions": "חיוני להערכת יושרה. חפשו דפוסים של הטעיה וכנות נוכחית.",
         "importance": QuestionImportance.MANDATORY,
         "category": QuestionCategory.ETHICS
     },
     {
-        "title": "Confidentiality Breaches",
-        "question_text": "Have you ever shared confidential information inappropriately, violated privacy policies, or disclosed sensitive company or customer information?",
-        "instructions": "Important for positions with access to sensitive data. Assess understanding of confidentiality.",
+        "title": "הפרת סודיות",
+        "question_text": "האם שיתפת אי פעם מידע סודי באופן לא מתאים, הפרת מדיניות פרטיות או חשפת מידע רגיש של החברה או לקוחות?",
+        "instructions": "חשוב לתפקידים עם גישה לנתונים רגישים. העריכו הבנה של סודיות.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.TRUSTWORTHINESS
     },
     {
-        "title": "Conflict of Interest",
-        "question_text": "Have you ever been in a situation where your personal interests conflicted with your professional duties? How did you handle it?",
-        "instructions": "Assess ethical decision-making and transparency about potential conflicts.",
+        "title": "ניגוד עניינים",
+        "question_text": "האם היית אי פעם במצב שבו האינטרסים האישיים שלך היו בסתירה לחובותיך המקצועיות? איך התמודדת עם זה?",
+        "instructions": "העריכו קבלת החלטות אתית ושקיפות לגבי קונפליקטים פוטנציאליים.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.ETHICS
+    },
+    {
+        "title": "דיווח על התנהגות בלתי הולמת",
+        "question_text": "אם היית עד להתנהגות בלתי הולמת או לא אתית של עמית לעבודה, מה היית עושה? האם היית אי פעם במצב כזה?",
+        "instructions": "העריכו נכונות לדווח על התנהגות לא תקינה ותקנים אתיים. בדקו דוגמאות אמיתיות אם מוזכרות.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.ETHICS
     },
 
-    # General Integrity Questions
+    # General Integrity Questions - שאלות יושרה כלליות
     {
-        "title": "Honesty Assessment",
-        "question_text": "Describe a situation where you had to choose between doing what was easy and doing what was right. What did you choose and why?",
-        "instructions": "Assess moral reasoning and integrity in decision-making. Look for specific examples.",
+        "title": "הערכת יושרה",
+        "question_text": "תאר מצב שבו היית צריך לבחור בין עשיית מה שקל לעשיית מה שנכון. מה בחרת ולמה?",
+        "instructions": "העריכו חשיבה מוסרית ויושרה בקבלת החלטות. חפשו דוגמאות ספציפיות.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.TRUSTWORTHINESS
     },
     {
-        "title": "Workplace Ethics",
-        "question_text": "If you witnessed a coworker stealing or engaging in unethical behavior, what would you do? Have you ever been in such a situation?",
-        "instructions": "Assess willingness to report misconduct and ethical standards. Probe for real examples if mentioned.",
+        "title": "אתיקה במקום העבודה",
+        "question_text": "אם היית רואה עמית לעבודה גונב או מתנהג באופן לא אתי, מה היית עושה? האם היית אי פעם במצב כזה?",
+        "instructions": "העריכו נכונות לדווח על התנהגות לא תקינה ותקנים אתיים. בדקו דוגמאות אמיתיות אם מוזכרות.",
         "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.ETHICS
     },
     {
-        "title": "Trust and Reliability",
-        "question_text": "Can you provide an example of when someone trusted you with something important? How did you handle that responsibility?",
-        "instructions": "Assess understanding of trust and responsibility. Look for concrete examples.",
+        "title": "אמון ואחריות",
+        "question_text": "תן דוגמה למצב שבו מישהו בטח בך עם משהו חשוב. איך התמודדת עם האחריות הזו?",
+        "instructions": "העריכו הבנה של אמון ואחריות. חפשו דוגמאות קונקרטיות.",
         "importance": QuestionImportance.OPTIONAL,
+        "category": QuestionCategory.TRUSTWORTHINESS
+    },
+    {
+        "title": "טעויות וחרטה",
+        "question_text": "תאר זמן שבו עשית משהו לא נכון בעבודה או בחיים האישיים. איך התמודדת עם זה ומה למדת?",
+        "instructions": "העריכו יכולת לקחת אחריות, להכיר בטעויות וללמוד מהן. חפשו כנות אמיתית.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.TRUSTWORTHINESS
+    },
+    {
+        "title": "לחץ ופיתוי",
+        "question_text": "תאר מצב שבו היית תחת לחץ לעשות משהו שידעת שהוא לא נכון. איך התמודדת עם המצב?",
+        "instructions": "העריכו עמידות בפני לחץ ונכונות לעמוד על עקרונות אתיים גם במצבים קשים.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.ETHICS
+    },
+
+    # Workplace Behavior Questions - התנהגות במקום העבודה
+    {
+        "title": "עבודת צוות ושיתוף פעולה",
+        "question_text": "איך אתה מתמודד עם מצבים שבהם אתה לא מסכים עם החלטות של הנהלה או עמיתים לעבודה?",
+        "instructions": "העריכו יכולת עבודה בצוות, התמודדות עם קונפליקטים ושמירה על מקצועיות.",
+        "importance": QuestionImportance.ASK_ONCE,
+        "category": QuestionCategory.TRUSTWORTHINESS
+    },
+    {
+        "title": "אמינות ועמידה בזמנים",
+        "question_text": "איך אתה מבטיח שתעמוד בהתחייבויות ודדליינים? האם היו מצבים שבהם לא עמדת בהתחייבות?",
+        "instructions": "העריכו אמינות, ניהול זמן ונכונות להתחייב. חפשו דוגמאות לטיפול באתגרים.",
+        "importance": QuestionImportance.ASK_ONCE,
         "category": QuestionCategory.TRUSTWORTHINESS
     }
 ]
@@ -281,8 +349,8 @@ SAMPLE_QUESTIONS = [
 
 def populate_db():
     """
-    Populate the database with sample data for the AI Chatbot Integrity Interview system.
-    This includes users, candidates, jobs, questions, and sample interviews.
+    מילוי מסד הנתונים בנתונים לדוגמה עבור מערכת ראיון יושרה של צ'אטבוט AI.
+    זה כולל משתמשים, מועמדים, עבודות, שאלות וראיונות לדוגמה.
     """
     db = SessionLocal()
     try:
@@ -290,13 +358,13 @@ def populate_db():
         existing_users = db.query(User).count()
         if existing_users > 0:
             logger.info(
-                f"Database already contains {existing_users} users. Skipping population.")
+                f"מסד הנתונים כבר מכיל {existing_users} משתמשים. מדלג על מילוי.")
             return True
 
-        logger.info("Starting database population with sample data...")
+        logger.info("מתחיל מילוי מסד הנתונים בנתונים לדוגמה...")
 
         # 1. Create Users first (needed for foreign keys)
-        logger.info("Creating sample users...")
+        logger.info("יצירת משתמשים לדוגמה...")
         created_users = []
         for user_data in SAMPLE_USERS:
             user = User(**user_data)
@@ -307,10 +375,10 @@ def populate_db():
         db.refresh(created_users[0])  # Refresh to get the ID
         admin_user = created_users[0]  # First user is admin
         logger.info(
-            f"Created {len(created_users)} users, admin_user.id = {admin_user.id}")
+            f"נוצרו {len(created_users)} משתמשים, admin_user.id = {admin_user.id}")
 
         # 2. Create Interviews with Job Information
-        logger.info("Creating sample interviews...")
+        logger.info("יצירת ראיונות לדוגמה...")
         created_interviews = []
         for job_data in SAMPLE_JOBS:
             interview = Interview(
@@ -323,10 +391,10 @@ def populate_db():
             created_interviews.append(interview)
 
         db.flush()
-        logger.info(f"Created {len(created_interviews)} interviews")
+        logger.info(f"נוצרו {len(created_interviews)} ראיונות")
 
         # 3. Create Candidates and assign them to interviews
-        logger.info("Creating sample candidates...")
+        logger.info("יצירת מועמדים לדוגמה...")
         created_candidates = []
         for i, candidate_data in enumerate(SAMPLE_CANDIDATES):
             # Assign candidates to interviews in round-robin fashion
@@ -344,10 +412,10 @@ def populate_db():
             created_candidates.append(candidate)
 
         db.flush()
-        logger.info(f"Created {len(created_candidates)} candidates")
+        logger.info(f"נוצרו {len(created_candidates)} מועמדים")
 
         # 4. Create Questions
-        logger.info("Creating sample questions...")
+        logger.info("יצירת שאלות לדוגמה...")
         created_questions = []
         for question_data in SAMPLE_QUESTIONS:
             question = Question(
@@ -362,7 +430,7 @@ def populate_db():
             created_questions.append(question)
 
         db.flush()
-        logger.info(f"Created {len(created_questions)} questions")
+        logger.info(f"נוצרו {len(created_questions)} שאלות")
 
         # 5. Update candidates with sample interview data
         create_sample_interview_data(
@@ -373,13 +441,13 @@ def populate_db():
             db, created_interviews, created_questions)
 
         db.commit()
-        logger.info("Successfully populated database with all sample data!")
-        logger.info(f"Summary: {len(created_users)} users, {len(created_candidates)} candidates, {len(created_questions)} questions, "
-                    f"{len(created_interviews)} interviews")
+        logger.info("מסד הנתונים מולא בהצלחה עם כל הנתונים לדוגמה!")
+        logger.info(f"סיכום: {len(created_users)} משתמשים, {len(created_candidates)} מועמדים, {len(created_questions)} שאלות, "
+                    f"{len(created_interviews)} ראיונות")
 
     except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"Error populating database: {e}")
+        logger.error(f"שגיאה במילוי מסד הנתונים: {e}")
         return False
     finally:
         db.close()
@@ -389,9 +457,9 @@ def populate_db():
 
 def create_sample_interview_data(db: Session, candidates: list, questions: list, admin_user: User):
     """
-    Update sample candidates with interview-specific data.
+    עדכון מועמדים לדוגמה עם נתוני ראיון ספציפיים.
     """
-    logger.info("Creating sample interview data for candidates...")
+    logger.info("יצירת נתוני ראיון לדוגמה עבור מועמדים...")
 
     # Update some candidates with sample interview data
     if len(candidates) > 0:
@@ -402,8 +470,8 @@ def create_sample_interview_data(db: Session, candidates: list, questions: list,
         candidates[0].risk_level = "low"
         candidates[0].interview_date = datetime.now() - timedelta(days=5)
         candidates[0].completed_at = datetime.now() - timedelta(days=5)
-        candidates[0].report_summary = "Candidate demonstrated high integrity throughout the interview."
-        candidates[0].analysis_notes = "Recommended for hire. Strong integrity profile."
+        candidates[0].report_summary = "המועמד הפגין יושרה גבוהה לאורך כל הראיון."
+        candidates[0].analysis_notes = "מומלץ להעסקה. פרופיל יושרה חזק."
 
     if len(candidates) > 1:
         # Update second candidate with in-progress interview
@@ -416,16 +484,16 @@ def create_sample_interview_data(db: Session, candidates: list, questions: list,
         candidates[2].interview_date = datetime.now() + timedelta(days=2)
 
     db.flush()
-    logger.info("Updated candidates with sample interview data")
+    logger.info("עודכנו מועמדים עם נתוני ראיון לדוגמה")
 
 
 
 def create_sample_interview_questions(db: Session, interviews: list, questions: list):
     """
-    Create sample interview questions with answers for completed candidates.
-    This demonstrates how the system stores question responses and AI analysis.
+    יצירת שאלות ראיון לדוגמה עם תשובות למועמדים שסיימו.
+    זה מדגים איך המערכת שומרת תגובות לשאלות וניתוח AI.
     """
-    logger.info("Creating sample interview questions with answers...")
+    logger.info("יצירת שאלות ראיון לדוגמה עם תשובות...")
 
     # Find a candidate with completed status
     completed_candidates = db.query(Candidate).filter(
@@ -433,19 +501,19 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
     ).all()
 
     if not completed_candidates:
-        logger.info("No completed candidates found, skipping interview questions creation")
+        logger.info("לא נמצאו מועמדים שסיימו, מדלג על יצירת שאלות ראיון")
         return
 
     # Use the first completed candidate
     completed_candidate = completed_candidates[0]
     if completed_candidate.interview_id is None:
-        logger.info("Completed candidate has no interview assigned")
+        logger.info("למועמד שסיים אין ראיון שהוקצה")
         return
 
     # Get the interview for this candidate
     interview = next((i for i in interviews if i.id == completed_candidate.interview_id), None)
     if not interview:
-        logger.info("Could not find interview for completed candidate")
+        logger.info("לא ניתן למצוא ראיון למועמד שסיים")
         return
 
     # Get relevant questions for security guard position
@@ -458,8 +526,8 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
     # Sample answers and AI analysis for the completed interview
     sample_qa_data = [
         {
-            "question": next((q for q in security_questions if "criminal history" in q.question_text.lower()), security_questions[0]),
-            "answer": "No, I have never been convicted of any crime. I have a clean criminal record with no arrests or charges.",
+            "question": next((q for q in security_questions if "עבר פלילי" in q.question_text), security_questions[0]),
+            "answer": "לא, אף פעם לא הורשעתי בעבירה כלשהי. יש לי רקע פלילי נקי ללא מעצרים או האשמות.",
             "ai_analysis": {
                 "sentiment": "confident",
                 "honesty_score": 0.95,
@@ -470,8 +538,8 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
             }
         },
         {
-            "question": next((q for q in security_questions if "theft" in q.question_text.lower()), security_questions[1]),
-            "answer": "No, I have never taken anything that didn't belong to me. I believe strongly in honesty and integrity.",
+            "question": next((q for q in security_questions if "גניבה" in q.question_text), security_questions[1]),
+            "answer": "לא, אף פעם לא לקחתי משהו שלא השייך לי. אני מאמין חזק ביושרה ואמינות.",
             "ai_analysis": {
                 "sentiment": "confident",
                 "honesty_score": 0.92,
@@ -482,8 +550,8 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
             }
         },
         {
-            "question": next((q for q in security_questions if "termination" in q.question_text.lower() or "fired" in q.question_text.lower()), security_questions[2]),
-            "answer": "I was let go from one job about three years ago due to company downsizing. It wasn't performance related - they eliminated my entire department. I received a good reference letter.",
+            "question": next((q for q in security_questions if "פיטורים" in q.question_text or "פוטרת" in q.question_text), security_questions[2]),
+            "answer": "פוטרתי מעבודה אחת לפני כשלוש שנים בגלל צמצומים בחברה. זה לא היה קשור לביצועים - הם ביטלו את כל המחלקה שלי. קיבלתי מכתב המלצה טוב.",
             "ai_analysis": {
                 "sentiment": "honest",
                 "honesty_score": 0.88,
@@ -491,7 +559,32 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
                 "red_flags": [],
                 "follow_up_needed": False,
                 "risk_assessment": "low",
-                "notes": "Honest disclosure of job loss due to downsizing, not misconduct"
+                "notes": "גילוי כנה של איבוד עבודה עקב צמצומים, לא התנהגות לא תקינה"
+            }
+        },
+        {
+            "question": next((q for q in security_questions if "סמים" in q.question_text or "חומרים" in q.question_text), security_questions[3]),
+            "answer": "לא, אני לא משתמש בסמים לא חוקיים ולא השתמשתי בעבר. אני שותה אלכוהול באירועים חברתיים בלבד ובכמויות מתונות.",
+            "ai_analysis": {
+                "sentiment": "clear",
+                "honesty_score": 0.93,
+                "completeness": 0.95,
+                "red_flags": [],
+                "follow_up_needed": False,
+                "risk_assessment": "low"
+            }
+        },
+        {
+            "question": next((q for q in security_questions if "אמון" in q.question_text or "אחריות" in q.question_text), security_questions[4] if len(security_questions) > 4 else security_questions[0]),
+            "answer": "בעבודה הקודמת שלי הייתי אחראי על כספי הקופה. המנהל בטח בי עם סכומים גדולים מדי יום. תמיד דאגתי לספור בדיוק ולתעד הכל כראוי, ומעולם לא היה חסר אפילו שקל אחד.",
+            "ai_analysis": {
+                "sentiment": "proud",
+                "honesty_score": 0.94,
+                "completeness": 0.92,
+                "red_flags": [],
+                "follow_up_needed": False,
+                "risk_assessment": "low",
+                "notes": "דוגמה קונקרטית של טיפול אחראי בכספים"
             }
         }
     ]
@@ -512,8 +605,7 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
         db.add(interview_question)
 
     db.flush()
-    logger.info(
-        f"Created {len(sample_qa_data)} interview questions with answers")
+    logger.info(f"נוצרו {len(sample_qa_data)} שאלות ראיון עם תשובות")
 
 
 if __name__ == "__main__":
@@ -522,13 +614,13 @@ if __name__ == "__main__":
 
     # Initialize the database first
     if not init_db():
-        logger.error("Failed to initialize database")
+        logger.error("נכשל לאתחל מסד הנתונים")
         sys.exit(1)
 
     # Then populate it
     if not populate_db():
-        logger.error("Failed to populate database")
+        logger.error("נכשל למלא מסד הנתונים")
         sys.exit(1)
 
-    logger.info("Database populated successfully!")
+    logger.info("מסד הנתונים מולא בהצלחה!")
     sys.exit(0)

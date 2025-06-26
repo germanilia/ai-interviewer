@@ -156,11 +156,13 @@ async def get_candidate_interviews(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Candidate not found"
         )
-    
-    # For now, return empty list - will be implemented when interview endpoints are ready
+
+    # Get interview history using the service method
+    interviews = candidate_service.get_candidate_interview_history(db=db, candidate_id=candidate_id)
+
     return {
         "candidate_id": candidate_id,
-        "interviews": []
+        "interviews": interviews
     }
 
 
