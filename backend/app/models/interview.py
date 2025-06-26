@@ -13,6 +13,13 @@ class InterviewStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class InterviewLanguage(StrEnum):
+    """Interview language enum"""
+    HEBREW = "Hebrew"
+    ENGLISH = "English"
+    ARABIC = "Arabic"
+
+
 class IntegrityScore(StrEnum):
     """Integrity score categories"""
     LOW = "low"
@@ -66,7 +73,8 @@ class Interview(Base):
     job_description = Column(Text, nullable=True)
     job_department = Column(String, nullable=True)
 
-
+    # Interview language
+    language = Column(Enum(InterviewLanguage), default=InterviewLanguage.HEBREW, nullable=False)
 
     # General interview data (aggregated from candidates)
     avg_score = Column(Integer, nullable=True)  # Average score from all candidates

@@ -19,6 +19,7 @@ class JudgeResponse(BaseModel):
     reasoning: str
     response: str
     was_question_answered: bool
+    interview_complete: bool
     answered_question_index: Optional[int] = None
 
 

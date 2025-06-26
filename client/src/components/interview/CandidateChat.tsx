@@ -108,14 +108,25 @@ export const CandidateChat: React.FC = () => {
       // Set the session ID from login
       setSessionId(state.sessionId);
 
-      // TODO: Load existing conversation history if any
-      // For now, add welcome message if no conversation history exists
-      const welcomeMessage: ChatMessage = {
-        role: 'assistant',
-        content: `Hello ${state.candidateName}! Welcome to your interview for ${state.interviewTitle}. Let's start with a simple question: Can you tell me a bit about yourself and why you're interested in this position?`,
-        timestamp: new Date().toISOString()
-      };
-      setMessages([welcomeMessage]);
+      // Load conversation history from session
+      try {
+        const sessionData = await api.interviewSession.getSession(state.sessionId);
+        if (sessionData.conversation_history && sessionData.conversation_history.length > 0) {
+          const chatMessages: ChatMessage[] = sessionData.conversation_history.map((msg: any) => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp
+          }));
+          setMessages(chatMessages);
+        } else {
+          // No conversation history yet - this shouldn't happen since we add initial message on session creation
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation history:', error);
+        // Fallback to empty messages if loading fails
+        setMessages([]);
+      }
 
     } catch (error) {
       console.error('Failed to initialize session:', error);

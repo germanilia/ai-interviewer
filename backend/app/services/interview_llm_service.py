@@ -74,7 +74,7 @@ class InterviewLLMService:
         db: Session,
         context: InterviewContext,
         user_message: str,
-        language: str = "en"
+        language: str = "English"
     ) -> Tuple[str, bool]:
         """
         Process user message using evaluator pipeline and return LLM response and completion status
@@ -83,24 +83,29 @@ class InterviewLLMService:
             db: Database session
             context: Interview context with candidate info and conversation history
             user_message: The user's message
-            language: Language preference for response
+            language: Language preference for response (Hebrew, English, Arabic)
 
         Returns:
             Tuple of (assistant_response, is_interview_complete)
         """
-        logger.info(f"Processing message for candidate: {context.candidate_name}")
+        logger.info(f"Processing message for candidate: {context.candidate_name} in {language}")
+
+        # Map language enum to internal codes
+        language_code = self._map_language_to_code(language)
 
         # Check if user wants to end the interview
         if self._is_completion_message(user_message):
-            return self._generate_completion_response(context, language), True
+            return self._generate_completion_response(context, language_code), True
 
         try:
             # Step 1: Check guardrails first
             can_continue = self.guardrails_evaluator.execute(db, context, user_message)
             if not can_continue:
                 logger.warning(f"Guardrails blocked message from {context.candidate_name}")
-                return self._generate_blocked_response(language), False
+                return self._generate_blocked_response(language_code), False
 
+            context.language = language_code
+            
             # Step 2: Generate initial evaluation
             evaluation_response = self.initial_evaluator.execute(db, context, user_message)
 
@@ -110,13 +115,22 @@ class InterviewLLMService:
             )
 
             # Use the judge's final response
-            return judge_response.response, False
+            return judge_response.response, judge_response.interview_complete
 
         except Exception as e:
             logger.exception(f"Error in evaluator pipeline: {e}")
             # Fallback to hard-coded response
-            response = self._generate_fallback_response(context, user_message, language)
+            response = self._generate_fallback_response(context, user_message, language_code)
             return response, False
+
+    def _map_language_to_code(self, language: str) -> str:
+        """Map language enum values to internal language codes"""
+        language_map = {
+            "Hebrew": "he",
+            "English": "en",
+            "Arabic": "ar"
+        }
+        return language_map.get(language, "en")  # Default to English
 
     def _is_completion_message(self, message: str) -> bool:
         """Check if the message indicates the user wants to end the interview"""

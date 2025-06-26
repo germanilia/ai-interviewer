@@ -141,6 +141,9 @@ export interface InterviewResponse {
   job_description?: string;
   job_department?: string;
 
+  // Interview language
+  language: string;
+
   // General interview data
   avg_score?: number;
   total_candidates: number;
@@ -171,6 +174,7 @@ export interface InterviewCreateRequest {
   job_title: string;
   job_description?: string;
   job_department?: string;
+  language: string; // Interview language: Hebrew, English, Arabic
   instructions?: string;
   question_ids: number[]; // Required - interviews must have questions
 }
@@ -179,6 +183,7 @@ export interface InterviewUpdateRequest {
   job_title?: string;
   job_description?: string;
   job_department?: string;
+  language?: string; // Interview language: Hebrew, English, Arabic
   instructions?: string;
   avg_score?: number;
   total_candidates?: number;
@@ -761,6 +766,22 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       });
+    },
+
+    getSession: async (sessionId: number): Promise<{
+      id: number;
+      candidate_id: number;
+      interview_id: number;
+      status: string;
+      conversation_history: any[];
+      started_at: string;
+      completed_at?: string;
+      last_activity_at: string;
+      total_messages: number;
+      questions_asked: number;
+      session_duration_minutes?: number;
+    }> => {
+      return fetchFromApi(`/api/v1/interview-session/${sessionId}`);
     },
 
     endSession: async (data: { session_id: number }): Promise<{

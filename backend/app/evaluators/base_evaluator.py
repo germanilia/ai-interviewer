@@ -154,7 +154,8 @@ class BaseEvaluator(ABC):
             "conversation_history": conversation_text,
             "current_message": message,
             "total_questions": len(context.questions) if context.questions else 0,
-            "conversation_length": len(context.conversation_history) if context.conversation_history else 0
+            "conversation_length": len(context.conversation_history) if context.conversation_history else 0,
+            "language": context.language
         }
 
     def log_execution(self, prompt_type: str, success: bool, error: Optional[str] = None):

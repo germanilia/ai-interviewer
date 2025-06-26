@@ -3,7 +3,7 @@ from typing import Optional, Any, TYPE_CHECKING, List
 from datetime import datetime
 import secrets
 import string
-from app.models.interview import InterviewStatus, IntegrityScore, RiskLevel
+from app.models.interview import InterviewStatus, IntegrityScore, RiskLevel, InterviewLanguage
 
 if TYPE_CHECKING:
     from app.models.interview import Interview
@@ -23,6 +23,9 @@ class InterviewBase(BaseModel):
     job_title: str
     job_description: Optional[str] = None
     job_department: Optional[str] = None
+
+    # Interview language
+    language: InterviewLanguage = InterviewLanguage.HEBREW
 
     # General interview instructions
     instructions: Optional[str] = None
@@ -55,6 +58,7 @@ class InterviewCreate(InterviewBase):
             job_title=self.job_title,
             job_description=self.job_description,
             job_department=self.job_department,
+            language=self.language,
             instructions=self.instructions,
             created_by_user_id=created_by_user_id
         )
@@ -66,6 +70,9 @@ class InterviewUpdate(BaseModel):
     job_title: Optional[str] = None
     job_description: Optional[str] = None
     job_department: Optional[str] = None
+
+    # Interview language
+    language: Optional[InterviewLanguage] = None
 
     # General interview fields
     instructions: Optional[str] = None

@@ -35,6 +35,8 @@ Conversation History:
 {conversation_history}
 
 Current candidate message: "{current_message}"
+
+You are required to respond in the following language: "{language}"
 """
 
     DEFAULT_PROMPT = """

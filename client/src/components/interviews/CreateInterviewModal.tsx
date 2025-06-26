@@ -13,6 +13,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import api, { InterviewResponse, QuestionResponse } from '@/lib/api';
 
@@ -37,6 +44,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [jobDepartment, setJobDepartment] = useState('');
+  const [language, setLanguage] = useState('Hebrew'); // Default to Hebrew
   const [instructions, setInstructions] = useState('');
   const [createdInterview, setCreatedInterview] = useState<InterviewResponse | null>(null);
   const [step, setStep] = useState<'form' | 'success'>('form');
@@ -83,6 +91,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
     setJobTitle('');
     setJobDescription('');
     setJobDepartment('');
+    setLanguage('Hebrew'); // Reset to default Hebrew
     setInstructions('');
     setCreatedInterview(null);
     setStep('form');
@@ -144,6 +153,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
         job_title: jobTitle,
         job_description: jobDescription || undefined,
         job_department: jobDepartment || undefined,
+        language: language,
         instructions: instructions || undefined,
         question_ids: selectedQuestions,
       };
@@ -212,6 +222,20 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
                   onChange={(e) => setJobDepartment(e.target.value)}
                   data-testid="job-department-input"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="language">Interview Language</Label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger data-testid="language-select">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hebrew">Hebrew</SelectItem>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="Arabic">Arabic</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

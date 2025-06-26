@@ -22,6 +22,32 @@ logger = logging.getLogger(__name__)
 interview_session_router = APIRouter(prefix="/api/v1/interview-session", tags=["interview-session"])
 
 
+@interview_session_router.get("/{session_id}", response_model=InterviewSessionResponse)
+async def get_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    session_service: InterviewSessionService = Depends(get_interview_session_service)
+):
+    """
+    Get interview session details including conversation history
+    """
+    try:
+        session = session_service.session_dao.get(db=db, id=session_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found"
+            )
+        return session
+
+    except Exception as e:
+        logger.exception("Error getting session")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get session"
+        )
+
+
 @interview_session_router.post("/candidate-login", response_model=CandidateLoginResponse)
 async def candidate_login(
     request: CandidateLoginRequest,
@@ -99,8 +125,7 @@ async def chat_with_llm(
         return session_service.process_chat_message(
             db=db,
             session_id=request.session_id,
-            user_message=request.message,
-            language=request.language or "en"
+            user_message=request.message
         )
 
     except ValueError as e:

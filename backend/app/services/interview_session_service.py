@@ -26,6 +26,15 @@ class InterviewSessionService:
         self.session_dao = interview_session_dao
         self.llm_service = llm_service
 
+    def _generate_initial_message(self, candidate_name: str, language: str) -> str:
+        """Generate initial welcome message based on interview language"""
+        if language == "Hebrew":
+            return f"שלום {candidate_name}, איך אתה היום?"
+        elif language == "Arabic":
+            return f"مرحباً {candidate_name}، كيف حالك اليوم؟"
+        else:  # English or default
+            return f"Hello {candidate_name}, how are you today?"
+
     def authenticate_candidate(self, db: Session, pass_key: str) -> CandidateLoginResponse:
         """
         Authenticate candidate using pass key and return interview context.
@@ -53,6 +62,8 @@ class InterviewSessionService:
             interview_id=candidate.interview_id
         )
 
+        candidate_name = f"{candidate.first_name} {candidate.last_name}"
+
         # If no active session exists, create one immediately upon login
         if not existing_session:
             existing_session = self.session_dao.create_session(
@@ -62,7 +73,15 @@ class InterviewSessionService:
             )
             logger.info(f"Created new session {existing_session.id} for candidate {candidate.id} upon login")
 
-        candidate_name = f"{candidate.first_name} {candidate.last_name}"
+            # Add initial message to conversation history based on interview language
+            initial_message = self._generate_initial_message(candidate_name, interview.language)
+            self.session_dao.add_message_to_conversation(
+                db=db,
+                session_id=existing_session.id,
+                role="assistant",
+                content=initial_message
+            )
+            logger.info(f"Added initial message in {interview.language} to session {existing_session.id}")
 
         return CandidateLoginResponse(
             candidate_id=candidate.id,
@@ -103,17 +122,28 @@ class InterviewSessionService:
             interview_id=interview_id
         )
 
+        # Add initial message to conversation history based on interview language
+        candidate_name = f"{candidate.first_name} {candidate.last_name}"
+        initial_message = self._generate_initial_message(candidate_name, interview.language)
+        self.session_dao.add_message_to_conversation(
+            db=db,
+            session_id=session.id,
+            role="assistant",
+            content=initial_message
+        )
+        logger.info(f"Added initial message in {interview.language} to session {session.id}")
+
         return session
 
     def process_chat_message(
         self,
         db: Session,
         session_id: int,
-        user_message: str,
-        language: str = "en"
+        user_message: str
     ) -> ChatResponse:
         """
-        Process chat message and return LLM response
+        Process chat message and return LLM response.
+        Language is retrieved from the interview model.
         """
         # Get session
         session = self.session_dao.get(db=db, id=session_id)
@@ -178,13 +208,13 @@ class InterviewSessionService:
                 conversation_history=conversation_dict
             )
 
-            # Get LLM response
-            logger.info("Processing interview message with LLM service")
+            # Get LLM response using interview language (not client-provided language)
+            logger.info(f"Processing interview message with LLM service using {interview.language} language")
             assistant_response, is_complete = self.llm_service.process_interview_message(
                 db=db,
                 context=context,
                 user_message=user_message,
-                language=language
+                language=interview.language
             )
         except Exception as e:
             logger.exception(f"Error in LLM processing: {e}")

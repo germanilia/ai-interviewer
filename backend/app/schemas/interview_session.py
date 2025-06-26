@@ -126,6 +126,7 @@ class InterviewContext(BaseModel):
     job_description: Optional[str] = None
     questions: list["QuestionResponse"]
     conversation_history: list[ChatMessage]
+    language: str = "hebrew"
 
 
 # Rebuild the model after all classes are defined to resolve forward references

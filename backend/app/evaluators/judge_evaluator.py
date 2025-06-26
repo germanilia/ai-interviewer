@@ -33,6 +33,7 @@ Conversation History:
 {conversation_history}
 
 Current candidate message: "{current_message}"
+You are required to respond in the following language: "{language}"
 
 Initial AI Response Analysis:
 - Reasoning: {evaluation_reasoning}
@@ -85,60 +86,36 @@ Guidelines:
         Returns:
             JudgeResponse with refined reasoning, response, and question analysis
         """
-        try:
-            # Get the evaluation response from kwargs
-            evaluation_response = kwargs.get('evaluation_response')
-            if not isinstance(evaluation_response, EvaluationResponse):
-                raise ValueError(
-                    "evaluation_response is required and must be a EvaluationResponse object")
+        # Get the evaluation response from kwargs
+        evaluation_response = kwargs.get('evaluation_response')
+        if not isinstance(evaluation_response, EvaluationResponse):
+            raise ValueError(
+                "evaluation_response is required and must be a EvaluationResponse object")
 
-            # Get the prompt content (custom or default)
-            prompt_content = self.get_prompt_content(db)
+        # Get the prompt content (custom or default)
+        prompt_content = self.get_prompt_content(db)
 
-            # Prepare context variables
-            context_vars = self.prepare_context_variables(context, message)
+        # Prepare context variables
+        context_vars = self.prepare_context_variables(context, message)
 
-            # Add evaluation response data to context variables
-            context_vars.update({
-                "evaluation_reasoning": evaluation_response.reasoning,
-                "evaluation_response": evaluation_response.response,
-                "evaluation_was_question_answered": evaluation_response.was_question_answered,
-                "evaluation_answered_question_index": evaluation_response.answered_question_index or "null"
-            })
+        # Add evaluation response data to context variables
+        context_vars.update({
+            "evaluation_reasoning": evaluation_response.reasoning,
+            "evaluation_response": evaluation_response.response,
+            "evaluation_was_question_answered": evaluation_response.was_question_answered,
+            "evaluation_answered_question_index": evaluation_response.answered_question_index or "null"
+        })
 
-            # Format the prompt
-            formatted_prompt = self.format_prompt(
-                prompt_content, **context_vars)
+        # Format the prompt
+        formatted_prompt = self.format_prompt(
+            prompt_content, **context_vars)
 
-            # Execute the LLM
-            logger.info("Executing Judge prompt")
-            judge_response = self.llm_client.generate(
-                formatted_prompt, JudgeResponse)
-            self.log_execution("Judge", True)
-            return judge_response
-            
-        except Exception as e:
-            error_msg = f"Failed to execute Judge prompt: {str(e)}"
-            logger.exception(error_msg)
-            self.log_execution("Judge", False, error_msg)
-
-            # Fallback to evaluation response if available
-            evaluation_response = kwargs.get('evaluation_response')
-            if isinstance(evaluation_response, EvaluationResponse):
-                return JudgeResponse(
-                    reasoning=f"Judge execution failed, using evaluation response: {error_msg}",
-                    response=evaluation_response.response,
-                    was_question_answered=evaluation_response.was_question_answered,
-                    answered_question_index=evaluation_response.answered_question_index
-                )
-            else:
-                # Ultimate fallback
-                return JudgeResponse(
-                    reasoning="Both Judge and Evaluation failed",
-                    response="Thank you for your response. Could you tell me more about your experience?",
-                    was_question_answered=False,
-                    answered_question_index=None
-                )
+        # Execute the LLM
+        logger.info("Executing Judge prompt")
+        judge_response = self.llm_client.generate(
+            formatted_prompt, JudgeResponse)
+        self.log_execution("Judge", True)
+        return judge_response
 
 
 # Create instance for dependency injection
