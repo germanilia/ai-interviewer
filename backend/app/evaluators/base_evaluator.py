@@ -134,7 +134,7 @@ class BaseEvaluator(ABC):
         if context.questions:
             questions_list = []
             for i, question in enumerate(context.questions, 1):
-                questions_list.append(f"{i}. {question.question_text}")
+                questions_list.append(f"{i}. {question.question_text} - {question.importance} - {question.instructions}")
             questions_text = "\n".join(questions_list)
 
         # Prepare conversation history

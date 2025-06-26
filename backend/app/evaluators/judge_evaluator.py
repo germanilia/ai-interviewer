@@ -46,7 +46,15 @@ Your task is to:
 1. Review the initial AI response analysis
 2. Evaluate if the analysis is accurate and appropriate
 3. Refine or improve the response if needed
-4. Provide your final judgment
+4. You need to pay attention to the questions by the following rules:
+   - If the question is marked as "mandatory", you must ask it until you are satisfied with the answer and it's a complete one.
+   - If the question is marked as "ask_once", you should ask it only once, and you will accept any answer.
+   - If the question is marked as "optional", you will ask it once, if the candidate chose not to answer you will continue.
+5. You need to pay attention to the instructions for each question and make sure you are not missing any important points.
+6. Once a question was answered according to the rules provided, you will proceed to the next question on the questions list.
+7. If you finished asking all the questions, you will end the interview. Mark interview_complete as False if the interview is still ongoing otherwise mark it as True.
+8. Provide your final judgment
+
 
 Guidelines:
 - Ensure responses are professional and engaging
@@ -104,26 +112,11 @@ Guidelines:
 
             # Execute the LLM
             logger.info("Executing Judge prompt")
-            llm_response = self.llm_client.generate(
+            judge_response = self.llm_client.generate(
                 formatted_prompt, JudgeResponse)
-
-            # Parse the JSON response
-            try:
-                judge_response = json.loads(llm_response.text)
-                self.log_execution("Judge", True)
-                return judge_response
-
-            except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(
-                    f"Failed to parse Judge LLM response as JSON: {e}")
-                # Fallback: use the evaluation response with judge reasoning
-                return JudgeResponse(
-                    reasoning=f"Judge failed to parse response, using evaluation output: {str(e)}",
-                    response=evaluation_response.response,
-                    was_question_answered=evaluation_response.was_question_answered,
-                    answered_question_index=evaluation_response.answered_question_index
-                )
-
+            self.log_execution("Judge", True)
+            return judge_response
+            
         except Exception as e:
             error_msg = f"Failed to execute Judge prompt: {str(e)}"
             logger.exception(error_msg)

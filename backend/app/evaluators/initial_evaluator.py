@@ -43,6 +43,13 @@ Your task is to:
 1. Analyze the candidate's response
 2. Determine if they answered a specific question from the list
 3. Generate an appropriate follow-up response
+4. You need to pay attention to the questions by the following rules:
+   - If the question is marked as "mandatory", you must ask it until you are satisfied with the answer and it's a complete one.
+   - If the question is marked as "ask_once", you should ask it only once, and you will accept any answer.
+   - If the question is marked as "optional", you will ask it once, if the candidate chose not to answer you will continue.
+5. You need to pay attention to the instructions for each question and make sure you are not missing any important points.
+6. Once a question was answered according to the rules provided, you will proceed to the next question on the questions list.
+7. If you finished asking all the questions, you will end the interview. Mark interview_complete as False if the interview is still ongoing otherwise mark it as True.
 
 Guidelines:
 - Be professional and engaging
@@ -70,50 +77,20 @@ Guidelines:
         Returns:
             EvaluationResponse with reasoning, response, and question analysis
         """
-        try:
-            # Get the prompt content (custom or default)
-            prompt_content = self.get_prompt_content(db)
+        
+        # Get the prompt content (custom or default)
+        prompt_content = self.get_prompt_content(db)
 
-            # Prepare context variables
-            context_vars = self.prepare_context_variables(context, message)
+        # Prepare context variables
+        context_vars = self.prepare_context_variables(context, message)
 
-            # Format the prompt
-            formatted_prompt = self.format_prompt(prompt_content, **context_vars)
+        # Format the prompt
+        formatted_prompt = self.format_prompt(prompt_content, **context_vars)
 
-            # Execute the LLM
-            logger.info("Executing Evaluation prompt")
-            llm_response = self.llm_client.generate(formatted_prompt, EvaluationResponse)
-
-            # Parse the JSON response
-            try:
-                evaluation_response = json.loads(llm_response.text)
-
-                self.log_execution("Evaluation", True)
-                return evaluation_response
-
-            except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Failed to parse LLM response as JSON: {e}")
-                # Fallback: create a basic response
-                return EvaluationResponse(
-                    reasoning="Failed to parse structured response from LLM",
-                    response=llm_response.text[:500] if llm_response.text else "I understand. Could you tell me more about that?",
-                    was_question_answered=False,
-                    answered_question_index=None
-                )
-
-        except Exception as e:
-            error_msg = f"Failed to execute Evaluation prompt: {str(e)}"
-            logger.exception(error_msg)
-            self.log_execution("Evaluation", False, error_msg)
-
-            # Return a fallback response
-            return EvaluationResponse(
-                reasoning="Error occurred during LLM processing",
-                response="Thank you for your response. Could you elaborate on that point?",
-                was_question_answered=False,
-                answered_question_index=None
-            )
-
-
+        # Execute the LLM
+        logger.info("Executing Evaluation prompt")
+        evaluation_response = self.llm_client.generate(formatted_prompt, EvaluationResponse)
+        self.log_execution("Evaluation", True)
+        return evaluation_response
 # Create instance for dependency injection
 evaluation_prompt = InitialEvaluator()
