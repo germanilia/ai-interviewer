@@ -77,6 +77,7 @@ class InterviewSessionResponse(InterviewSessionBase):
             candidate_id=session.candidate_id,
             interview_id=session.interview_id,
             status=session.status,
+            current_question_index=session.current_question_index,
             conversation_history=conversation_history,
             started_at=session.started_at,
             completed_at=session.completed_at,

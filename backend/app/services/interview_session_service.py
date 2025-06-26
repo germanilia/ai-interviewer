@@ -184,8 +184,8 @@ class InterviewSessionService:
         if not interview_questions:
             raise ValueError("No questions found for this interview")
 
-        # Sort by order_index to ensure correct sequence
-        # interview_questions.sort(key=lambda x: x.order_index)
+        # Sort by order_index to ensure correct sequence (already done in DAO, but keeping for clarity)
+        interview_questions.sort(key=lambda x: x.order_index)
 
         # Check if all questions are completed
         if current_index >= len(interview_questions):
@@ -276,11 +276,14 @@ class InterviewSessionService:
 
         # Handle question progression based on evaluation results
         if new_index != current_index:
-            # Question index changed, update session
+            # Question index changed, update session with new index and increment questions_asked
             from app.schemas.interview_session import InterviewSessionUpdate
-            session_update = InterviewSessionUpdate(current_question_index=new_index)
+            session_update = InterviewSessionUpdate(
+                current_question_index=new_index,
+                questions_asked=session.questions_asked + 1
+            )
             # Update session using DAO - the DAO handles response object conversion internally
-            self.session_dao.update(db=db, db_obj=session, obj_in=session_update)  # type: ignore
+            session = self.session_dao.update(db=db, db_obj=session, obj_in=session_update)  # type: ignore
 
             # Update current question status to ANSWERED
             db_interview_question = self.interview_question_dao.get_model(db=db, id=current_interview_question.id)
