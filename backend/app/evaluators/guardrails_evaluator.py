@@ -4,7 +4,7 @@ Guardrails prompt class for content safety and appropriateness checking.
 import logging
 import json
 from sqlalchemy.orm import Session
-from app.evaluators.base_evaluator import BaseEvaluator, PromptExecutionError
+from app.evaluators.base_evaluator import BaseEvaluator
 from app.models.custom_prompt import PromptType
 from app.schemas.interview_session import InterviewContext
 from app.schemas.prompt_response import GuardrailsResponse
@@ -18,8 +18,8 @@ class GuardrailsEvaluator(BaseEvaluator):
     Guardrails prompt class for checking content safety and appropriateness.
     Determines whether the conversation can continue safely.
     """
-
-    DEFAULT_PROMPT = """You are a content safety moderator for professional interviews.
+    INIT_PROMPT = """
+You are a content safety moderator for professional interviews.
 
 Interview Context:
 - Position: {interview_title}
@@ -30,6 +30,9 @@ Conversation History:
 {conversation_history}
 
 Current candidate message: "{current_message}"
+"""
+
+    DEFAULT_PROMPT = """
 
 Your task is to evaluate whether this conversation can continue safely and professionally.
 
@@ -42,12 +45,6 @@ Check for:
 6. Personal attacks or hostile behavior
 7. Sharing of sensitive personal information inappropriately
 
-Please respond in the following JSON format:
-{{
-    "can_continue": true/false,
-    "reason": "Brief explanation if conversation should not continue, null if it can continue"
-}}
-
 Guidelines:
 - Be permissive for normal interview discussions
 - Allow candidates to discuss their experiences, even if they mention challenges
@@ -57,7 +54,7 @@ Guidelines:
 - Allow reasonable personal anecdotes related to work experience"""
 
     def __init__(self):
-        super().__init__(PromptType.GUARDRAILS, self.DEFAULT_PROMPT)
+        super().__init__(PromptType.GUARDRAILS, self.DEFAULT_PROMPT, self.INIT_PROMPT)
         self.llm_client = LLMFactory.create_client(ModelName.CLAUDE_3_5_HAIKU)
 
     def execute(self, db: Session, context: InterviewContext, message: str, **kwargs) -> bool:
@@ -81,35 +78,34 @@ Guidelines:
             context_vars = self.prepare_context_variables(context, message)
 
             # Format the prompt
-            formatted_prompt = self.format_prompt(prompt_content, **context_vars)
+            formatted_prompt = self.format_prompt(
+                prompt_content, **context_vars)
 
             # Execute the LLM
             logger.info("Executing Guardrails prompt")
-            llm_response = self.llm_client.generate(formatted_prompt, LLMResponse)
+            llm_response = self.llm_client.generate(
+                formatted_prompt, GuardrailsResponse)
 
-            # Parse the JSON response
             try:
-                response_data = json.loads(llm_response.text)
-
-                # Validate required fields
-                if "can_continue" not in response_data:
-                    raise ValueError("Missing required field: can_continue")
-
-                can_continue = response_data["can_continue"]
-                reason = response_data.get("reason")
+                can_continue = llm_response.can_continue
+                reason = llm_response.reason
 
                 if not can_continue and reason:
-                    logger.warning(f"Guardrails blocked conversation: {reason}")
+                    logger.warning(
+                        f"Guardrails blocked conversation: {reason}")
                 else:
-                    logger.info("Guardrails approved conversation continuation")
+                    logger.info(
+                        "Guardrails approved conversation continuation")
 
                 self.log_execution("Guardrails", True)
                 return can_continue
 
             except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Failed to parse Guardrails LLM response as JSON: {e}")
+                logger.warning(
+                    f"Failed to parse Guardrails LLM response as JSON: {e}")
                 # Fallback: allow conversation to continue if we can't parse the response
-                logger.info("Guardrails defaulting to allow due to parsing error")
+                logger.info(
+                    "Guardrails defaulting to allow due to parsing error")
                 return True
 
         except Exception as e:
@@ -118,7 +114,8 @@ Guidelines:
             self.log_execution("Guardrails", False, error_msg)
 
             # Fallback: allow conversation to continue if guardrails fail
-            logger.info("Guardrails defaulting to allow due to execution error")
+            logger.info(
+                "Guardrails defaulting to allow due to execution error")
             return True
 
     def get_detailed_response(self, db: Session, context: InterviewContext, message: str, **kwargs) -> GuardrailsResponse:
@@ -142,11 +139,13 @@ Guidelines:
             context_vars = self.prepare_context_variables(context, message)
 
             # Format the prompt
-            formatted_prompt = self.format_prompt(prompt_content, **context_vars)
+            formatted_prompt = self.format_prompt(
+                prompt_content, **context_vars)
 
             # Execute the LLM
             logger.info("Executing Guardrails prompt (detailed)")
-            llm_response = self.llm_client.generate(formatted_prompt, LLMResponse)
+            llm_response = self.llm_client.generate(
+                formatted_prompt, LLMResponse)
 
             # Parse the JSON response
             try:
@@ -165,7 +164,8 @@ Guidelines:
                 return guardrails_response
 
             except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Failed to parse Guardrails LLM response as JSON: {e}")
+                logger.warning(
+                    f"Failed to parse Guardrails LLM response as JSON: {e}")
                 # Fallback: allow conversation to continue
                 return GuardrailsResponse(
                     can_continue=True,

@@ -4,11 +4,11 @@ Judge prompt class for final interview response evaluation and refinement.
 import logging
 import json
 from sqlalchemy.orm import Session
-from app.evaluators.base_evaluator import BaseEvaluator, PromptExecutionError
+from app.evaluators.base_evaluator import BaseEvaluator
 from app.models.custom_prompt import PromptType
 from app.schemas.interview_session import InterviewContext
 from app.schemas.prompt_response import JudgeResponse, EvaluationResponse
-from app.core.llm_service import LLMFactory, ModelName, LLMResponse, LLMConfig, ReasoningConfig
+from app.core.llm_service import LLMFactory, ModelName, LLMConfig, ReasoningConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class JudgeEvaluator(BaseEvaluator):
     Judge prompt class for evaluating and refining interview responses.
     Uses a larger, more sophisticated model for final response generation.
     """
-
-    DEFAULT_PROMPT = """You are a senior AI interviewer reviewing and refining interview responses.
+    INIT_PROMPT = """
+You are a senior AI interviewer reviewing and refining interview responses.
 
 Candidate Information:
 - Name: {candidate_name}
@@ -40,19 +40,13 @@ Initial AI Response Analysis:
 - Question Answered: {evaluation_was_question_answered}
 - Question Index: {evaluation_answered_question_index}
 
+"""
+    DEFAULT_PROMPT = """
 Your task is to:
 1. Review the initial AI response analysis
 2. Evaluate if the analysis is accurate and appropriate
 3. Refine or improve the response if needed
 4. Provide your final judgment
-
-Please respond in the following JSON format:
-{{
-    "reasoning": "Your reasoning for the final response and any refinements made",
-    "response": "Your final refined response to the candidate",
-    "was_question_answered": true/false,
-    "answered_question_index": null or question number (1-based)
-}}
 
 Guidelines:
 - Ensure responses are professional and engaging
@@ -64,9 +58,11 @@ Guidelines:
 
     def __init__(self):
         # Use reasoning-enabled configuration for better analysis
-        llm_config = LLMConfig(reasoning=ReasoningConfig(enabled=True, budget_tokens=1000))
-        super().__init__(PromptType.JUDGE, self.DEFAULT_PROMPT)
-        self.llm_client = LLMFactory.create_client(ModelName.CLAUDE_4_SONNET, config=llm_config)
+        llm_config = LLMConfig(reasoning=ReasoningConfig(
+            enabled=True, budget_tokens=1000))
+        super().__init__(PromptType.JUDGE, self.DEFAULT_PROMPT, self.INIT_PROMPT)
+        self.llm_client = LLMFactory.create_client(
+            ModelName.CLAUDE_4_SONNET, config=llm_config)
 
     def execute(self, db: Session, context: InterviewContext, message: str, **kwargs) -> JudgeResponse:
         """
@@ -85,7 +81,8 @@ Guidelines:
             # Get the evaluation response from kwargs
             evaluation_response = kwargs.get('evaluation_response')
             if not isinstance(evaluation_response, EvaluationResponse):
-                raise ValueError("evaluation_response is required and must be a EvaluationResponse object")
+                raise ValueError(
+                    "evaluation_response is required and must be a EvaluationResponse object")
 
             # Get the prompt content (custom or default)
             prompt_content = self.get_prompt_content(db)
@@ -102,35 +99,23 @@ Guidelines:
             })
 
             # Format the prompt
-            formatted_prompt = self.format_prompt(prompt_content, **context_vars)
+            formatted_prompt = self.format_prompt(
+                prompt_content, **context_vars)
 
             # Execute the LLM
             logger.info("Executing Judge prompt")
-            llm_response = self.llm_client.generate(formatted_prompt, LLMResponse)
+            llm_response = self.llm_client.generate(
+                formatted_prompt, JudgeResponse)
 
             # Parse the JSON response
             try:
-                response_data = json.loads(llm_response.text)
-
-                # Validate required fields
-                required_fields = ["reasoning", "response", "was_question_answered"]
-                for field in required_fields:
-                    if field not in response_data:
-                        raise ValueError(f"Missing required field: {field}")
-
-                # Create the response object
-                judge_response = JudgeResponse(
-                    reasoning=response_data["reasoning"],
-                    response=response_data["response"],
-                    was_question_answered=response_data["was_question_answered"],
-                    answered_question_index=response_data.get("answered_question_index")
-                )
-
+                judge_response = json.loads(llm_response.text)
                 self.log_execution("Judge", True)
                 return judge_response
 
             except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Failed to parse Judge LLM response as JSON: {e}")
+                logger.warning(
+                    f"Failed to parse Judge LLM response as JSON: {e}")
                 # Fallback: use the evaluation response with judge reasoning
                 return JudgeResponse(
                     reasoning=f"Judge failed to parse response, using evaluation output: {str(e)}",

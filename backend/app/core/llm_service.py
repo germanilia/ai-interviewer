@@ -54,7 +54,6 @@ class LLMClient(Generic[T]):
     def __init__(
         self,
         model_id: ModelName,
-        region_name: str = "us-east-1",
         config: Optional[LLMConfig] = None
     ):
             
@@ -150,6 +149,12 @@ class LLMClient(Generic[T]):
     def generate(self, message: str, response_model: Type[T]) -> T:
         """Generate a response for a single message"""
         try:
+            message += f"""
+You are required to respond in the following JSON format:
+{response_model.model_json_schema()}
+
+the response must start with {{ and end with }}
+"""
             request = self._prepare_native_api_request(message)
             json_request = json.dumps(request)
             
@@ -196,12 +201,10 @@ class LLMFactory:
     @staticmethod
     def create_client(
         model_name: ModelName,
-        region_name: str = "us-east-1",
         config: Optional[LLMConfig] = None
     ) -> LLMClient:
         return LLMClient(
             model_id=model_name,
-            region_name=region_name,
             config=config
         )
 

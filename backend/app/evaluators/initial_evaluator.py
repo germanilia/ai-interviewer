@@ -20,7 +20,8 @@ class InitialEvaluator(BaseEvaluator):
     Uses a smaller, faster model for quick response generation.
     """
 
-    DEFAULT_PROMPT = """You are an AI interviewer conducting a professional interview for the position of {interview_title}.
+    INIT_PROMPT = """
+You are an AI interviewer conducting a professional interview for the position of {interview_title}.
 
 Candidate Information:
 - Name: {candidate_name}
@@ -34,29 +35,26 @@ Conversation History:
 {conversation_history}
 
 Current candidate message: "{current_message}"
+"""
+
+    DEFAULT_PROMPT = """
 
 Your task is to:
 1. Analyze the candidate's response
 2. Determine if they answered a specific question from the list
 3. Generate an appropriate follow-up response
 
-Please respond in the following JSON format:
-{{
-    "reasoning": "Your reasoning for the response and analysis",
-    "response": "Your response to the candidate",
-    "was_question_answered": true/false,
-    "answered_question_index": null or question number (1-based)
-}}
-
 Guidelines:
 - Be professional and engaging
 - Ask follow-up questions to dive deeper
 - If a question was answered, note which one
 - Keep responses conversational but focused
-- Encourage detailed responses from the candidate"""
+- Encourage detailed responses from the candidate
+"""
+
 
     def __init__(self):
-        super().__init__(PromptType.EVALUATION, self.DEFAULT_PROMPT)
+        super().__init__(PromptType.EVALUATION, self.DEFAULT_PROMPT, self.INIT_PROMPT)
         self.llm_client = LLMFactory.create_client(ModelName.CLAUDE_3_5_HAIKU)
 
     def execute(self, db: Session, context: InterviewContext, message: str, **kwargs) -> EvaluationResponse:
@@ -84,25 +82,11 @@ Guidelines:
 
             # Execute the LLM
             logger.info("Executing Evaluation prompt")
-            llm_response = self.llm_client.generate(formatted_prompt, LLMResponse)
+            llm_response = self.llm_client.generate(formatted_prompt, EvaluationResponse)
 
             # Parse the JSON response
             try:
-                response_data = json.loads(llm_response.text)
-
-                # Validate required fields
-                required_fields = ["reasoning", "response", "was_question_answered"]
-                for field in required_fields:
-                    if field not in response_data:
-                        raise ValueError(f"Missing required field: {field}")
-
-                # Create the response object
-                evaluation_response = EvaluationResponse(
-                    reasoning=response_data["reasoning"],
-                    response=response_data["response"],
-                    was_question_answered=response_data["was_question_answered"],
-                    answered_question_index=response_data.get("answered_question_index")
-                )
+                evaluation_response = json.loads(llm_response.text)
 
                 self.log_execution("Evaluation", True)
                 return evaluation_response

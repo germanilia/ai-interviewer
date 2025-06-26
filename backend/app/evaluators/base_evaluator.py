@@ -18,7 +18,7 @@ class BaseEvaluator(ABC):
     Handles loading custom prompts from database or using default prompts.
     """
 
-    def __init__(self, prompt_type: PromptType, default_prompt: str):
+    def __init__(self, prompt_type: PromptType, default_prompt: str, init_prompt:str):
         """
         Initialize the base prompt.
         
@@ -27,6 +27,7 @@ class BaseEvaluator(ABC):
             default_prompt: The default prompt content to use if no custom prompt is found
         """
         self.prompt_type = prompt_type
+        self.init_prompt = init_prompt
         self.default_prompt = default_prompt
         self._cached_prompt: Optional[str] = None
         self._cache_timestamp: Optional[float] = None
@@ -63,7 +64,8 @@ class BaseEvaluator(ABC):
             else:
                 logger.info(f"Using default prompt for {self.prompt_type}")
                 prompt_content = self.default_prompt
-            
+            prompt_content = self.init_prompt + prompt_content
+
             # Cache the result
             self._cached_prompt = prompt_content
             self._cache_timestamp = current_time
@@ -72,7 +74,7 @@ class BaseEvaluator(ABC):
             
         except Exception as e:
             logger.warning(f"Failed to load custom prompt for {self.prompt_type}, using default: {e}")
-            return self.default_prompt
+            return self.init_prompt + self.default_prompt
 
     def clear_cache(self):
         """Clear the cached prompt content."""
