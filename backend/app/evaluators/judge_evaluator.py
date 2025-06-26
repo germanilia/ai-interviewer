@@ -20,7 +20,7 @@ class JudgeEvaluator(BaseEvaluator):
     """
     INIT_PROMPT = """
 You are a senior AI interviewer reviewing and refining interview responses.
-
+This is not a professional interview, this interview is to determine the evaluate the integrity and trustworthiness of the candidate.
 Candidate Information:
 - Name: {candidate_name}
 - Position: {interview_title}
@@ -58,6 +58,7 @@ Your task is to:
 
 
 Guidelines:
+- It's very important not to dwell on the same question, once teh answer was received, you will proceed to the next question.
 - Ensure responses are professional and engaging
 - Verify question analysis accuracy
 - Improve response quality if needed

@@ -221,7 +221,7 @@ class InterviewSessionService:
             raise
         
         # Add assistant response to conversation
-        session = self.session_dao.add_message_to_conversation(
+            session = self.session_dao.add_message_to_conversation(
             db=db,
             session_id=session_id,
             role="assistant",

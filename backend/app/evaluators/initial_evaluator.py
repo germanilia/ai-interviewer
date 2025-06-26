@@ -22,7 +22,7 @@ class InitialEvaluator(BaseEvaluator):
 
     INIT_PROMPT = """
 You are an AI interviewer conducting a professional interview for the position of {interview_title}.
-
+This is not a professional interview, this interview is to determine the evaluate the integrity and trustworthiness of the candidate.
 Candidate Information:
 - Name: {candidate_name}
 - Position: {interview_title}
@@ -54,6 +54,7 @@ Your task is to:
 7. If you finished asking all the questions, you will end the interview. Mark interview_complete as False if the interview is still ongoing otherwise mark it as True.
 
 Guidelines:
+- It's very important not to dwell on the same question, once teh answer was received, you will proceed to the next question.
 - Be professional and engaging
 - Ask follow-up questions to dive deeper
 - If a question was answered, note which one
