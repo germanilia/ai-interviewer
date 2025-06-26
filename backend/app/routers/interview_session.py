@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel
 import logging
 
-from app.dependencies import get_db
+from app.dependencies import get_db, get_interview_session_service
 from app.schemas.interview_session import (
     CandidateLoginRequest,
     CandidateLoginResponse,
@@ -15,7 +15,7 @@ from app.schemas.interview_session import (
     ChatResponse,
     InterviewSessionResponse
 )
-from app.services.interview_session_service import interview_session_service
+from app.services.interview_session_service import InterviewSessionService
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +25,14 @@ interview_session_router = APIRouter(prefix="/api/v1/interview-session", tags=["
 @interview_session_router.post("/candidate-login", response_model=CandidateLoginResponse)
 async def candidate_login(
     request: CandidateLoginRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    session_service: InterviewSessionService = Depends(get_interview_session_service)
 ):
     """
     Authenticate candidate using pass key and return interview context
     """
     try:
-        return interview_session_service.authenticate_candidate(
+        return session_service.authenticate_candidate(
             db=db,
             pass_key=request.pass_key
         )
@@ -58,13 +59,14 @@ class StartSessionRequest(BaseModel):
 @interview_session_router.post("/start-session", response_model=InterviewSessionResponse)
 async def start_interview_session(
     request: StartSessionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    session_service: InterviewSessionService = Depends(get_interview_session_service)
 ):
     """
     Start a new interview session for a candidate
     """
     try:
-        return interview_session_service.start_session(
+        return session_service.start_session(
             db=db,
             candidate_id=request.candidate_id,
             interview_id=request.interview_id
@@ -87,13 +89,14 @@ async def start_interview_session(
 @interview_session_router.post("/chat", response_model=ChatResponse)
 async def chat_with_llm(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    session_service: InterviewSessionService = Depends(get_interview_session_service)
 ):
     """
     Process chat message and return LLM response
     """
     try:
-        return interview_session_service.process_chat_message(
+        return session_service.process_chat_message(
             db=db,
             session_id=request.session_id,
             user_message=request.message,
@@ -121,13 +124,14 @@ class EndSessionRequest(BaseModel):
 @interview_session_router.post("/end-session", response_model=InterviewSessionResponse)
 async def end_interview_session(
     request: EndSessionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    session_service: InterviewSessionService = Depends(get_interview_session_service)
 ):
     """
     End an interview session and update candidate status
     """
     try:
-        return interview_session_service.end_session(
+        return session_service.end_session(
             db=db,
             session_id=request.session_id
         )

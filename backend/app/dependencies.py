@@ -11,6 +11,11 @@ from app.services.user_service import UserService
 from app.services.candidate_service import CandidateService
 from app.schemas.auth import TokenData
 from app.schemas.user import UserResponse
+from app.evaluators.initial_evaluator import InitialEvaluator
+from app.evaluators.judge_evaluator import JudgeEvaluator
+from app.evaluators.guardrails_evaluator import GuardrailsEvaluator
+from app.services.interview_llm_service import InterviewLLMService
+from app.services.interview_session_service import InterviewSessionService
 
 # Security scheme
 security = HTTPBearer()
@@ -154,3 +159,48 @@ def require_role(required_role: UserRole):
         return current_user
 
     return role_checker
+
+
+def get_initial_evaluator() -> InitialEvaluator:
+    """
+    Dependency for InitialEvaluator instance.
+    """
+    return InitialEvaluator()
+
+
+def get_judge_evaluator() -> JudgeEvaluator:
+    """
+    Dependency for JudgeEvaluator instance.
+    """
+    return JudgeEvaluator()
+
+
+def get_guardrails_evaluator() -> GuardrailsEvaluator:
+    """
+    Dependency for GuardrailsEvaluator instance.
+    """
+    return GuardrailsEvaluator()
+
+
+def get_interview_llm_service(
+    initial_evaluator: InitialEvaluator = Depends(get_initial_evaluator),
+    judge_evaluator: JudgeEvaluator = Depends(get_judge_evaluator),
+    guardrails_evaluator: GuardrailsEvaluator = Depends(get_guardrails_evaluator)
+) -> InterviewLLMService:
+    """
+    Dependency for InterviewLLMService instance with evaluators.
+    """
+    return InterviewLLMService(
+        initial_evaluator=initial_evaluator,
+        judge_evaluator=judge_evaluator,
+        guardrails_evaluator=guardrails_evaluator
+    )
+
+
+def get_interview_session_service(
+    llm_service: InterviewLLMService = Depends(get_interview_llm_service)
+) -> InterviewSessionService:
+    """
+    Dependency for InterviewSessionService instance with LLM service.
+    """
+    return InterviewSessionService(llm_service=llm_service)

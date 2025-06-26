@@ -1,10 +1,14 @@
 """
-LLM service for interview conversations with hard-coded responses.
+LLM service for interview conversations using evaluator pipeline.
 """
 import logging
 from typing import Optional, Tuple, TYPE_CHECKING
+from sqlalchemy.orm import Session
 from app.schemas.interview_session import InterviewContext, ChatMessage
 from app.core.llm_service import LLMConfig, LLMFactory, ModelName, ReasoningConfig
+from app.evaluators.initial_evaluator import InitialEvaluator
+from app.evaluators.judge_evaluator import JudgeEvaluator
+from app.evaluators.guardrails_evaluator import GuardrailsEvaluator
 
 if TYPE_CHECKING:
     from app.schemas.question import QuestionResponse
@@ -13,9 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 class InterviewLLMService:
-    """Service for handling LLM interactions during interviews"""
+    """Service for handling LLM interactions during interviews using evaluator pipeline"""
 
-    def __init__(self):
+    def __init__(
+        self,
+        initial_evaluator: InitialEvaluator,
+        judge_evaluator: JudgeEvaluator,
+        guardrails_evaluator: GuardrailsEvaluator
+    ):
+        self.initial_evaluator = initial_evaluator
+        self.judge_evaluator = judge_evaluator
+        self.guardrails_evaluator = guardrails_evaluator
+
+        # Keep hard-coded responses as fallback
         self.hard_coded_responses = {
             "en": [
                 "Thank you for that response. Can you tell me more about your background and experience?",
@@ -58,38 +72,75 @@ class InterviewLLMService:
 
     def process_interview_message(
         self,
+        db: Session,
         context: InterviewContext,
         user_message: str,
         language: str = "en"
     ) -> Tuple[str, bool]:
         """
-        Process user message and return LLM response and completion status
-        
+        Process user message using evaluator pipeline and return LLM response and completion status
+
         Args:
+            db: Database session
             context: Interview context with candidate info and conversation history
             user_message: The user's message
-            
+            language: Language preference for response
+
         Returns:
             Tuple of (assistant_response, is_interview_complete)
         """
         logger.info(f"Processing message for candidate: {context.candidate_name}")
-        
+
         # Check if user wants to end the interview
         if self._is_completion_message(user_message):
             return self._generate_completion_response(context, language), True
 
-        # Generate next response
-        response = self._generate_response(context, user_message, language)
-        return response, False
+        try:
+            # Step 1: Check guardrails first
+            can_continue = self.guardrails_evaluator.execute(db, context, user_message)
+            if not can_continue:
+                logger.warning(f"Guardrails blocked message from {context.candidate_name}")
+                return self._generate_blocked_response(language), False
+
+            # Step 2: Generate initial evaluation
+            evaluation_response = self.initial_evaluator.execute(db, context, user_message)
+
+            # Step 3: Judge the evaluation and refine if needed
+            judge_response = self.judge_evaluator.execute(
+                db, context, user_message, evaluation_response=evaluation_response
+            )
+
+            # Use the judge's final response
+            return judge_response.response, False
+
+        except Exception as e:
+            logger.exception(f"Error in evaluator pipeline: {e}")
+            # Fallback to hard-coded response
+            response = self._generate_fallback_response(context, user_message, language)
+            return response, False
 
     def _is_completion_message(self, message: str) -> bool:
         """Check if the message indicates the user wants to end the interview"""
         completion_keywords = [
-            "done", "finished", "complete", "end", "that's all", 
+            "done", "finished", "complete", "end", "that's all",
             "no more", "i'm done", "finish", "conclude"
         ]
         message_lower = message.lower().strip()
         return any(keyword in message_lower for keyword in completion_keywords)
+
+    def _generate_blocked_response(self, language: str = "en") -> str:
+        """Generate a response when content is blocked by guardrails"""
+        if language == "he":
+            return "אני מצטער, אבל אני לא יכול להמשיך עם הנושא הזה. בואו נתמקד בשאלות הקשורות לתפקיד."
+        elif language == "ar":
+            return "أعتذر، لكنني لا أستطيع المتابعة مع هذا الموضوع. دعنا نركز على الأسئلة المتعلقة بالوظيفة."
+        else:
+            return "I apologize, but I cannot continue with this topic. Let's focus on job-related questions."
+
+    def _generate_fallback_response(self, context: InterviewContext, user_message: str, language: str = "en") -> str:
+        """Generate a fallback response when evaluators fail"""
+        # Use the original hard-coded response logic as fallback
+        return self._generate_response(context, user_message, language)
 
     def _generate_response(self, context: InterviewContext, user_message: str, language: str = "en") -> str:
         """Generate a response based on context and user message"""
@@ -177,5 +228,4 @@ class InterviewLLMService:
         )
 
 
-# Create instance for dependency injection
-interview_llm_service = InterviewLLMService()
+# Service will be created via dependency injection

@@ -14,7 +14,7 @@ from app.schemas.interview_session import (
     InterviewSessionResponse,
     ChatResponse
 )
-from app.services.interview_llm_service import interview_llm_service
+from app.services.interview_llm_service import InterviewLLMService
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 class InterviewSessionService:
     """Service for handling interview session business logic"""
 
-    def __init__(self):
+    def __init__(self, llm_service: InterviewLLMService):
         self.session_dao = interview_session_dao
-        self.llm_service = interview_llm_service
+        self.llm_service = llm_service
 
     def authenticate_candidate(self, db: Session, pass_key: str) -> CandidateLoginResponse:
         """
@@ -181,6 +181,7 @@ class InterviewSessionService:
             # Get LLM response
             logger.info("Processing interview message with LLM service")
             assistant_response, is_complete = self.llm_service.process_interview_message(
+                db=db,
                 context=context,
                 user_message=user_message,
                 language=language
@@ -360,5 +361,4 @@ class InterviewSessionService:
             logger.exception(f"Failed to generate report for candidate {candidate_id}: {e}")
 
 
-# Create instance for dependency injection
-interview_session_service = InterviewSessionService()
+# Service will be created via dependency injection

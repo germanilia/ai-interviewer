@@ -55,8 +55,8 @@ Guidelines:
 - Keep responses conversational but focused
 - Encourage detailed responses from the candidate"""
 
-    def __init__(self, model_name:ModelName = ModelName.CLAUDE_3_5_HAIKU):
-        super().__init__(PromptType.EVALUATION, model_name)
+    def __init__(self):
+        super().__init__(PromptType.EVALUATION, self.DEFAULT_PROMPT)
         self.llm_client = LLMFactory.create_client(ModelName.CLAUDE_3_5_HAIKU)
 
     def execute(self, db: Session, context: InterviewContext, message: str, **kwargs) -> EvaluationResponse:
