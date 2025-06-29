@@ -74,9 +74,17 @@ test.describe('Candidate Chat Interface', () => {
   });
 
   test('should end interview and return to landing page', async ({ page }) => {
+    // Click end interview button
     await page.getByTestId('end-interview-button').click();
-    
-    // Should navigate back to interview landing
+
+    // Should show loading state with spinner
+    await expect(page.getByTestId('end-interview-button')).toContainText('Ending Interview...');
+    await expect(page.locator('[data-testid="end-interview-button"] .animate-spin')).toBeVisible();
+
+    // Button should be disabled during loading
+    await expect(page.getByTestId('end-interview-button')).toBeDisabled();
+
+    // Should navigate back to interview landing after completion
     await expect(page).toHaveURL('/interview');
   });
 

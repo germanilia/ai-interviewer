@@ -51,15 +51,8 @@ export class CandidatesPage {
   // Search and Filters
   readonly searchSection: Locator;
   readonly searchInput: Locator;
-  readonly searchButton: Locator;
   readonly clearSearchButton: Locator;
-  readonly filtersToggle: Locator;
-  readonly filtersPanel: Locator;
   readonly statusFilter: Locator;
-  readonly dateRangeFilter: Locator;
-  readonly riskLevelFilter: Locator;
-  readonly applyFiltersButton: Locator;
-  readonly clearFiltersButton: Locator;
   
   // Pagination
   readonly paginationSection: Locator;
@@ -162,15 +155,8 @@ export class CandidatesPage {
     // Search and Filters
     this.searchSection = page.getByTestId('search-section');
     this.searchInput = page.getByTestId('candidates-search');
-    this.searchButton = page.getByTestId('search-btn');
     this.clearSearchButton = page.getByTestId('clear-search-btn');
-    this.filtersToggle = page.getByTestId('filters-toggle');
-    this.filtersPanel = page.getByTestId('filters-panel');
     this.statusFilter = page.getByTestId('status-filter');
-    this.dateRangeFilter = page.getByTestId('date-range-filter');
-    this.riskLevelFilter = page.getByTestId('risk-level-filter');
-    this.applyFiltersButton = page.getByTestId('apply-filters-btn');
-    this.clearFiltersButton = page.getByTestId('clear-filters-btn');
     
     // Pagination
     this.paginationSection = page.getByTestId('pagination-section');
@@ -320,14 +306,10 @@ export class CandidatesPage {
    * Apply filters
    */
   async applyFilters(filters: CandidateFilter) {
-    // Open filters panel if not visible
-    const isFiltersVisible = await this.filtersPanel.isVisible();
-    if (!isFiltersVisible) {
-      await this.filtersToggle.click();
-    }
-
     if (filters.search) {
       await this.searchInput.fill(filters.search);
+      // Wait for debounced search to trigger
+      await this.page.waitForTimeout(500);
     }
 
     if (filters.status) {
@@ -337,25 +319,17 @@ export class CandidatesPage {
       await this.page.getByRole('option', { name: filters.status }).click();
     }
 
-    if (filters.riskLevel) {
-      await this.riskLevelFilter.selectOption(filters.riskLevel);
-    }
-
-    if (filters.dateRange) {
-      // Implement date range selection logic
-      // This would depend on the specific date picker implementation
-    }
-
-    await this.applyFiltersButton.click();
     await this.waitForCandidatesToLoad();
   }
 
   /**
-   * Clear all filters
+   * Clear search
    */
-  async clearFilters() {
-    await this.clearFiltersButton.click();
-    await this.waitForCandidatesToLoad();
+  async clearSearch() {
+    if (await this.clearSearchButton.isVisible()) {
+      await this.clearSearchButton.click();
+      await this.waitForCandidatesToLoad();
+    }
   }
 
   /**

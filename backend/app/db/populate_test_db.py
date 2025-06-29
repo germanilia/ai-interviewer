@@ -166,12 +166,28 @@ def populate_sample_data(db: Session, admin_user: User):
         # 1. Create Candidates
         logger.info("Creating sample candidates...")
         created_candidates = []
+
+        # First, create a specific test candidate with known pass key for tests
+        from app.schemas.interview import generate_pass_key
+        test_candidate = Candidate(
+            first_name="Sarah",
+            last_name="Davis",
+            email="sarah.davis@test.com",
+            phone="+1-555-123-4567",
+            pass_key="XZDUN3VB",  # Fixed pass key for tests
+            created_by_user_id=admin_user.id
+        )
+        db.add(test_candidate)
+        created_candidates.append(test_candidate)
+
+        # Then create other sample candidates with random pass keys
         for candidate_data in SAMPLE_CANDIDATES:
             candidate = Candidate(
                 first_name=candidate_data["first_name"],
                 last_name=candidate_data["last_name"],
                 email=candidate_data["email"],
                 phone=candidate_data["phone"],
+                pass_key=generate_pass_key(),
                 created_by_user_id=admin_user.id
             )
             db.add(candidate)
@@ -179,6 +195,22 @@ def populate_sample_data(db: Session, admin_user: User):
 
         db.flush()
         logger.info(f"Created {len(created_candidates)} candidates")
+
+        # 2. Create Interview for test candidate
+        logger.info("Creating test interview...")
+        from app.models.interview import Interview
+        test_interview = Interview(
+            job_title="Warehouse Supervisor",
+            job_description="Supervise warehouse operations and manage inventory",
+            job_department="Operations",
+            created_by_user_id=admin_user.id
+        )
+        db.add(test_interview)
+        db.flush()
+
+        # Assign test candidate to test interview
+        test_candidate.interview_id = test_interview.id
+        logger.info(f"Created test interview and assigned to test candidate")
 
         # 3. Create Questions
         logger.info("Creating sample questions...")
@@ -198,7 +230,25 @@ def populate_sample_data(db: Session, admin_user: User):
         db.flush()
         logger.info(f"Created {len(created_questions)} questions")
 
-        # 4. Update candidates with sample interview data
+        # 4. Assign questions to test interview
+        logger.info("Assigning questions to test interview...")
+        from app.models.interview import InterviewQuestion, InterviewQuestionStatus
+
+        # Assign first 3 questions to the test interview
+        for i, question in enumerate(created_questions[:3]):
+            interview_question = InterviewQuestion(
+                interview_id=test_interview.id,
+                question_id=question.id,
+                order_index=i,
+                status=InterviewQuestionStatus.PENDING,
+                question_text_snapshot=question.question_text  # Required field
+            )
+            db.add(interview_question)
+
+        db.flush()
+        logger.info(f"Assigned {min(3, len(created_questions))} questions to test interview")
+
+        # 5. Update candidates with sample interview data
         create_sample_interview_data(
             db, created_candidates, created_questions, admin_user)
 

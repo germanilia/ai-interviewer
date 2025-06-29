@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   Search,
-  Filter,
   Edit,
   Trash2,
   Eye,
@@ -108,7 +107,8 @@ export const Candidates: React.FC = () => {
   };
 
   // State management
-  const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
+  const [allCandidates, setAllCandidates] = useState<CandidateResponse[]>([]);
+  const [filteredCandidates, setFilteredCandidates] = useState<CandidateResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,7 +130,7 @@ export const Candidates: React.FC = () => {
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateResponse | null>(null);
   const [viewingCandidate, setViewingCandidate] = useState<CandidateResponse | null>(null);
   const [candidateReport, setCandidateReport] = useState<CandidateReportResponse | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [loadingInterviewHistory, setLoadingInterviewHistory] = useState(false);
 
@@ -153,16 +153,14 @@ export const Candidates: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // Fetch all candidates for client-side filtering
       const response = await api.candidates.getAll({
-        page: currentPage,
-        page_size: pageSize,
+        page: 1,
+        page_size: 1000, // Large page size to get all candidates
         search: searchQuery || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
       });
 
-      setCandidates(response.items);
-      setTotalCandidates(response.total);
-      setTotalPages(response.total_pages);
+      setAllCandidates(response.items);
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
@@ -174,7 +172,7 @@ export const Candidates: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchQuery, statusFilter, toast]);
+  }, [searchQuery, toast]);
 
   // Fetch interview history for a candidate
   const fetchInterviewHistory = useCallback(async (candidateId: number) => {
@@ -201,6 +199,38 @@ export const Candidates: React.FC = () => {
     fetchCandidates();
     loadInterviews();
   }, [fetchCandidates, loadInterviews]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Client-side filtering
+  useEffect(() => {
+    let filtered = [...allCandidates];
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(candidate => {
+        const candidateStatus = candidate.interview_status || 'new';
+        return candidateStatus === statusFilter;
+      });
+    }
+
+    setFilteredCandidates(filtered);
+    setTotalCandidates(filtered.length);
+    setTotalPages(Math.ceil(filtered.length / pageSize));
+  }, [allCandidates, statusFilter, pageSize]);
+
+  // Get paginated candidates for display
+  const candidates = filteredCandidates.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   // Form validation
   const validateForm = (data: CandidateFormData): FormErrors => {
@@ -369,13 +399,6 @@ export const Candidates: React.FC = () => {
         variant: 'destructive',
       });
     }
-  };
-
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchCandidates();
   };
 
   // Handle clear search
@@ -569,50 +592,33 @@ export const Candidates: React.FC = () => {
       {/* Toolbar */}
       <div className="flex items-center gap-4" data-testid="candidates-toolbar">
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex-1" data-testid="search-section">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search candidates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="candidates-search"
-              />
-              {searchQuery && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                  onClick={handleClearSearch}
-                  data-testid="clear-search-btn"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <Button
-              type="submit"
-              variant="outline"
-              data-testid="search-btn"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+        <div className="flex-1" data-testid="search-section">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search candidates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="candidates-search"
+            />
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                onClick={handleClearSearch}
+                data-testid="clear-search-btn"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
-        </form>
+        </div>
 
-        {/* Filters Toggle */}
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          data-testid="filters-toggle"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-        </Button>
+
 
         {/* Status Filter */}
         <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
@@ -666,28 +672,7 @@ export const Candidates: React.FC = () => {
         </div>
       )}
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <Card className="p-4" data-testid="filters-panel">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
-      )}
+
 
       {/* Main Content */}
       <Card data-testid="candidates-list">

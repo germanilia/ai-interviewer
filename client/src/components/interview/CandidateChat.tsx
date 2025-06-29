@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-import { Send, User, Bot, LogOut, Sun, Moon } from 'lucide-react';
+import { Send, User, Bot, LogOut, Sun, Moon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -65,6 +65,7 @@ export const CandidateChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isEndingInterview, setIsEndingInterview] = useState(false);
   const [isInterviewComplete, setIsInterviewComplete] = useState(false);
 
   useEffect(() => {
@@ -112,11 +113,17 @@ export const CandidateChat: React.FC = () => {
       try {
         const sessionData = await api.interviewSession.getSession(state.sessionId);
         if (sessionData.conversation_history && sessionData.conversation_history.length > 0) {
-          const chatMessages: ChatMessage[] = sessionData.conversation_history.map((msg: any) => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp
-          }));
+          const chatMessages: ChatMessage[] = sessionData.conversation_history.map((msg: any) => {
+            // Detect text direction and language for each loaded message
+            const textInfo = detectTextDirection(msg.content);
+            return {
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+              direction: textInfo.direction,
+              language: textInfo.language
+            };
+          });
           setMessages(chatMessages);
         } else {
           // No conversation history yet - this shouldn't happen since we add initial message on session creation
@@ -205,6 +212,7 @@ export const CandidateChat: React.FC = () => {
       return;
     }
 
+    setIsEndingInterview(true);
     try {
       await api.interviewSession.endSession({
         session_id: interviewState.sessionId
@@ -223,6 +231,8 @@ export const CandidateChat: React.FC = () => {
         description: "Failed to end interview. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsEndingInterview(false);
     }
   };
 
@@ -269,11 +279,21 @@ export const CandidateChat: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleEndInterview}
+                disabled={isEndingInterview}
                 data-testid="end-interview-button"
                 className="border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                End Interview
+                {isEndingInterview ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Ending Interview...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    End Interview
+                  </>
+                )}
               </Button>
             </div>
           </div>
