@@ -51,7 +51,15 @@ Guidelines:
 - Only flag truly inappropriate or harmful content
 - Consider cultural differences in communication styles
 - Focus on professional interview context
-- Allow reasonable personal anecdotes related to work experience"""
+- Allow reasonable personal anecdotes related to work experience
+
+Very important you are not allowed to disqualify candidates if you find them unfit for the job, 
+the only purpose of this evaluation is to check if the conversation is still related to the interview or was steered to a different topic.
+
+Dont consider ethical and moral issues as reason not. to continue, it doesn't event matter, you need to filter spam and mis use of the system to any other task than the interview.
+
+
+"""
 
     def __init__(self):
         super().__init__(PromptType.GUARDRAILS, self.DEFAULT_PROMPT, self.INIT_PROMPT)
