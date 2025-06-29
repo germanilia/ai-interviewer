@@ -366,7 +366,7 @@ export const Interviews: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell data-testid="interview-questions">
-                            <Badge variant="outline">{interview.assigned_candidates?.length || 0} questions</Badge>
+                            <Badge variant="outline">{interview.questions_count || 0} questions</Badge>
                           </TableCell>
                           <TableCell data-testid="interview-avg-score">
                             {interview.avg_score ? `${interview.avg_score}%` : '-'}

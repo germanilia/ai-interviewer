@@ -436,6 +436,9 @@ def populate_db():
         create_sample_interview_data(
             db, created_candidates, created_questions, admin_user)
 
+        # 6. Assign questions to interviews (2 from each category)
+        assign_questions_to_interviews(db, created_interviews, created_questions)
+
         # 7. Create Sample Interview Questions with Answers for completed interview
         create_sample_interview_questions(
             db, created_interviews, created_questions)
@@ -487,13 +490,58 @@ def create_sample_interview_data(db: Session, candidates: list, questions: list,
     logger.info("עודכנו מועמדים עם נתוני ראיון לדוגמה")
 
 
+def assign_questions_to_interviews(db: Session, interviews: list, questions: list):
+    """
+    הקצאת שאלות לראיונות - 2 שאלות מכל קטגוריה לכל ראיון.
+    זה מבטיח שכל ראיון מכסה את כל התחומים הנדרשים.
+    """
+    logger.info("מקצה שאלות לראיונות - 2 מכל קטגוריה...")
+    
+    # Group questions by category
+    questions_by_category = {}
+    for question in questions:
+        if question.category not in questions_by_category:
+            questions_by_category[question.category] = []
+        questions_by_category[question.category].append(question)
+    
+    # Log available categories and question counts
+    for category, category_questions in questions_by_category.items():
+        logger.info(f"קטגוריה {category}: {len(category_questions)} שאלות")
+    
+    # Assign questions to each interview
+    for interview in interviews:
+        interview_questions = []
+        order_index = 1
+        
+        # For each category, assign 2 questions
+        for category, category_questions in questions_by_category.items():
+            # Take up to 2 questions from this category
+            questions_to_assign = category_questions[:2]
+            
+            for question in questions_to_assign:
+                interview_question = InterviewQuestion(
+                    interview_id=interview.id,
+                    question_id=question.id,
+                    status=InterviewQuestionStatus.PENDING,
+                    order_index=order_index,
+                    question_text_snapshot=question.question_text
+                )
+                db.add(interview_question)
+                interview_questions.append(interview_question)
+                order_index += 1
+        
+        logger.info(f"הוקצו {len(interview_questions)} שאלות לראיון '{interview.job_title}'")
+    
+    db.flush()
+    logger.info("הקצאת שאלות לראיונות הושלמה")
+
 
 def create_sample_interview_questions(db: Session, interviews: list, questions: list):
     """
-    יצירת שאלות ראיון לדוגמה עם תשובות למועמדים שסיימו.
+    עדכון שאלות ראיון קיימות עם תשובות למועמדים שסיימו.
     זה מדגים איך המערכת שומרת תגובות לשאלות וניתוח AI.
     """
-    logger.info("יצירת שאלות ראיון לדוגמה עם תשובות...")
+    logger.info("עדכון שאלות ראיון קיימות עם תשובות לדוגמה...")
 
     # Find a candidate with completed status
     completed_candidates = db.query(Candidate).filter(
@@ -501,7 +549,7 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
     ).all()
 
     if not completed_candidates:
-        logger.info("לא נמצאו מועמדים שסיימו, מדלג על יצירת שאלות ראיון")
+        logger.info("לא נמצאו מועמדים שסיימו, מדלג על עדכון שאלות ראיון")
         return
 
     # Use the first completed candidate
@@ -510,102 +558,188 @@ def create_sample_interview_questions(db: Session, interviews: list, questions: 
         logger.info("למועמד שסיים אין ראיון שהוקצה")
         return
 
-    # Get the interview for this candidate
-    interview = next((i for i in interviews if i.id == completed_candidate.interview_id), None)
-    if not interview:
-        logger.info("לא ניתן למצוא ראיון למועמד שסיים")
+    # Get existing interview questions for this interview
+    existing_interview_questions = db.query(InterviewQuestion).filter(
+        InterviewQuestion.interview_id == completed_candidate.interview_id
+    ).order_by(InterviewQuestion.order_index).all()
+
+    if not existing_interview_questions:
+        logger.info("לא נמצאו שאלות ראיון קיימות עבור המועמד שסיים")
         return
 
-    # Get relevant questions for security guard position
-    security_questions = [q for q in questions if q.category in [
-        QuestionCategory.CRIMINAL_BACKGROUND,
-        QuestionCategory.ETHICS,
-        QuestionCategory.TRUSTWORTHINESS
-    ]][:5]  # Take first 5 questions
+    # Sample answers by category for realistic responses
+    sample_answers_by_category = {
+        QuestionCategory.CRIMINAL_BACKGROUND: [
+            {
+                "answer": "לא, אף פעם לא הורשעתי בעבירה כלשהי. יש לי רקע פלילי נקי ללא מעצרים או האשמות.",
+                "ai_analysis": {
+                    "sentiment": "confident",
+                    "honesty_score": 0.95,
+                    "completeness": 0.9,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            },
+            {
+                "answer": "לא, אף פעם לא הייתי מעורב במצב שדרש התערבות משטרה. אני מנסה להימנע מצרות ולחיות חיים נקיים.",
+                "ai_analysis": {
+                    "sentiment": "clear",
+                    "honesty_score": 0.92,
+                    "completeness": 0.88,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            }
+        ],
+        QuestionCategory.DRUG_USE: [
+            {
+                "answer": "לא, אני לא משתמש בסמים לא חוקיים ולא השתמשתי בעבר. אני שותה אלכוהול באירועים חברתיים בלבד ובכמויות מתונות.",
+                "ai_analysis": {
+                    "sentiment": "clear",
+                    "honesty_score": 0.93,
+                    "completeness": 0.95,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            },
+            {
+                "answer": "אני מעולם לא נטלתי עזרה מקצועית כי לא הייתי צריך. אני מתמודד עם לחץ באמצעות ספורט ומדיטציה.",
+                "ai_analysis": {
+                    "sentiment": "confident",
+                    "honesty_score": 0.89,
+                    "completeness": 0.85,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            }
+        ],
+        QuestionCategory.ETHICS: [
+            {
+                "answer": "לא, אף פעם לא לקחתי משהו שלא השייך לי. אני מאמין חזק ביושרה ואמינות.",
+                "ai_analysis": {
+                    "sentiment": "confident",
+                    "honesty_score": 0.92,
+                    "completeness": 0.85,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            },
+            {
+                "answer": "כשראיתי עמית לוקח ציוד משרדי הביתה, דיברתי איתו ישירות והוא החזיר הכל. לא הייתי צריך לדווח למנהל.",
+                "ai_analysis": {
+                    "sentiment": "responsible",
+                    "honesty_score": 0.94,
+                    "completeness": 0.92,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low",
+                    "notes": "טיפול ישיר ואפקטיבי בבעיה אתית"
+                }
+            }
+        ],
+        QuestionCategory.DISMISSALS: [
+            {
+                "answer": "פוטרתי מעבודה אחת לפני כשלוש שנים בגלל צמצומים בחברה. זה לא היה קשור לביצועים - הם ביטלו את כל המחלקה שלי. קיבלתי מכתב המלצה טוב.",
+                "ai_analysis": {
+                    "sentiment": "honest",
+                    "honesty_score": 0.88,
+                    "completeness": 0.9,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low",
+                    "notes": "גילוי כנה של איבוד עבודה עקב צמצומים, לא התנהגות לא תקינה"
+                }
+            },
+            {
+                "answer": "לא, מעולם לא נוקטו נגדי צעדים משמעתיים. אני מקפיד על כללי החברה ועל התנהגות מקצועית.",
+                "ai_analysis": {
+                    "sentiment": "confident",
+                    "honesty_score": 0.91,
+                    "completeness": 0.87,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            }
+        ],
+        QuestionCategory.TRUSTWORTHINESS: [
+            {
+                "answer": "בעבודה הקודמת שלי הייתי אחראי על כספי הקופה. המנהל בטח בי עם סכומים גדולים מדי יום. תמיד דאגתי לספור בדיוק ולתעד הכל כראוי, ומעולם לא היה חסר אפילו שקל אחד.",
+                "ai_analysis": {
+                    "sentiment": "proud",
+                    "honesty_score": 0.94,
+                    "completeness": 0.92,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low",
+                    "notes": "דוגמה קונקרטית של טיפול אחראי בכספים"
+                }
+            },
+            {
+                "answer": "אני תמיד מגיע בזמן לעבודה ועומד בכל המועדים. אם אני חושש שלא אעמוד במועד, אני מדווח מראש ומבקש עזרה או הארכה.",
+                "ai_analysis": {
+                    "sentiment": "responsible",
+                    "honesty_score": 0.90,
+                    "completeness": 0.88,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low"
+                }
+            }
+        ],
+        QuestionCategory.GENERAL: [
+            {
+                "answer": "בפעם שקבלתי עודף כסף בקופה, החזרתי מיד למנהל גם שזה היה סכום קטן. עשיית הדבר הנכון חשובה לי יותר מכסף.",
+                "ai_analysis": {
+                    "sentiment": "principled",
+                    "honesty_score": 0.96,
+                    "completeness": 0.93,
+                    "red_flags": [],
+                    "follow_up_needed": False,
+                    "risk_assessment": "low",
+                    "notes": "הפגנה מעולה של יושרה בפעולה"
+                }
+            }
+        ]
+    }
 
-    # Sample answers and AI analysis for the completed interview
-    sample_qa_data = [
-        {
-            "question": next((q for q in security_questions if "עבר פלילי" in q.question_text), security_questions[0]),
-            "answer": "לא, אף פעם לא הורשעתי בעבירה כלשהי. יש לי רקע פלילי נקי ללא מעצרים או האשמות.",
-            "ai_analysis": {
-                "sentiment": "confident",
-                "honesty_score": 0.95,
-                "completeness": 0.9,
-                "red_flags": [],
-                "follow_up_needed": False,
-                "risk_assessment": "low"
-            }
-        },
-        {
-            "question": next((q for q in security_questions if "גניבה" in q.question_text), security_questions[1]),
-            "answer": "לא, אף פעם לא לקחתי משהו שלא השייך לי. אני מאמין חזק ביושרה ואמינות.",
-            "ai_analysis": {
-                "sentiment": "confident",
-                "honesty_score": 0.92,
-                "completeness": 0.85,
-                "red_flags": [],
-                "follow_up_needed": False,
-                "risk_assessment": "low"
-            }
-        },
-        {
-            "question": next((q for q in security_questions if "פיטורים" in q.question_text or "פוטרת" in q.question_text), security_questions[2]),
-            "answer": "פוטרתי מעבודה אחת לפני כשלוש שנים בגלל צמצומים בחברה. זה לא היה קשור לביצועים - הם ביטלו את כל המחלקה שלי. קיבלתי מכתב המלצה טוב.",
-            "ai_analysis": {
-                "sentiment": "honest",
-                "honesty_score": 0.88,
-                "completeness": 0.9,
-                "red_flags": [],
-                "follow_up_needed": False,
-                "risk_assessment": "low",
-                "notes": "גילוי כנה של איבוד עבודה עקב צמצומים, לא התנהגות לא תקינה"
-            }
-        },
-        {
-            "question": next((q for q in security_questions if "סמים" in q.question_text or "חומרים" in q.question_text), security_questions[3]),
-            "answer": "לא, אני לא משתמש בסמים לא חוקיים ולא השתמשתי בעבר. אני שותה אלכוהול באירועים חברתיים בלבד ובכמויות מתונות.",
-            "ai_analysis": {
-                "sentiment": "clear",
-                "honesty_score": 0.93,
-                "completeness": 0.95,
-                "red_flags": [],
-                "follow_up_needed": False,
-                "risk_assessment": "low"
-            }
-        },
-        {
-            "question": next((q for q in security_questions if "אמון" in q.question_text or "אחריות" in q.question_text), security_questions[4] if len(security_questions) > 4 else security_questions[0]),
-            "answer": "בעבודה הקודמת שלי הייתי אחראי על כספי הקופה. המנהל בטח בי עם סכומים גדולים מדי יום. תמיד דאגתי לספור בדיוק ולתעד הכל כראוי, ומעולם לא היה חסר אפילו שקל אחד.",
-            "ai_analysis": {
-                "sentiment": "proud",
-                "honesty_score": 0.94,
-                "completeness": 0.92,
-                "red_flags": [],
-                "follow_up_needed": False,
-                "risk_assessment": "low",
-                "notes": "דוגמה קונקרטית של טיפול אחראי בכספים"
-            }
-        }
-    ]
-
-    # Create interview questions with answers
-    for index, qa_data in enumerate(sample_qa_data):
-        interview_question = InterviewQuestion(
-            interview_id=interview.id,
-            question_id=qa_data["question"].id,
-            status=InterviewQuestionStatus.ANSWERED,
-            order_index=index + 1,
-            question_text_snapshot=qa_data["question"].question_text,
-            candidate_answer=qa_data["answer"],
-            ai_analysis=qa_data["ai_analysis"],
-            asked_at=datetime.now() - timedelta(days=5, hours=1),
-            answered_at=datetime.now() - timedelta(days=5, hours=1, minutes=2)
-        )
-        db.add(interview_question)
+    # Update existing interview questions with answers
+    updated_count = 0
+    category_counters = {}
+    
+    for interview_question in existing_interview_questions:
+        # Get the question to determine its category
+        question = next((q for q in questions if q.id == interview_question.question_id), None)
+        if not question:
+            continue
+            
+        category = question.category
+        if category not in category_counters:
+            category_counters[category] = 0
+            
+        # Get sample answer for this category
+        if category in sample_answers_by_category:
+            answers_for_category = sample_answers_by_category[category]
+            answer_index = category_counters[category] % len(answers_for_category)
+            sample_data = answers_for_category[answer_index]
+            
+            # Update the interview question with answer
+            setattr(interview_question, 'status', InterviewQuestionStatus.ANSWERED)
+            setattr(interview_question, 'candidate_answer', sample_data["answer"])
+            setattr(interview_question, 'ai_analysis', sample_data["ai_analysis"])
+            setattr(interview_question, 'asked_at', datetime.now() - timedelta(days=5, hours=1))
+            setattr(interview_question, 'answered_at', datetime.now() - timedelta(days=5, hours=1, minutes=2))
+            
+            category_counters[category] += 1
+            updated_count += 1
 
     db.flush()
-    logger.info(f"נוצרו {len(sample_qa_data)} שאלות ראיון עם תשובות")
+    logger.info(f"עודכנו {updated_count} שאלות ראיון עם תשובות לדוגמה")
 
 
 if __name__ == "__main__":

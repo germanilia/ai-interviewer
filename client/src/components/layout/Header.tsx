@@ -12,8 +12,12 @@ export const Header: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      // Use window.location to bypass React Router and force redirect to interview page
+      window.location.href = '/interview';
     } catch (error) {
       console.error('Sign out error:', error);
+      // Even if logout fails, navigate to interview page
+      window.location.href = '/interview';
     }
   };
 

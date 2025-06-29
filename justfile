@@ -7,6 +7,16 @@ install:
 init:
     cd backend && python -m app.db.init_db
 
+# Drop the database (WARNING: This will delete all data!)
+drop-db:
+    cd backend && python -m app.db.drop_db
+
+# Reset the database (drop, init, and populate)
+reset-db:
+    just drop-db
+    just init
+    just populate_db
+
 # Generate a new Alembic migration with default message
 generate-migration:
     cd backend && python -m app.db.generate_migration "Auto-generated migration"

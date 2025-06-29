@@ -96,6 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       api.auth.clearTokens();
       setUser(null);
       setIsLoading(false);
+      // Navigation will be handled by the component that calls signOut
     }
   };
 

@@ -64,6 +64,7 @@ const renderWithAuthProvider = () => {
 
 describe('AuthContext', () => {
   const mockUser = {
+    id: 1,
     username: 'testuser',
     email: 'test@example.com',
     full_name: 'Test User',

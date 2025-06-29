@@ -129,8 +129,8 @@ function App() {
             />
 
             {/* Default redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/interview" replace />} />
+            <Route path="*" element={<Navigate to="/interview" replace />} />
           </Routes>
           <Toaster />
           </div>
