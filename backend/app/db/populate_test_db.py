@@ -12,7 +12,7 @@ from app.core.service_factory import get_cognito_service
 from app.core.logging_service import get_logger
 from app.db.populate_db import (
     SAMPLE_CANDIDATES, SAMPLE_JOBS, SAMPLE_QUESTIONS,
-    create_sample_interview_data
+    create_sample_interview_data, populate_default_prompts
 )
 from app.models.candidate import Candidate
 from app.models.interview import Question
@@ -252,7 +252,10 @@ def populate_sample_data(db: Session, admin_user: User):
         create_sample_interview_data(
             db, created_candidates, created_questions, admin_user)
 
-        
+        # 6. Create Default Custom Prompts
+        logger.info("Creating default prompts...")
+        populate_default_prompts(db, admin_user)
+
         db.commit()
         logger.info(
             "Successfully populated test database with all sample data!")

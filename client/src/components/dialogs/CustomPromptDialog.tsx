@@ -32,9 +32,15 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, CustomPrompt, CustomPromptCreate, CustomPromptUpdate } from '@/lib/api';
+import { PromptType, PROMPT_TYPES } from '@/types/prompts';
 
 const promptSchema = z.object({
-  prompt_type: z.enum(['evaluation', 'judge', 'guardrails'], {
+  prompt_type: z.enum([
+    PROMPT_TYPES.EVALUATION,
+    PROMPT_TYPES.JUDGE,
+    PROMPT_TYPES.GUARDRAILS,
+    PROMPT_TYPES.QUESTION_EVALUATION
+  ], {
     required_error: 'Please select a prompt type',
   }),
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
@@ -44,20 +50,16 @@ const promptSchema = z.object({
 
 type FormData = z.infer<typeof promptSchema>;
 
+import { PROMPT_TYPE_OPTIONS } from '@/types/prompts';
+
 interface CustomPromptDialogProps {
   open: boolean;
   onClose: (shouldRefresh?: boolean) => void;
   prompt?: CustomPrompt | null;
   isCreating: boolean;
-  preselectedType?: 'evaluation' | 'judge' | 'guardrails' | null;
+  preselectedType?: PromptType | null;
   availableTypes?: string[];
 }
-
-const PROMPT_TYPE_OPTIONS = [
-  { value: 'evaluation', label: 'Evaluation', description: 'Initial response generation' },
-  { value: 'judge', label: 'Judge', description: 'Final response evaluation and refinement' },
-  { value: 'guardrails', label: 'Guardrails', description: 'Content safety and appropriateness checking' },
-] as const;
 
 export const CustomPromptDialog: React.FC<CustomPromptDialogProps> = ({
   open,
@@ -74,7 +76,7 @@ export const CustomPromptDialog: React.FC<CustomPromptDialogProps> = ({
   const form = useForm<FormData>({
     resolver: zodResolver(promptSchema),
     defaultValues: {
-      prompt_type: preselectedType || (availableTypes.length > 0 ? availableTypes[0] as any : 'evaluation'),
+      prompt_type: preselectedType || (availableTypes.length > 0 ? availableTypes[0] as PromptType : PROMPT_TYPES.EVALUATION),
       name: '',
       content: '',
       description: '',
@@ -93,7 +95,7 @@ export const CustomPromptDialog: React.FC<CustomPromptDialogProps> = ({
         });
       } else {
         // Creating new prompt
-        const defaultType = preselectedType || (availableTypes.length > 0 ? availableTypes[0] as any : 'evaluation');
+        const defaultType = preselectedType || (availableTypes.length > 0 ? availableTypes[0] as PromptType : PROMPT_TYPES.EVALUATION);
         form.reset({
           prompt_type: defaultType,
           name: '',

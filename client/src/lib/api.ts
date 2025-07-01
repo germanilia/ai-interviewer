@@ -37,10 +37,12 @@ export interface UserInfo {
   user_sub?: string;
 }
 
+import type { PromptType } from '@/types/prompts';
+
 // Custom Prompt types
 export interface CustomPrompt {
   id: number;
-  prompt_type: 'evaluation' | 'judge' | 'guardrails';
+  prompt_type: PromptType;
   name: string;
   content: string;
   description?: string;
@@ -51,7 +53,7 @@ export interface CustomPrompt {
 }
 
 export interface CustomPromptCreate {
-  prompt_type: 'evaluation' | 'judge' | 'guardrails';
+  prompt_type: PromptType;
   name: string;
   content: string;
   description?: string;

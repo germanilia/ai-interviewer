@@ -1,7 +1,8 @@
 import { Page, Locator } from '@playwright/test';
+import type { PromptType } from '../../src/types/prompts';
 
 export interface CustomPromptData {
-  promptType: 'evaluation' | 'judge' | 'guardrails';
+  promptType: PromptType;
   name: string;
   content: string;
   description?: string;
@@ -314,18 +315,19 @@ export class CustomPromptsPage {
    * Get prompt type label for UI
    */
   private getPromptTypeLabel(promptType: string): string {
-    const labels = {
-      'evaluation': 'Evaluation',
-      'judge': 'Judge',
-      'guardrails': 'Guardrails'
+    const labels: Record<PromptType, string> = {
+      'EVALUATION': 'Evaluation',
+      'JUDGE': 'Judge',
+      'GUARDRAILS': 'Guardrails',
+      'QUESTION_EVALUATION': 'Question Evaluation'
     };
-    return labels[promptType as keyof typeof labels] || promptType;
+    return labels[promptType as PromptType] || promptType;
   }
 
   /**
    * Check if empty state is shown for a prompt type
    */
-  async isEmptyStateShown(promptType: 'evaluation' | 'judge' | 'guardrails'): Promise<boolean> {
+  async isEmptyStateShown(promptType: PromptType): Promise<boolean> {
     const typeLabel = this.getPromptTypeLabel(promptType);
     const emptyText = `No ${typeLabel.toLowerCase()} prompt configured yet.`;
     return await this.page.getByText(emptyText).isVisible();

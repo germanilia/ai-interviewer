@@ -6,18 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { api, CustomPrompt } from '@/lib/api';
 import { CustomPromptDialog } from '@/components/dialogs/CustomPromptDialog';
-
-const PROMPT_TYPE_LABELS = {
-  evaluation: 'Evaluation',
-  judge: 'Judge',
-  guardrails: 'Guardrails'
-} as const;
-
-const PROMPT_TYPE_DESCRIPTIONS = {
-  evaluation: 'Initial response generation using a smaller, faster model',
-  judge: 'Final response evaluation and refinement using a larger model',
-  guardrails: 'Content safety and appropriateness checking'
-} as const;
+import { PromptType, PROMPT_TYPE_LABELS, PROMPT_TYPE_DESCRIPTIONS } from '@/types/prompts';
 
 export const CustomPrompts: React.FC = () => {
   const [prompts, setPrompts] = useState<CustomPrompt[]>([]);
@@ -25,7 +14,7 @@ export const CustomPrompts: React.FC = () => {
   const [selectedPrompt, setSelectedPrompt] = useState<CustomPrompt | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [preselectedType, setPreselectedType] = useState<'evaluation' | 'judge' | 'guardrails' | null>(null);
+  const [preselectedType, setPreselectedType] = useState<PromptType | null>(null);
   const { toast } = useToast();
 
   const loadPrompts = async () => {

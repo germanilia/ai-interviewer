@@ -10,6 +10,7 @@ from app.models.interview import (
     QuestionImportance,
     QuestionCategory, InterviewQuestionStatus
 )
+from app.models.custom_prompt import CustomPrompt, PromptType
 from app.schemas.interview import generate_pass_key
 from app.db import SessionLocal
 
@@ -346,6 +347,104 @@ SAMPLE_QUESTIONS = [
     }
 ]
 
+# Default prompts to populate the database
+DEFAULT_PROMPTS = [
+    {
+        "prompt_type": PromptType.EVALUATION,
+        "name": "Default Evaluation Prompt",
+        "content": """
+Your task is to generate appropriate interview responses based on the conversation context and current question.
+
+Guidelines:
+1. Generate natural, conversational responses that guide the interview forward
+2. Ask follow-up questions when appropriate
+3. Maintain a professional but friendly tone
+4. Focus on the current question while considering the overall interview context
+5. Encourage detailed responses from candidates
+
+Response format:
+- reasoning: Your analysis of the conversation and response strategy
+- response: The actual response to send to the candidate
+- was_question_answered: Whether the current question was sufficiently answered
+- answered_question_index: Index of the question that was answered (if applicable)
+""",
+        "description": "Default prompt for initial response generation using evaluation model",
+        "is_active": True
+    },
+    {
+        "prompt_type": PromptType.JUDGE,
+        "name": "Default Judge Prompt",
+        "content": """
+Your task is to evaluate and refine interview responses for final delivery.
+
+Guidelines:
+1. Review the initial response for appropriateness and effectiveness
+2. Ensure the response maintains interview flow and professionalism
+3. Verify that sensitive topics are handled appropriately
+4. Refine language for clarity and engagement
+5. Ensure responses align with interview objectives
+
+Response format:
+- reasoning: Your evaluation of the initial response and refinement strategy
+- response: The final refined response to send to the candidate
+- was_question_answered: Whether the current question was sufficiently answered
+- answered_question_index: Index of the question that was answered (if applicable)
+""",
+        "description": "Default prompt for final response evaluation and refinement using judge model",
+        "is_active": True
+    },
+    {
+        "prompt_type": PromptType.GUARDRAILS,
+        "name": "Default Guardrails Prompt",
+        "content": """
+Your task is to evaluate whether this conversation can continue safely and professionally.
+
+Check for:
+1. Inappropriate language or content
+2. Discriminatory statements
+3. Harassment or offensive behavior
+4. Off-topic discussions that are unprofessional
+5. Attempts to manipulate or exploit the system
+6. Personal attacks or hostile behavior
+7. Sharing of sensitive personal information inappropriately
+
+Guidelines:
+- Be permissive for normal interview discussions
+- Allow candidates to discuss their experiences, even if they mention challenges
+- Only flag truly inappropriate or harmful content
+- Consider cultural differences in communication styles
+- Focus on professional interview context
+- Allow reasonable personal anecdotes related to work experience
+
+Very important you are not allowed to disqualify candidates if you find them unfit for the job,
+the only purpose of this evaluation is to check if the conversation is still related to the interview or was steered to a different topic.
+
+Dont consider ethical and moral issues as reason not. to continue, it doesn't event matter, you need to filter spam and mis use of the system to any other task than the interview.
+""",
+        "description": "Default prompt for content safety and appropriateness checking",
+        "is_active": True
+    },
+    {
+        "prompt_type": PromptType.QUESTION_EVALUATION,
+        "name": "Default Question Evaluation Prompt",
+        "content": """
+Your task:
+1. Analyze the conversation history to determine if the candidate has provided a complete and satisfactory answer to the current question
+2. Consider the depth, relevance, and completeness of the candidate's response
+3. A question is "fully answered" if the candidate has addressed the core aspects of what was being asked
+4. Partial answers, evasive responses, or off-topic responses should be considered as NOT fully answered
+
+Please provide your evaluation in the following format:
+- reasoning: Your detailed analysis of why the question was or wasn't fully answered
+- question_fully_answered: true if the question was completely answered, false otherwise
+
+Be strict in your evaluation - only mark as fully answered if the candidate genuinely addressed the question comprehensively.
+""",
+        "description": "Default prompt for evaluating if interview questions were answered",
+        "is_active": True
+    }
+]
+
 
 def populate_db():
     """
@@ -443,6 +542,10 @@ def populate_db():
         create_sample_interview_questions(
             db, created_interviews, created_questions)
 
+        # 8. Create Default Custom Prompts
+        logger.info("יצירת הנחיות ברירת מחדל...")
+        populate_default_prompts(db, admin_user)
+
         db.commit()
         logger.info("מסד הנתונים מולא בהצלחה עם כל הנתונים לדוגמה!")
         logger.info(f"סיכום: {len(created_users)} משתמשים, {len(created_candidates)} מועמדים, {len(created_questions)} שאלות, "
@@ -456,6 +559,39 @@ def populate_db():
         db.close()
 
     return True
+
+
+def populate_default_prompts(db: Session, admin_user: User):
+    """
+    יצירת הנחיות ברירת מחדל במסד הנתונים.
+    """
+    logger.info("יצירת הנחיות ברירת מחדל...")
+
+    created_prompts = []
+    for prompt_data in DEFAULT_PROMPTS:
+        # Check if a prompt of this type already exists
+        existing_prompt = db.query(CustomPrompt).filter(
+            CustomPrompt.prompt_type == prompt_data["prompt_type"],
+            CustomPrompt.is_active == True
+        ).first()
+
+        if not existing_prompt:
+            prompt = CustomPrompt(
+                prompt_type=prompt_data["prompt_type"],
+                name=prompt_data["name"],
+                content=prompt_data["content"],
+                description=prompt_data["description"],
+                is_active=prompt_data["is_active"],
+                created_by_user_id=admin_user.id
+            )
+            db.add(prompt)
+            created_prompts.append(prompt)
+            logger.info(f"נוצרה הנחיה ברירת מחדל: {prompt_data['name']}")
+        else:
+            logger.info(f"הנחיה מסוג {prompt_data['prompt_type']} כבר קיימת, מדלג")
+
+    db.flush()
+    logger.info(f"נוצרו {len(created_prompts)} הנחיות ברירת מחדל")
 
 
 def create_sample_interview_data(db: Session, candidates: list, questions: list, admin_user: User):

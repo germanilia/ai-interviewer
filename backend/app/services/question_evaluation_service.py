@@ -5,6 +5,8 @@ import logging
 from typing import TYPE_CHECKING
 from sqlalchemy.orm import Session
 
+from app.evaluators.base_evaluator import BaseEvaluator
+from app.models.custom_prompt import PromptType
 from app.schemas.prompt_response import QuestionEvaluationResponse
 from app.schemas.interview_session import InterviewContext, ChatMessage
 from app.core.llm_service import LLMFactory, ModelName
@@ -15,10 +17,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class QuestionEvaluationService:
+class QuestionEvaluationService(BaseEvaluator):
     """Service for evaluating if interview questions were answered using Claude 4"""
 
-    EVALUATION_PROMPT = """
+    INIT_PROMPT = """
 You are an expert interview evaluator. Your task is to determine if a specific interview question has been fully answered by the candidate based on the conversation history.
 
 Interview Context:
@@ -31,7 +33,9 @@ Current Question Being Evaluated:
 
 Full Conversation History:
 {conversation_history}
+"""
 
+    DEFAULT_PROMPT = """
 Your task:
 1. Analyze the conversation history to determine if the candidate has provided a complete and satisfactory answer to the current question
 2. Consider the depth, relevance, and completeness of the candidate's response
@@ -47,7 +51,29 @@ Be strict in your evaluation - only mark as fully answered if the candidate genu
 
     def __init__(self):
         """Initialize the question evaluation service with Claude 4"""
+        super().__init__(PromptType.QUESTION_EVALUATION, self.DEFAULT_PROMPT, self.INIT_PROMPT)
         self.llm_client = LLMFactory.create_client(ModelName.CLAUDE_4_SONNET)
+
+    def execute(self, db: Session, context: InterviewContext, message: str, **kwargs) -> bool:
+        """
+        Execute the question evaluation prompt (required by BaseEvaluator).
+
+        Args:
+            db: Database session
+            context: Interview context
+            message: User message
+            **kwargs: Additional arguments (should include 'current_question')
+
+        Returns:
+            Boolean indicating if question was fully answered
+        """
+        current_question = kwargs.get('current_question')
+        if not current_question:
+            logger.error("current_question not provided in kwargs")
+            return False
+
+        response = self.evaluate_question_answered(db, context, current_question, message)
+        return response.question_fully_answered
 
     def evaluate_question_answered(
         self,
@@ -70,31 +96,33 @@ Be strict in your evaluation - only mark as fully answered if the candidate genu
         """
         logger.info(f"Evaluating if question '{current_question.title}' was answered")
 
-        # Format conversation history for the prompt
-        conversation_text = self._format_conversation_history(context.conversation_history)
-
-        # Format the current question
-        question_text = f"Title: {current_question.title}\nQuestion: {current_question.question_text}"
-        if current_question.instructions:
-            question_text += f"\nInstructions: {current_question.instructions}"
-
-        # Format the prompt
-        formatted_prompt = self.EVALUATION_PROMPT.format(
-            candidate_name=context.candidate_name,
-            interview_title=context.interview_title,
-            job_description=context.job_description or "Not specified",
-            current_question=question_text,
-            conversation_history=conversation_text
-        )
-
-        # Execute the LLM evaluation
-        logger.info("Executing question evaluation with Claude 4")
         try:
+            # Get the prompt content (custom or default)
+            prompt_content = self.get_prompt_content(db)
+
+            # Format the current question
+            question_text = f"Title: {current_question.title}\nQuestion: {current_question.question_text}"
+            if current_question.instructions:
+                question_text += f"\nInstructions: {current_question.instructions}"
+
+            # Prepare context variables
+            context_vars = self.prepare_context_variables(context, user_message)
+            context_vars['current_question'] = question_text
+
+            # Format the prompt
+            formatted_prompt = self.format_prompt(prompt_content, **context_vars)
+
+            # Execute the LLM evaluation
+            logger.info("Executing question evaluation with Claude 4")
             evaluation_response = self.llm_client.generate(formatted_prompt, QuestionEvaluationResponse)
             logger.info(f"Question evaluation completed: {evaluation_response.question_fully_answered}")
+
+            self.log_execution("Question Evaluation", True)
             return evaluation_response
+
         except Exception as e:
             logger.exception(f"Error in question evaluation: {e}")
+            self.log_execution("Question Evaluation", False, str(e))
             # Fallback to not answered to be safe
             return QuestionEvaluationResponse(
                 reasoning=f"Evaluation failed due to error: {str(e)}. Defaulting to not answered.",
