@@ -2,7 +2,7 @@
 Interview session service for handling business logic.
 """
 import logging
-from typing import Optional
+from typing import Optional, Union
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
@@ -10,13 +10,14 @@ from app.crud.interview_session import interview_session_dao
 from app.crud.candidate import candidate_dao
 from app.crud.interview import interview_dao
 from app.crud.interview_question import InterviewQuestionDAO
-from app.models.interview import QuestionImportance, InterviewQuestionStatus
+from app.models.interview import QuestionImportance, InterviewQuestionStatus, Interview
 from app.schemas.interview_session import (
     CandidateLoginResponse,
     InterviewSessionResponse,
     ChatResponse,
     InterviewContext
 )
+from app.schemas.interview import InterviewResponse
 from app.services.interview_llm_service import InterviewLLMService
 from app.services.question_evaluation_service import QuestionEvaluationService
 from app.schemas.question import QuestionResponse
@@ -33,8 +34,25 @@ class InterviewSessionService:
         self.interview_question_dao = InterviewQuestionDAO()
         self.question_evaluation_service = QuestionEvaluationService()
 
-    def _generate_initial_message(self, candidate_name: str, language: str) -> str:
-        """Generate initial welcome message based on interview language"""
+    def _get_initial_message(self, interview: Union[Interview, InterviewResponse], candidate_name: str) -> str:
+        """Get initial greeting message with variable substitution"""
+        # Get the initial greeting value
+        initial_greeting = getattr(interview, 'initial_greeting', None)
+        if initial_greeting:
+            try:
+                # Substitute variables in the greeting
+                return initial_greeting.format(
+                    candidate_name=candidate_name,
+                    interview_title=interview.job_title,
+                    job_description=getattr(interview, 'job_description', None) or "",
+                    job_department=getattr(interview, 'job_department', None) or ""
+                )
+            except (KeyError, ValueError) as e:
+                logger.warning(f"Error formatting initial greeting: {e}. Using fallback.")
+                # Fall through to fallback logic
+
+        # Fallback to language-based default if no custom greeting or formatting error
+        language = getattr(interview, 'language', 'English')
         if language == "Hebrew":
             return f"שלום {candidate_name}, איך אתה היום?"
         elif language == "Arabic":
@@ -80,8 +98,8 @@ class InterviewSessionService:
             )
             logger.info(f"Created new session {existing_session.id} for candidate {candidate.id} upon login")
 
-            # Add initial message to conversation history based on interview language
-            initial_message = self._generate_initial_message(candidate_name, interview.language)
+            # Add initial message to conversation history based on interview greeting
+            initial_message = self._get_initial_message(interview, candidate_name)
             self.session_dao.add_message_to_conversation(
                 db=db,
                 session_id=existing_session.id,
@@ -129,9 +147,9 @@ class InterviewSessionService:
             interview_id=interview_id
         )
 
-        # Add initial message to conversation history based on interview language
+        # Add initial message to conversation history based on interview greeting
         candidate_name = f"{candidate.first_name} {candidate.last_name}"
-        initial_message = self._generate_initial_message(candidate_name, interview.language)
+        initial_message = self._get_initial_message(interview, candidate_name)
         self.session_dao.add_message_to_conversation(
             db=db,
             session_id=session.id,

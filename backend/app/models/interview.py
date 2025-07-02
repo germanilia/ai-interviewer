@@ -76,6 +76,9 @@ class Interview(Base):
     # Interview language
     language = Column(Enum(InterviewLanguage), default=InterviewLanguage.HEBREW, nullable=False)
 
+    # Initial greeting message for candidates
+    initial_greeting = Column(Text, nullable=True)
+
     # General interview data (aggregated from candidates)
     avg_score = Column(Integer, nullable=True)  # Average score from all candidates
     total_candidates = Column(Integer, default=0, nullable=False)

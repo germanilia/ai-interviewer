@@ -148,8 +148,8 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+      <DialogContent
+        className="max-w-2xl max-h-[80vh] overflow-y-auto"
         data-testid={mode === 'create' ? 'add-question-modal' : 'edit-question-modal'}
       >
         <DialogHeader>

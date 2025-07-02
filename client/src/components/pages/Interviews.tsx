@@ -494,7 +494,7 @@ export const Interviews: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="sm:max-w-[400px]" data-testid="delete-interview-modal">
+        <DialogContent className="sm:max-w-[400px] max-h-[80vh] overflow-y-auto" data-testid="delete-interview-modal">
           <DialogHeader>
             <DialogTitle>Delete Interview</DialogTitle>
             <DialogDescription>

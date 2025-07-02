@@ -39,6 +39,7 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [jobDepartment, setJobDepartment] = useState('');
+  const [initialGreeting, setInitialGreeting] = useState('');
   const [instructions, setInstructions] = useState('');
 
   const { toast } = useToast();
@@ -84,8 +85,9 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
     setJobTitle(interview.job_title || '');
     setJobDescription(interview.job_description || '');
     setJobDepartment(interview.job_department || '');
+    setInitialGreeting(interview.initial_greeting || '');
     setInstructions(interview.instructions || '');
-    
+
     // Set selected questions from interview
     if (interview.questions) {
       setSelectedQuestions(interview.questions.map((q: any) => q.id));
@@ -139,6 +141,7 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
         job_title: jobTitle,
         job_description: jobDescription || undefined,
         job_department: jobDepartment || undefined,
+        initial_greeting: initialGreeting || undefined,
         instructions: instructions || undefined,
       };
 
@@ -170,8 +173,8 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" data-testid="edit-interview-modal">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col" data-testid="edit-interview-modal">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle data-testid="modal-title">
             Edit Interview
           </DialogTitle>
@@ -180,7 +183,8 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Job Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Job Information</h3>
@@ -218,6 +222,21 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
                 data-testid="job-description-input"
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="initial-greeting">Initial Greeting Message</Label>
+              <Textarea
+                id="initial-greeting"
+                value={initialGreeting}
+                onChange={(e) => setInitialGreeting(e.target.value)}
+                placeholder="Hello {candidate_name}, welcome to your interview for {interview_title}..."
+                data-testid="initial-greeting-input"
+                rows={3}
+              />
+              <p className="text-sm text-muted-foreground">
+                Available variables: {'{candidate_name}'}, {'{interview_title}'}, {'{job_description}'}, {'{job_department}'}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -296,8 +315,9 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
               {selectedQuestions.length} question{selectedQuestions.length !== 1 ? 's' : ''} selected
             </p>
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0 mt-4">
             <Button
               type="button"
               variant="outline"

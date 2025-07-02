@@ -12,7 +12,8 @@ from app.core.service_factory import get_cognito_service
 from app.core.logging_service import get_logger
 from app.db.populate_db import (
     SAMPLE_CANDIDATES, SAMPLE_JOBS, SAMPLE_QUESTIONS,
-    create_sample_interview_data, populate_default_prompts
+    create_sample_interview_data, populate_default_prompts,
+    get_default_initial_greeting
 )
 from app.models.candidate import Candidate
 from app.models.interview import Question
@@ -203,6 +204,8 @@ def populate_sample_data(db: Session, admin_user: User):
             job_title="Warehouse Supervisor",
             job_description="Supervise warehouse operations and manage inventory",
             job_department="Operations",
+            language="Hebrew",  # Default to Hebrew
+            initial_greeting=get_default_initial_greeting("Hebrew"),
             created_by_user_id=admin_user.id
         )
         db.add(test_interview)

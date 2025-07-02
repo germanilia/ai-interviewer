@@ -46,7 +46,7 @@ export const InterviewDetailsModal: React.FC<InterviewDetailsModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]" data-testid="interview-details-modal">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto" data-testid="interview-details-modal">
         <DialogHeader>
           <DialogTitle data-testid="details-modal-title">
             Interview Details

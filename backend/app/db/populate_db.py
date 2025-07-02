@@ -446,6 +446,16 @@ Be strict in your evaluation - only mark as fully answered if the candidate genu
 ]
 
 
+def get_default_initial_greeting(language: str) -> str:
+    """Get default initial greeting based on language"""
+    if language == "Hebrew":
+        return "שלום {candidate_name}, ברוך הבא לראיון שלך עבור תפקיד {interview_title}. איך אתה מרגיש היום?"
+    elif language == "Arabic":
+        return "مرحباً {candidate_name}، أهلاً بك في مقابلتك لمنصب {interview_title}. كيف تشعر اليوم؟"
+    else:  # English
+        return "Hello {candidate_name}, welcome to your interview for the {interview_title} position. How are you feeling today?"
+
+
 def populate_db():
     """
     מילוי מסד הנתונים בנתונים לדוגמה עבור מערכת ראיון יושרה של צ'אטבוט AI.
@@ -484,6 +494,8 @@ def populate_db():
                 job_title=job_data["title"],
                 job_description=job_data["description"],
                 job_department=job_data["department"],
+                language="Hebrew",  # Default to Hebrew
+                initial_greeting=get_default_initial_greeting("Hebrew"),
                 created_by_user_id=admin_user.id
             )
             db.add(interview)

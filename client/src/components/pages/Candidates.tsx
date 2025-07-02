@@ -895,7 +895,7 @@ export const Candidates: React.FC = () => {
 
       {/* Add/Edit Candidate Modal */}
       <Dialog open={showAddModal || showEditModal} onOpenChange={closeModals}>
-        <DialogContent className="sm:max-w-md" data-testid={showAddModal ? "add-candidate-modal" : "edit-candidate-modal"}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto" data-testid={showAddModal ? "add-candidate-modal" : "edit-candidate-modal"}>
           <DialogHeader>
             <DialogTitle data-testid="modal-title">
               {editingCandidate ? 'Edit Candidate' : 'Add New Candidate'}

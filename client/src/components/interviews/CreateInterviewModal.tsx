@@ -45,6 +45,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
   const [jobDescription, setJobDescription] = useState('');
   const [jobDepartment, setJobDepartment] = useState('');
   const [language, setLanguage] = useState('Hebrew'); // Default to Hebrew
+  const [initialGreeting, setInitialGreeting] = useState('');
   const [instructions, setInstructions] = useState('');
   const [createdInterview, setCreatedInterview] = useState<InterviewResponse | null>(null);
   const [step, setStep] = useState<'form' | 'success'>('form');
@@ -57,6 +58,15 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
       resetForm();
     }
   }, [open]);
+
+  // Update greeting when language changes
+  useEffect(() => {
+    if (!initialGreeting || initialGreeting === getDefaultGreeting('Hebrew') ||
+        initialGreeting === getDefaultGreeting('English') ||
+        initialGreeting === getDefaultGreeting('Arabic')) {
+      setInitialGreeting(getDefaultGreeting(language));
+    }
+  }, [language]);
 
   useEffect(() => {
     // Filter questions based on search term
@@ -86,12 +96,25 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
     }
   };
 
+  const getDefaultGreeting = (lang: string) => {
+    switch (lang) {
+      case 'Hebrew':
+        return 'שלום {candidate_name}, ברוך הבא לראיון שלך עבור תפקיד {interview_title}. איך אתה מרגיש היום?';
+      case 'Arabic':
+        return 'مرحباً {candidate_name}، أهلاً بك في مقابلتك لمنصب {interview_title}. كيف تشعر اليوم؟';
+      case 'English':
+      default:
+        return 'Hello {candidate_name}, welcome to your interview for the {interview_title} position. How are you feeling today?';
+    }
+  };
+
   const resetForm = () => {
     setSelectedQuestions([]);
     setJobTitle('');
     setJobDescription('');
     setJobDepartment('');
     setLanguage('Hebrew'); // Reset to default Hebrew
+    setInitialGreeting(getDefaultGreeting('Hebrew'));
     setInstructions('');
     setCreatedInterview(null);
     setStep('form');
@@ -154,6 +177,7 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
         job_description: jobDescription || undefined,
         job_department: jobDepartment || undefined,
         language: language,
+        initial_greeting: initialGreeting || undefined,
         instructions: instructions || undefined,
         question_ids: selectedQuestions,
       };
@@ -182,13 +206,13 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]" data-testid="create-interview-modal">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col" data-testid="create-interview-modal">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle data-testid="modal-title">
             {step === 'form' ? 'Create New Interview' : 'Interview Created Successfully'}
           </DialogTitle>
           <DialogDescription>
-            {step === 'form' 
+            {step === 'form'
               ? 'Set up a new interview session for a candidate'
               : 'Your interview has been created with an auto-generated pass key'
             }
@@ -196,7 +220,8 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
         </DialogHeader>
 
         {step === 'form' ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
             {/* Job Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Job Information</h3>
@@ -236,6 +261,21 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
                     <SelectItem value="Arabic">Arabic</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="initial-greeting">Initial Greeting Message</Label>
+                <Textarea
+                  id="initial-greeting"
+                  placeholder="Hello {candidate_name}, welcome to your interview for {interview_title}..."
+                  value={initialGreeting}
+                  onChange={(e) => setInitialGreeting(e.target.value)}
+                  data-testid="initial-greeting-input"
+                  rows={3}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Available variables: {'{candidate_name}'}, {'{interview_title}'}, {'{job_description}'}, {'{job_department}'}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -324,8 +364,9 @@ export const CreateInterviewModal: React.FC<CreateInterviewModalProps> = ({
                 {selectedQuestions.length} question{selectedQuestions.length !== 1 ? 's' : ''} selected
               </p>
             </div>
+            </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-shrink-0 mt-4">
               <Button
                 type="button"
                 variant="outline"

@@ -27,6 +27,9 @@ class InterviewBase(BaseModel):
     # Interview language
     language: InterviewLanguage = InterviewLanguage.HEBREW
 
+    # Initial greeting message for candidates
+    initial_greeting: Optional[str] = None
+
     # General interview instructions
     instructions: Optional[str] = None
 
@@ -59,6 +62,7 @@ class InterviewCreate(InterviewBase):
             job_description=self.job_description,
             job_department=self.job_department,
             language=self.language,
+            initial_greeting=self.initial_greeting,
             instructions=self.instructions,
             created_by_user_id=created_by_user_id
         )
@@ -73,6 +77,9 @@ class InterviewUpdate(BaseModel):
 
     # Interview language
     language: Optional[InterviewLanguage] = None
+
+    # Initial greeting message
+    initial_greeting: Optional[str] = None
 
     # General interview fields
     instructions: Optional[str] = None
