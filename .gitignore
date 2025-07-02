@@ -108,8 +108,7 @@ backend/secrets.yaml
 
 # Local environment files
 .env
-client/.env.development
-client/.env.production
+
 
 # Spyder project settings
 .spyderproject
