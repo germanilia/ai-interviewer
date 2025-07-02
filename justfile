@@ -33,33 +33,13 @@ populate_db:
 run-backend:
     cd backend && uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
 
-# Run the frontend client in development
+# Run the frontend client
 run-client:
     cd client && npm start
 
-# Build the frontend client for production
-build-client:
-    cd client && npm run build
-
-# Preview the production build locally
-preview-client:
-    cd client && npm run preview -- --host 0.0.0.0
-
-# Serve the production build with Python
-serve-client-python:
-    cd client/dist && python3 -m http.server 5173 --bind 0.0.0.0
-
-# Serve the production build with npx serve
-serve-client-node:
-    npx serve -s client/dist -l 5173 -H 0.0.0.0
-
-# Run both backend and frontend in development
+# Run both backend and frontend
 run:
     just run-backend & just run-client
-
-# Run backend with production client build
-run-prod:
-    just run-backend & just serve-client-python
 
 # Test commands
 test-backend:
