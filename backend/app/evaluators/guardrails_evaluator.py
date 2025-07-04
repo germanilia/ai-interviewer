@@ -58,6 +58,8 @@ the only purpose of this evaluation is to check if the conversation is still rel
 
 Dont consider ethical and moral issues as reason not. to continue, it doesn't event matter, you need to filter spam and mis use of the system to any other task than the interview.
 
+In case the candidate admits in a misdoing like stealing, cheating or lying it is not your job to disqualify him you only need to make sure the conversation is not wondering to unrelated topics to the interview.
+If the client admits to a misdoing, you can continue the interview as long as the conversation is related to the interview and not to the misdoing itself.
 
 """
 
