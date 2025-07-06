@@ -12,9 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
 import api, { InterviewResponse, QuestionResponse } from '@/lib/api';
+import { ReorderableQuestionList } from './ReorderableQuestionList';
 
 interface EditInterviewModalProps {
   open: boolean;
@@ -41,6 +43,9 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
   const [jobDepartment, setJobDepartment] = useState('');
   const [initialGreeting, setInitialGreeting] = useState('');
   const [instructions, setInstructions] = useState('');
+
+  // Question management state
+  const [questionStep, setQuestionStep] = useState<'select' | 'reorder'>('select');
 
   const { toast } = useToast();
 
@@ -88,10 +93,14 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
     setInitialGreeting(interview.initial_greeting || '');
     setInstructions(interview.instructions || '');
 
-    // Set selected questions from interview
+    // Set selected questions from interview, preserving order
     if (interview.questions) {
+      // Questions are already ordered by order_index from the API
       setSelectedQuestions(interview.questions.map((q: any) => q.id));
     }
+
+    // Reset to selection step when editing
+    setQuestionStep('select');
   };
 
   const handleQuestionToggle = (questionId: number) => {
@@ -108,6 +117,30 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
     } else {
       setSelectedQuestions(filteredQuestions.map(q => q.id));
     }
+  };
+
+  const handleQuestionReorder = (newOrder: number[]) => {
+    setSelectedQuestions(newOrder);
+  };
+
+  const handleRemoveQuestion = (questionId: number) => {
+    setSelectedQuestions(prev => prev.filter(id => id !== questionId));
+  };
+
+  const handleContinueToReorder = () => {
+    if (selectedQuestions.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please select at least one question before continuing',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setQuestionStep('reorder');
+  };
+
+  const handleBackToSelection = () => {
+    setQuestionStep('select');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -252,68 +285,129 @@ export const EditInterviewModal: React.FC<EditInterviewModalProps> = ({
             </div>
           </div>
 
-          {/* Questions Selection */}
+          {/* Questions Management */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Questions *</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAllQuestions}
-                data-testid="select-all-questions-btn"
-              >
-                {selectedQuestions.length === filteredQuestions.length ? 'Deselect All' : 'Select All'}
-              </Button>
-            </div>
+            <h3 className="text-lg font-medium">Questions *</h3>
 
-            {/* Search Questions */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search questions by title, content, or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                data-testid="questions-search-input"
-              />
-            </div>
-            
-            <div className="max-h-64 overflow-y-auto border rounded-md p-3 space-y-2">
-              {filteredQuestions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {searchTerm ? 'No questions found matching your search.' : 'No questions available. Please create some questions first.'}
-                </p>
-              ) : (
-                filteredQuestions.map((question) => (
-                  <div key={question.id} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`question-${question.id}`}
-                      checked={selectedQuestions.includes(question.id)}
-                      onCheckedChange={() => handleQuestionToggle(question.id)}
-                      data-testid={`question-checkbox-${question.id}`}
-                    />
-                    <Label
-                      htmlFor={`question-${question.id}`}
-                      className="text-sm leading-relaxed cursor-pointer flex-1"
+            <Tabs value={questionStep} onValueChange={(value) => setQuestionStep(value as 'select' | 'reorder')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="select" data-testid="select-questions-tab">
+                  Select Questions ({selectedQuestions.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reorder"
+                  disabled={selectedQuestions.length === 0}
+                  data-testid="reorder-questions-tab"
+                >
+                  Reorder Questions
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="select" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Select questions for your interview
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAllQuestions}
+                    data-testid="select-all-questions-btn"
+                  >
+                    {selectedQuestions.length === filteredQuestions.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
+
+                {/* Search Questions */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search questions by title, content, or category..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                    data-testid="questions-search-input"
+                  />
+                </div>
+
+                <div className="max-h-64 overflow-y-auto border rounded-md p-3 space-y-2">
+                  {filteredQuestions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {searchTerm ? 'No questions found matching your search.' : 'No questions available. Please create some questions first.'}
+                    </p>
+                  ) : (
+                    filteredQuestions.map((question) => (
+                      <div key={question.id} className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`question-${question.id}`}
+                          checked={selectedQuestions.includes(question.id)}
+                          onCheckedChange={() => handleQuestionToggle(question.id)}
+                          data-testid={`question-checkbox-${question.id}`}
+                        />
+                        <Label
+                          htmlFor={`question-${question.id}`}
+                          className="text-sm leading-relaxed cursor-pointer flex-1"
+                        >
+                          <div className="font-medium">{question.title}</div>
+                          <div className="text-muted-foreground text-xs mt-1">
+                            {question.question_text}
+                          </div>
+                          <div className="flex gap-1 mt-1">
+                            <span className="text-xs bg-muted px-1 rounded">{question.category}</span>
+                            <span className="text-xs bg-muted px-1 rounded">{question.importance}</span>
+                          </div>
+                        </Label>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedQuestions.length} question{selectedQuestions.length !== 1 ? 's' : ''} selected
+                  </p>
+                  {selectedQuestions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleContinueToReorder}
+                      data-testid="continue-to-reorder-btn"
                     >
-                      <div className="font-medium">{question.title}</div>
-                      <div className="text-muted-foreground text-xs mt-1">
-                        {question.question_text}
-                      </div>
-                      <div className="flex gap-1 mt-1">
-                        <span className="text-xs bg-muted px-1 rounded">{question.category}</span>
-                        <span className="text-xs bg-muted px-1 rounded">{question.importance}</span>
-                      </div>
-                    </Label>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <p className="text-sm text-muted-foreground">
-              {selectedQuestions.length} question{selectedQuestions.length !== 1 ? 's' : ''} selected
-            </p>
+                      Continue to Reorder →
+                    </Button>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reorder" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Drag questions to reorder them for the interview
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBackToSelection}
+                    data-testid="back-to-selection-btn"
+                  >
+                    ← Back to Selection
+                  </Button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  <ReorderableQuestionList
+                    questions={questions}
+                    selectedQuestionIds={selectedQuestions}
+                    onReorder={handleQuestionReorder}
+                    onRemove={handleRemoveQuestion}
+                    data-testid="reorderable-question-list"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
           </div>
 
